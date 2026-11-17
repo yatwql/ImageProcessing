@@ -1,0 +1,173 @@
+"""测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口。
+
+文件名不以 test_ 开头，pytest 不会把它当用例收集。
+"""
+
+from __future__ import annotations
+
+import contextlib
+import curses
+import os
+import tempfile
+import unittest
+from collections.abc import Callable, Sequence
+from typing import TypeAlias
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+Rect: TypeAlias = tuple[int, int, int, int]
+RegionPairs: TypeAlias = Sequence[tuple[str, Rect]]
+
+FONT_CJK = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
+FONT_CJK_REG = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+
+
+def has_cjk_font() -> bool:
+    return os.path.exists(FONT_CJK) and os.path.exists(FONT_CJK_REG)
+
+
+def regions(*texts_and_rects):
+    """把 (文字, 矩形) 组合成 OCR 结果的形状。"""
+    return [{"text": t, "rect": r, "score": 1.0} for t, r in texts_and_rects]
+
+
+class FakeWin:
+    """最小 curses 窗口替身：按键从队列里取，按行存屏。
+
+    队列元素可以是字符、键码（int），或 None 表示“这个时间窗内没有更多输入”。
+    """
+
+    def __init__(self, keys: Sequence[str | int | None], rows: int = 28, cols: int = 100):
+        self.keys: list[str | int | None] = list(keys)
+        self.rows = rows
+        self.cols = cols
+        self.screen = [""] * rows
+        self.timeout_ms = -1
+
+    def getmaxyx(self):
+        return self.rows, self.cols
+
+    def erase(self):
+        self.screen = [""] * self.rows
+
+    def refresh(self):
+        pass
+
+    def keypad(self, *_args):
+        pass
+
+    def timeout(self, ms):
+        self.timeout_ms = ms
+
+    def move(self, *_args):
+        pass
+
+    def addstr(self, y, x, text, _attr=0):
+        if 0 <= y < self.rows:
+            self.screen[y] = (self.screen[y] + " " * x)[:x] + text
+
+    def addch(self, *_args):
+        pass
+
+    def get_wch(self):
+        if self.keys and self.keys[0] is None:
+            self.keys.pop(0)
+            raise curses.error("timeout")
+        if not self.keys:
+            if self.timeout_ms >= 0:
+                raise curses.error("timeout")
+            raise KeyboardInterrupt          # 队列空了＝人跑了，循环自行收尾
+        return self.keys.pop(0)
+
+
+def patch_curses() -> None:
+    """无终端环境下让绘制/配色退化为纯文本。"""
+    import src.python.tui.ui as ui
+
+    ui.init_colors = lambda: None
+    ui.attr = lambda _name, extra=0: extra
+    curses.ACS_VLINE = "|"
+
+
+class TuiTestCase(unittest.TestCase):
+    """TUI 用例基类：配色打桩 + 临时输出目录。"""
+
+    def setUp(self):
+        patch_curses()
+        self.tmp = tempfile.TemporaryDirectory()      # noqa: SIM115
+        self.addCleanup(self.tmp.cleanup)
+
+    def make_app(self, count: int = 3):
+        """临时目录里造 count 张图再启动 App：不依赖仓库 data/ 的内容。"""
+        from src.python.tui.app import App, Block
+
+        images_dir = os.path.join(self.tmp.name, "in")
+        os.makedirs(images_dir, exist_ok=True)
+        canvas = Image.new("RGB", (320, 200), (255, 255, 255))
+        for i in range(count):
+            canvas.save(os.path.join(images_dir, f"img{i + 1}.png"))
+        app = App([images_dir])
+        app.out_dir = os.path.join(self.tmp.name, "out")
+        for img in app.images:                 # 预置文字块，跳过 OCR
+            img.blocks = [Block(f"第{i}行文字", (10, 20 + i * 30, 200, 24)) for i in range(3)]
+        return app
+
+    def drive(self, app, keys):
+        import src.python.tui.ui as ui
+
+        win = FakeWin(keys)
+        with contextlib.suppress(KeyboardInterrupt):
+            ui.loop(win, app)
+        return win
+
+
+# --------------------------------------------------------------------------- 图片与 OCR
+
+
+def make_text_image(lines: Sequence[str], *, size: int = 36, color=(30, 30, 30),
+                    bg=(255, 255, 255), line_gap: int = 60, margin: int = 40,
+                    font_path: str | None = None, index: int = 0) -> tuple[np.ndarray, list[tuple[str, Rect]]]:
+    """按行画一张白底图，返回 (rgb ndarray, [(文字, (x, y, w, h))])。"""
+    font = ImageFont.truetype(font_path or FONT_CJK, size, index=index)
+    width = margin * 2 + max(1, max(len(s) for s in lines)) * size
+    height = margin * 2 + line_gap * len(lines)
+    img = Image.new("RGB", (width, height), bg)
+    draw = ImageDraw.Draw(img)
+    boxes = []
+    for i, text in enumerate(lines):
+        x, y = margin, margin + i * line_gap
+        draw.text((x, y), text, font=font, fill=color)
+        w = int(draw.textlength(text, font=font))
+        boxes.append((text, (x, y, max(1, w), size)))
+    return np.array(img), boxes
+
+
+@contextlib.contextmanager
+def patch_ocr(regions_for_image: RegionPairs | Callable[[np.ndarray], RegionPairs]):
+    """把 OCR 换成桩，避免测试里加载 RapidOCR。
+
+    regions_for_image: 一个函数 (rgb) -> [(文字, 矩形)]，或直接给一份固定列表。
+    """
+    from src.python.cli import main as cli_main
+    from src.python.core import jobs as jobs_mod
+
+    def pairs_of(rgb: np.ndarray) -> RegionPairs:
+        return regions_for_image(rgb) if callable(regions_for_image) else regions_for_image
+
+    def fake_regions(rgb, *_args, **_kwargs):
+        return [{"text": t, "rect": r, "score": 1.0} for t, r in pairs_of(rgb)]
+
+    def fake_crop(rgb, *_args, **_kwargs):
+        pairs = pairs_of(rgb)
+        return pairs[0][0] if pairs else None
+
+    original_ocr = (jobs_mod.ocr_regions, jobs_mod.ocr_crop)
+    original_cli = cli_main.ocr_regions
+    jobs_mod.ocr_regions, jobs_mod.ocr_crop = fake_regions, fake_crop
+    cli_main.ocr_regions = fake_regions
+    try:
+        yield
+    finally:
+        jobs_mod.ocr_regions, jobs_mod.ocr_crop = original_ocr
+        cli_main.ocr_regions = original_cli

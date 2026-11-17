@@ -1,0 +1,72 @@
+# 自检记录与缺陷
+
+> 记录开发自检时发现的问题、处理方式与遗留风险。编号 `RF-x`；
+> 状态：`已修` / `待办` / `待定` / `不修（有理由）`。
+
+## 2026-11-10 写盘日志（FR-7）
+
+| 编号 | 类型 | 发现 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-1 | 设计缺口 | 只在 `core.audit` 里实现写日志，CLI/TUI 不调用等于没记 | 两个渠道保存成功后各调一次 `record_write`，并传渠道名与显式选项 | 已修 |
+| RF-2 | 测试污染 | 默认日志目录是仓库根 `logs/`，用例会把日志写进项目 | `config.log_dir()` 支持 `IMG_P_LOG_DIR` 覆盖；用例全部指向 `TemporaryDirectory` | 已修 |
+| RF-3 | 覆盖不全 | `--debug` 写出的 mask 图也是图片写盘，初版没记 | `replace_image` 增加 `source` 参数，调试图按 `action=写出调试图` 记账 | 已修 |
+| RF-4 | 契约风险 | 日志写失败若抛到上层，会把「图片已保存」误报成替换失败 | `record_write` 抛 `CoreError`，CLI/TUI 捕获后只提示「已保存但…」 | 已修 |
+| RF-5 | 静默风险 | 预演（`--dry-run`）没有写盘，若记日志会误导审计 | 只在 `save_image` 成功之后记录；`dry-run` 分支完全不触碰日志 | 已修 |
+| RF-6 | 字段歧义 | 行内替换时报告里 `old` 是整行文字、`new` 只是替换片段，日志照录会看起来不对等 | 暂时如实记录并在手册标注；是否同时记录命中子串与 span 待定 | 待定 |
+| RF-7 | 默认值噪声 | `options_summary` 初版把默认值 `max_fonts=160` 也写进日志 | 与 `Options()` 默认值比较，相等即省略 | 已修 |
+| RF-10 | 契约冲突 | `--dry-run` 不存结果图，但 `--debug` 仍会写 mask 并记日志，与“预演不写文件”矛盾（补用例时发现） | `--dry-run` 下忽略 `--debug`并在 stderr 提示；已加用例固定该行为 | 已修 |
+| RF-11 | 用例污染 | 新用例初版没传 `--out-dir`，输出落到仓库 `data/output/` 且受已有文件影响拿到 `-44` 后缀 | 用例一律指定临时输出目录，并断言日志里的真实目标名 | 已修 |
+| RF-12 | 消息被覆盖 | TUI 日志写失败时设置的提示被 `apply_one` 末尾的返回消息覆盖 | 把日志错误拼到返回消息末尾，界面与用例都能看到 | 已修 |
+| RF-13 | 用例冗余 | 审计用例里 `record_write` 的渠道字段被 CLI/TUI 用例重复覆盖；调试图记账的 CLI 端到端与核心层单测几乎重合；`options_summary(None)` 单独立一例偏碎 | 删除重复用例，保留端到端用例并补断言（mask 文件真的写出）；None 分支并入相邻用例 | 已修 |
+| RF-14 | 命名偏离 | `test_options_summary_skips_default_project_and_channel_fields` 中的 “project” 不存在，语义不清 | 重命名为 `..._skips_defaults_and_runtime_fields` | 已修 |
+| RF-23 | 测试卫生 | 新增 CSS 检查发现的遗留：旧用例只删 `report.png`，编号产物越积越多 | 改为目录快照对比并清理新增文件，同时删掉历史堆积 | 已修 |
+| RF-15 | 断言不可满足 | 宽字距用例断言替换后宽度 > 200，但测试图本身只能画出 191（阈值错，不是实现回归） | 改为与原图宽度比较（≥ 85%），用例语义回到“字距不被收紧” | 已修 |
+
+## 2026-11-10 代码/功能/债务复查
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-17 | 功能缺陷 | 调色板 PNG（`P` 模式 + `tRNS`）的透明信息在 `load_image` 被丢弃，替换后透明背景变实色 | alpha 统一从 `convert("RGBA")` 取，全不透明才返回 None | 已修 |
+| RF-18 | 功能缺陷 | 输出扩展名不在支持表时 `Image.save` 抛 `ValueError`，渠道未捕获→直接 traceback | `save_image` 事先校验并抛 `CoreError`，CLI/TUI 改为一句提示 | 已修 |
+| RF-19 | 功能缺陷 | TUI 下 `core` 仍会向 stderr 打印（未识别/字体不可靠），在 curses 里会冲花界面 | `App` 初始化时强制 `opts.quiet=True`，界面只用自己的消息行 | 已修 |
+| RF-20 | 审计失真 | `--debug` 的 `cv2.imwrite` 失败时仍写日志，出现“日志说有、磁盘上没有” | 检查返回值，失败抛 `CoreError` 且不记日志 | 已修 |
+| RF-21 | 功能缺陷 | `--out-dir` 帮助文本写的是“默认 <输入目录>/replaced”，实际是 `data/output` | 改正帮助文本 | 已修 |
+| RF-22 | 功能缺陷 | TUI 复用 `img.saved` 时用字符串比较目录，相对/绝对混用会每次多生成 `-1` 文件 | 改比 `abspath(dirname)`，并抽 `_same_out_dir()` | 已修 |
+
+| RF-24 | 功能缺陷 | `--quality` 只对 JPEG 生效，WEBP 输出仍是默认质量（文档却说两者都支持） | `save_image` 按 `fmt in ("JPEG","WEBP")` 传 quality，并加用例 | 已修 |
+| RF-25 | 契约缺口 | 核心层不校验质量范围，库调用方传 0/999 会被 Pillow 静默接受 | `save_image` 校验 1-100，越界抛 `CoreError` | 已修 |
+| RF-26 | 交互缺陷 | TUI 质量输入非法时把已设置的值重置为“自动” | 非法输入只提示并保留原值 | 已修 |
+| RF-27 | 状态缺陷 | 上一张图的核心层警告会残留到下一张的消息行 | 进入替换流程前清空 `App.warned` | 已修 |
+| RF-28 | 平台缺陷 | Windows 上日志写入没有跨进程锁，多开批量可能交错 | 新增 `msvcrt.locking` 分支（与 `flock` 同一出口） | 已修 |
+
+| RF-29 | 测试脆弱 | TUI 用例依赖仓库 `data/` 里恰好有多张图，数据目录一变就误报 | `_support.make_app` 改为在临时目录造图 | 已修 |
+| RF-30 | 用例说明 | 并发日志用例用 fork，Python 3.13 在多线程进程里会告警且 Windows 不可用 | 改 `spawn` 上下文，worker 提到模块级 | 已修 |
+
+| RF-31 | 素材缺陷 | `data/demo/示例-报告.png` 是占位图（只有「第0行文字」），文档里的示例输出与它不符 | 重新生成与文档一致的示例图，并加用例锁住内容 | 已修 |
+
+| RF-32 | 仓库卫生 | 根目录 `conftest.py`、散落的 `__pycache__` 与 `.pytest_cache` 属于运行产物，混在源码里 | 删 `conftest.py`（改 `pytest.ini` + `src/test/__init__.py`），清缓存，测试脚本结束自动清理 | 已修 |
+
+### 技术债务（已清偿，保留记录）
+
+| 编号 | 位置 | 说明 | 影响 |
+| --- | --- | --- | --- |
+| TD-1 | `core/audit.record_write` | 无跨进程锁，仅靠 POSIX 单行 `O_APPEND` 的原子性 | 已修：`flock` 串行写 + 解锁后关闭 |
+| TD-2 | `core/image.unique_path` | 先查后写（TOCTOU） | 已修：新增 `reserve_path()`（`O_CREAT\|O_EXCL`），CLI/TUI 均改用；失败清理占位文件 |
+| TD-3 | TUI | 核心层警告只能屏蔽、不能显示 | 已修：`Options.warn` 回调 + `App.on_core_warning()`，警告进消息行 |
+| TD-4 | `core/image.save_image` | JPEG 质量硬编 95 | 已修：`quality` 参数 + CLI `--quality` + TUI 样式面板 |
+| TD-5 | 日志字段 | 不记尺寸/哈希 | 已修：`dst_sha256` `dst_width` `dst_height` |
+| TD-6 | `core/audit.record_write` | 不 `fsync` | 已修：写后 `fsync`，失败抛 `CoreError` |
+| TD-7 | `data/output/` | 旧用例往仓库输出目录写文件 | 已修：用例改为前后快照并清理；历史 `report-*.png` 已删 |
+
+## 遗留缺陷（非本次引入）
+
+| 编号 | 位置 | 现象 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-9 | `test_text_layout.py` | 导入语句未按 ruff isort 格式化，静态检查告警 | 已用 `ruff --fix` 整理 | 已修 |
+| RF-16 | `data/output/` | 早期用例会向仓库默认输出目录生成图片（已用 `report-*` 后缀堆积） | 新用例均指定临时 `--out-dir`；旧用例暂未改动，产物已被 `.gitignore` 忽略 | 待定 |
+
+## 已验证项
+
+- `ruff check --select E,F,B,I --ignore E501 src/`：零告警。
+- `pytest src/test -q`：201 passed，全绿。
+- 冗余/无效用例复查：全用例均含断言；无重复用例名；无法满足的断言仅 RF-15 一处，已改正。

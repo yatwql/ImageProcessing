@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+
+# 批量/替换产物
+data/output/
+*.replaced.png
+*.replaced.jpg
+reports/
+
+# 写盘日志
+logs/
+
+# 测试报告（正常写到 /test-reports，兜底时落到仓库）
+test-reports/
+
+# 覆盖率数据（正常写到 /data/tmp）
+.coverage
+.coverage.*

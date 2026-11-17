@@ -62,7 +62,7 @@ class AuditEntryFields(unittest.TestCase):
             f.write(b"y" * 99)
 
     def test_entry_carries_names_sizes_and_replacement(self):
-        when = dt.datetime(2024, 5, 1, 12, 30, 15, tzinfo=dt.UTC)
+        when = dt.datetime(2024, 5, 1, 12, 30, 15, tzinfo=dt.timezone.utc)   # dt.UTC 是 3.11+，CI 还跑 3.10
         report = [{"old": "2023", "new": "2024", "mode": "整体", "rect": [1, 2, 3, 4],
                    "font": "NotoSans", "size": 36, "tracking": 0.5,
                    "color": [0, 0, 0], "align": "center", "iou": 0.91}]

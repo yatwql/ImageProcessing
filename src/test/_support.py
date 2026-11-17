@@ -19,12 +19,47 @@ from PIL import Image, ImageDraw, ImageFont
 Rect: TypeAlias = tuple[int, int, int, int]
 RegionPairs: TypeAlias = Sequence[tuple[str, Rect]]
 
-FONT_CJK = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
-FONT_CJK_REG = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+# 常见的中日韩字体位置：Debian/Ubuntu（含 GitHub Actions 装了 fonts-noto-cjk 之后）、
+# macOS、Windows。真要用某个字体时再显式传 font_path。
+_CJK_BOLD_CANDIDATES = (
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+    "C:/Windows/Fonts/msyhbd.ttc",
+)
+_CJK_REG_CANDIDATES = (
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+    "C:/Windows/Fonts/msyh.ttc",
+)
+
+
+def _first_loadable(paths: Sequence[str], fallback: str) -> str:
+    """挑第一个真的能加载的字体文件；都不可用时返回原路径（has_cjk_font 会为 False）。"""
+    for path in paths:
+        try:
+            ImageFont.truetype(path, 12)
+        except OSError:
+            continue
+        return path
+    return fallback
+
+
+FONT_CJK = _first_loadable(_CJK_BOLD_CANDIDATES, _CJK_BOLD_CANDIDATES[0])
+FONT_CJK_REG = _first_loadable(_CJK_REG_CANDIDATES, _CJK_REG_CANDIDATES[0])
 
 
 def has_cjk_font() -> bool:
-    return os.path.exists(FONT_CJK) and os.path.exists(FONT_CJK_REG)
+    """字体不只是存在，还要真的能打开（CI 上常见"路径存在但字体损坏/是符号链接"）。"""
+    for path in (FONT_CJK, FONT_CJK_REG):
+        try:
+            ImageFont.truetype(path, 12)
+        except OSError:
+            return False
+    return True
 
 
 def regions(*texts_and_rects):
@@ -100,6 +135,7 @@ def patch_curses() -> None:
     """无终端环境下让绘制/配色退化为纯文本。"""
     import src.python.tui.ui as ui
 
+    # 用 setattr 而不是直接赋值：这些是给模块打桩，直接赋值会被类型检查判成不兼容
     ui.init_colors = lambda: None
     ui.attr = lambda _name, extra=0: extra
     curses.ACS_VLINE = "|"
@@ -187,10 +223,12 @@ def patch_ocr(regions_for_image: RegionPairs | Callable[[np.ndarray], RegionPair
 
     original_ocr = (jobs_mod.ocr_regions, jobs_mod.ocr_crop)
     original_cli = cli_main.ocr_regions
-    jobs_mod.ocr_regions, jobs_mod.ocr_crop = fake_regions, fake_crop
+    jobs_mod.ocr_regions = fake_regions
+    jobs_mod.ocr_crop = fake_crop
     cli_main.ocr_regions = fake_regions
     try:
         yield
     finally:
-        jobs_mod.ocr_regions, jobs_mod.ocr_crop = original_ocr
+        jobs_mod.ocr_regions = original_ocr[0]
+        jobs_mod.ocr_crop = original_ocr[1]
         cli_main.ocr_regions = original_cli

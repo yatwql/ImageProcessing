@@ -42,6 +42,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --retries 5 --timeout 60 -e ".[dev]"
 
+      # 合成图与字体匹配用例需要真实中文字体：runner 默认没有，缺了会整批 skip。
+      # 装 fonts-noto-cjk 后这些用例在 CI 上真的跑；本地没装时同名用例自动 skip（见 _support.has_cjk_font）。
+      - name: 安装中文字体
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+
       - name: 全量用例
         env:
           IMG_P_TMP_DIR: ${{ runner.temp }}/img-p

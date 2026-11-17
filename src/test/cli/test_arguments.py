@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 from src.python.cli.main import build_parser, load_mapping
-from src.test._support import make_text_image, patch_ocr
+from src.test._support import has_cjk_font, make_text_image, patch_ocr
 
 
 class ParserDefaults(unittest.TestCase):
@@ -76,6 +76,7 @@ class MappingLoading(unittest.TestCase):
             load_mapping(None, ["没有等号"])
 
 
+@unittest.skipUnless(has_cjk_font(), "需要 CJK 字体（Debian/Ubuntu 装 fonts-noto-cjk）")
 class ArgumentGuards(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115

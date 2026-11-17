@@ -21,6 +21,7 @@ from src.python.cli.main import main
 from src.test._support import has_cjk_font, make_text_image, patch_ocr
 
 
+@unittest.skipUnless(has_cjk_font(), "需要 CJK 字体（Debian/Ubuntu 装 fonts-noto-cjk）")
 class SingleImageRun(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115

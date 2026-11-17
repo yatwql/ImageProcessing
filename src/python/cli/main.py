@@ -8,8 +8,8 @@ import datetime as dt
 import json
 import os
 import sys
+from typing import Any
 
-from .. import __version__
 from ..config import apply_to_options, default_out_dir, log_dir
 from ..core import (
     CoreError,
@@ -29,6 +29,7 @@ from ..core import (
     unique_path,
 )
 from ..core.image import IMG_EXTS
+from ..version import VERSION
 
 USAGE = """\
 示例
@@ -89,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--log-dir", metavar="DIR",
                     help="写盘日志目录，默认仓库根 logs/（环境变量 IMG_P_LOG_DIR 可覆盖）")
     ap.add_argument("--quiet", action="store_true")
-    ap.add_argument("--version", action="version", version=f"text_replace {__version__}")
+    ap.add_argument("--version", action="version", version=f"img-p {VERSION}")
     return ap
 
 
@@ -107,8 +108,14 @@ def main(argv: list[str] | None = None) -> int:
         sys.exit(str(e))
 
 
+def announce_version() -> None:
+    """每次运行先报版本（走 stderr，不污染 --list / --report 的正常输出）。"""
+    print(f"img-p {VERSION}", file=sys.stderr)
+
+
 def _run(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    announce_version()
 
     files = collect_images(args.input)
     if not files:
@@ -159,7 +166,7 @@ def _run(argv: list[str] | None = None) -> int:
         sys.exit("没有替换任务：用 --map / --map-file，或 --list 先看看图里有什么字")
 
     # ---- 第一遍：规划任务（顺便收集字体匹配要用的原文）
-    scans = []
+    scans: list[dict[str, Any]] = []
     texts: list[str] = []
     for path in files:
         try:

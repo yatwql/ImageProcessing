@@ -1,5 +1,7 @@
 # 自检记录与缺陷
 
+> 版本：v0.1
+
 > 记录开发自检时发现的问题、处理方式与遗留风险。编号 `RF-x`；
 > **编号约定**：本文件的任务与缺陷一律 `RF-x`（连续编号，不复用；早期 `TD-x` 已并入本系列）；
 > `plan.md` 里的任务一律 `PLAN-x`。
@@ -84,6 +86,14 @@
 | RF-50 | 可观测缺口 | 日志只能写不能查，核对「这张图被换过几次」只能 `grep` | `core.audit.read_entries/summarize`（坏行跳过、目录缺失返回空）+ `scripts/log-query.py`（原图/日期/渠道、`--json`） | 已修 |
 | RF-51 | 可测性 | `record_write` 不接受显式时间，按历史日期补录/用例无法固定落哪个按天文件 | 加 `when` 参数并透传给 `log_path`/`build_entry` | 已修 |
 | RF-52 | 环境缺陷 | 目录从 `img-p` 改名后 `.venv/bin/pip` 的 shebang 仍指向旧路径，任何 `pip install` 直接“无法执行” | setup 脚本统一用 `.venv/bin/python -m pip` | 已修 |
+
+## 2026-11-17 版本号（FR-12）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-53 | 可追溯 | 版本号只出现在 `pyproject.toml` 与 `__version__` 两处，且互不校验；日志里看不出是哪一版写的 | 新增 `src/python/version.py` 作为唯一来源，pyproject 改 dynamic，写盘日志加 `app_version` | 已修 |
+| RF-54 | 用户体验 | 运行时不报版本，反馈问题时无法确认跑的是哪一版 | CLI 每次运行先打 `img-p 0.1` 到 stderr（stdout 留给清单/摘要），TUI 进 curses 前打印并写进标题栏与帮助页 | 已修 |
+| RF-55 | 文档 | 8 份文档没有版本行，容易拿旧文档对照新行为 | 各文档开头统一 `> 版本：v0.1`，`check-guards.py` 第 7 项校验代码/打包/文档三处一致 | 已修 |
 
 ## 已验证项
 

@@ -1,5 +1,7 @@
 # 技术设计文档（Technical Design）
 
+> 版本：v0.1
+
 - 项目：img-p / PNG 文字替换
 - 版本：1.0
 - 对应需求：`docs/managements/requirements.md`

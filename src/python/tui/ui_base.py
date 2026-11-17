@@ -10,6 +10,8 @@ import contextlib
 import curses
 import unicodedata
 
+from ..version import VERSION
+
 PAIR = {"title": 1, "sel": 2, "dim": 3, "ok": 4, "warn": 5, "err": 6}
 USAGE = """\
 用法: tui.sh [图片或目录 ...] [选项]
@@ -30,8 +32,8 @@ USAGE = """\
 不带参数时默认读 data/。界面里按 ? 看按键说明，q 退出。
 """
 
-HELP = """\
-PNG 文字替换 —— 操作说明
+HELP = f"""\
+PNG 文字替换 v{VERSION} —— 操作说明
 
 左栏「图片」                     右栏「识别到的文字」
   ↑↓ / j k   选图片               1..9 / 0   直接跳到第 1..10 张

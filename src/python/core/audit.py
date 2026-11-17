@@ -18,6 +18,7 @@ from typing import Any
 
 from PIL import Image
 
+from ..version import VERSION
 from .errors import CoreError
 from .options import Options
 
@@ -153,6 +154,11 @@ def options_summary(opts: object | None) -> dict[str, Any]:
     return out
 
 
+def app_version() -> str:
+    """当前程序版本（日志字段用；与 --version、界面标题同源）。"""
+    return VERSION
+
+
 def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
                 action: str = ACTION_REPLACE, channel: str = "cli",
                 options: object | None = None, when: dt.datetime | None = None) -> dict[str, Any]:
@@ -161,6 +167,7 @@ def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
     pixels = _pixels_of(dst)
     entry: dict[str, Any] = {
         "time": stamp.isoformat(timespec="seconds"),
+        "app_version": app_version(),
         "channel": channel,
         "action": action,
         "src_file": os.path.basename(src),

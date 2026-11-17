@@ -135,10 +135,10 @@ def patch_curses() -> None:
     """无终端环境下让绘制/配色退化为纯文本。"""
     import src.python.tui.ui as ui
 
-    # 用 setattr 而不是直接赋值：这些是给模块打桩，直接赋值会被类型检查判成不兼容
+    # 打桩必须改模块属性：签名与真身不同（curses 常量还是 Final），用 ignore 说明意图
     ui.init_colors = lambda: None
-    ui.attr = lambda _name, extra=0: extra
-    curses.ACS_VLINE = "|"
+    ui.attr = lambda _name, extra=0: extra           # type: ignore[assignment]
+    curses.ACS_VLINE = "|"                           # type: ignore[misc,assignment]
 
 
 class TuiTestCase(unittest.TestCase):
@@ -223,9 +223,9 @@ def patch_ocr(regions_for_image: RegionPairs | Callable[[np.ndarray], RegionPair
 
     original_ocr = (jobs_mod.ocr_regions, jobs_mod.ocr_crop)
     original_cli = cli_main.ocr_regions
-    jobs_mod.ocr_regions = fake_regions
-    jobs_mod.ocr_crop = fake_crop
-    cli_main.ocr_regions = fake_regions
+    jobs_mod.ocr_regions = fake_regions               # type: ignore[assignment]
+    jobs_mod.ocr_crop = fake_crop                     # type: ignore[assignment]
+    cli_main.ocr_regions = fake_regions               # type: ignore[assignment]
     try:
         yield
     finally:

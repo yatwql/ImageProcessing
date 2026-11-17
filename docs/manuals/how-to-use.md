@@ -1,5 +1,7 @@
 # 使用手册（how-to-use）
 
+> 版本：v0.1
+
 本文是面向使用者的操作手册。想了解内部实现请看 `docs/managements/technical.md`。
 
 ## 1. 它能做什么

@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+from typing import Any
+
+from .core.options import Options
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(ROOT, "data")
@@ -49,10 +52,10 @@ def conf_str(key: str) -> str | None:
     return str(val) if isinstance(val, (str, int, float)) and str(val) else None
 
 
-def option_defaults() -> dict[str, object]:
+def option_defaults() -> dict[str, Any]:
     """配置文件里的样式默认值（只保留类型正确的键）。"""
     conf = load_config()
-    out: dict[str, object] = {}
+    out: dict[str, Any] = {}
     for key in ("font", "color", "align"):
         if isinstance(conf.get(key), str) and conf[key]:
             out[key] = conf[key]
@@ -65,7 +68,7 @@ def option_defaults() -> dict[str, object]:
     return out
 
 
-def apply_to_options(opts) -> None:
+def apply_to_options(opts: Options) -> None:
     """把配置文件里的样式默认值填到还没设置的选项上（渠道/参数优先）。"""
     defaults = option_defaults()
     for key, val in defaults.items():

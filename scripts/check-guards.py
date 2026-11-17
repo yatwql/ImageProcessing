@@ -10,6 +10,7 @@
   长度      单个源文件不超过 1000 行
   编码      文本 I/O 必须显式 `encoding=`（二进制模式除外）
   用例目录  `src/test` 下不得留只有 `__init__.py` 的空包，且目录要出现在 technical.md
+  版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
 """
 
 from __future__ import annotations
@@ -170,6 +171,48 @@ def check_test_layout() -> list[str]:
     return problems
 
 
+VERSION_LINE = re.compile(r"^>\s*版本：v(\S+)\s*$", re.MULTILINE)
+VERSION_DOCS = [
+    "README.md",
+    "CLAUDE.md",
+    "docs/managements/requirements.md",
+    "docs/managements/technical.md",
+    "docs/managements/plan.md",
+    "docs/managements/changelog.md",
+    "docs/managements/review-findings.md",
+    "docs/manuals/how-to-use.md",
+]
+
+
+def current_version() -> str:
+    """从 version.py 读出版本号（唯一来源）。"""
+    text = _read(SRC / "python" / "version.py")
+    m = re.search(r'^VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    if not m:
+        raise ValueError("src/python/version.py 里没有 VERSION = \"...\"")
+    return m.group(1)
+
+
+def check_version_consistency() -> list[str]:
+    """版本号：代码是唯一来源，打包配置与各文档开头必须与之一致。"""
+    version = current_version()
+    problems = []
+    pyproject = _read(ROOT / "pyproject.toml")
+    if 'version = { attr = "src.python.version.VERSION" }' not in pyproject:
+        problems.append("pyproject.toml 未指向 src.python.version.VERSION（版本号会两处不一致）")
+    for rel in VERSION_DOCS:
+        path = ROOT / rel
+        if not path.is_file():
+            problems.append(f"{rel} 不存在")
+            continue
+        m = VERSION_LINE.search(_read(path))
+        if not m:
+            problems.append(f"{rel} 开头缺少「> 版本：v{version}」行")
+        elif m.group(1) != version:
+            problems.append(f"{rel} 版本是 v{m.group(1)}，与 version.py 的 v{version} 不一致")
+    return problems
+
+
 CHECKS = [
     ("编号-plan", check_plan_ids),
     ("编号-review", check_rf_ids),
@@ -177,6 +220,7 @@ CHECKS = [
     ("文件长度", check_file_length),
     ("显式编码", check_explicit_encoding),
     ("测试目录", check_test_layout),
+    ("版本号", check_version_consistency),
 ]
 
 

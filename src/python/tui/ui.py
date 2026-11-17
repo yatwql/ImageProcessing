@@ -12,6 +12,7 @@ import sys
 
 from ..core import CoreError
 from ..core.options import Options
+from ..version import VERSION
 from .app import App, Block
 from .ui_actions import handle
 from .ui_base import USAGE, attr, cut, dwidth, init_colors, pad
@@ -146,7 +147,8 @@ def parse_args(argv: list[str]) -> tuple[list[str], str | None, str | None, Opti
 
 
 def main(argv: list[str] | None = None) -> int:
-
+    # 进 curses 之前先报版本：界面外的日志/终端记录里也能看到跑的是哪一版
+    print(f"img-p {VERSION}")
     inputs, out_dir, map_file, opts = parse_args(sys.argv[1:] if argv is None else argv)
     missing = [p for p in inputs if not os.path.exists(p)]
     if missing:

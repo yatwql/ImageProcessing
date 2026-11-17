@@ -1,7 +1,32 @@
 # 变更记录
 
+> 版本：v0.1
+
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
+
+## 2026-11-17 — 版本号贯穿（v0.1）
+
+### 新增
+
+- `src/python/version.py`：`VERSION = "0.1"` 为唯一来源；`__init__` 再导出为 `__version__`；
+  `pyproject.toml` 改为 `dynamic = ["version"]` + `attr = "src.python.version.VERSION"`。
+- CLI：每次运行先往 stderr 打印 `img-p 0.1`（`--version` 同步改为 `img-p <版本>`）。
+- TUI：进 curses 前打印同一行；标题栏显示 `文字替换 v0.1`，帮助页首行带版本。
+- 写盘日志：每条记录新增 `app_version` 字段。
+- 8 份文档（README、CLAUDE.md、三份管理文档、手册）开头统一 `> 版本：v0.1`。
+- `scripts/check-guards.py` 新增第 7 项：版本一致性（version.py / pyproject / 文档）。
+- `src/test/core/test_version_display.py`：8 个用例固定上述链路。
+
+### 变更
+
+- `config.py` 的 `option_defaults()` 返回 `dict[str, Any]`、`apply_to_options()` 收窄参数类型；
+  `cli/main.py` 的 `scans` 显式标注为 `list[dict[str, Any]]` —— 全树 mypy 覆盖后暴露的类型缺口。
+
+### 验证
+
+- `ruff check src/ scripts/` 零告警；`python -m mypy` 全树 71 文件零错误；
+  `scripts/check-guards.py` 7/7；`pytest src/test -q` 全绿（含新增版本用例）。
 
 ## 2026-11-10 — 工程化整改（配置/CI/门禁/分层/画质/可观测）
 

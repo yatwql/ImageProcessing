@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "img-p"
-version = "1.0.0"
+dynamic = ["version"]
 description = "PNG 文字替换：换掉指定文字，其余内容与排版一像素不动"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,6 +29,10 @@ dev = [
 [project.scripts]
 img-p = "src.python.cli.main:main"
 
+# 版本号只在 src/python/__init__.py 里维护，打包时从这里读，避免两处不一致。
+[tool.setuptools.dynamic]
+version = { attr = "src.python.version.VERSION" }
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
@@ -48,11 +52,11 @@ ignore = ["E501"]
 known-first-party = ["src"]
 
 # ── 类型检查 ─────────────────────────────────────────────────────────
-# 只守 core：核心层是纯函数 + dataclass，类型契约最值得固定；
-# cli/tui 与 Pillow/cv2 的动态接口多，纳入会让门禁长期红着。
+# 全树检查（core 严格注解、渠道/用例/脚本放宽，见下方 overrides）：
+# 全绿才允许合入，避免"只有核心层被守"的假安全感。
 [tool.mypy]
 python_version = "3.10"
-files = ["src/python/core"]
+files = ["src", "scripts"]
 ignore_missing_imports = true
 disallow_untyped_defs = true
 no_implicit_optional = true

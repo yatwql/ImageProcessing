@@ -1,5 +1,7 @@
 # 计划任务
 
+> 版本：v0.1
+
 > 范围：`img-p`（PNG 文字替换）。本文件只列任务与验收口径，不写实现细节；
 > 实现细节进 `technical.md`，结果进 `changelog.md`，问题进 `review-findings.md`。
 > **编号约定**：本文件的任务一律 `PLAN-x`（连续编号，按出现顺序递增，不复用）；
@@ -69,3 +71,8 @@
 | PLAN-37 | 批量进度与中断 | `app.apply_all(progress, should_stop)`：逐图进度（序号/总数 + 图名）、Esc 中断并显示「已取消，完成 x/n」 | 完成 |
 | PLAN-38 | 日志查询 | `core.audit.read_entries/summarize` + `scripts/log-query.py`（按原图/日期/渠道、`--json`） | 完成 |
 | PLAN-39 | 环境脚本健壮性 | venv 迁移后 `.venv/bin/pip` 的 shebang 会失效：安装依赖统一走 `.venv/bin/python -m pip` | 完成 |
+| PLAN-40 | 版本号单一来源 | `src/python/version.py` 定义 `VERSION`，`pyproject.toml` 用 dynamic 读取，`__init__` 再导出为 `__version__` | 完成 |
+| PLAN-41 | 运行时报版本 | CLI 每次运行先打印 `img-p 0.1` 到 stderr；TUI 进 curses 前打印同一行 | 完成 |
+| PLAN-42 | 界面显示版本 | TUI 标题栏 `文字替换 v0.1`、帮助页首行带版本 | 完成 |
+| PLAN-43 | 日志记版本 | 每条写盘日志新增 `app_version` 字段 | 完成 |
+| PLAN-44 | 文档与守护 | 8 份文档开头统一 `> 版本：v0.1`；`check-guards.py` 新增版本一致性检查（第 7 项） | 完成 |

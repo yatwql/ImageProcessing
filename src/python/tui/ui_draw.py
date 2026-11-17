@@ -6,6 +6,7 @@ import contextlib
 import curses
 import os
 
+from ..version import VERSION
 from .app import App
 from .ui_base import HELP, attr, put
 
@@ -15,7 +16,7 @@ def draw_main(win, app: App) -> None:
     h, w = win.getmaxyx()
     img = app.cur
 
-    head = " 文字替换 "
+    head = f" 文字替换 v{VERSION} "
     head += (f"| 已保存 {os.path.basename(app.last_saved)} " if app.last_saved
              else f"| 输出 {os.path.basename(app.out_dir.rstrip('/'))}/ ")
     if w < 60:

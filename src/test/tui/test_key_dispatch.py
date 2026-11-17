@@ -11,7 +11,7 @@ import unittest
 
 from src.python.tui import ui
 from src.python.tui.app import Block
-from src.test._support import FakeWin, TuiTestCase
+from src.test._support import FakeWin, TuiTestCase, ocr_available
 
 
 class MainPanelKeys(TuiTestCase):
@@ -129,6 +129,7 @@ class MainPanelKeys(TuiTestCase):
         self.press("x")                                  # 帮助面板任意键返回
         self.assertEqual(self.app.panel, "main")
 
+    @unittest.skipUnless(ocr_available(), "需要可用的 OCR 依赖（onnxruntime）")
     def test_l_relearns_the_current_image(self):
         img = self.app.cur
         assert img is not None

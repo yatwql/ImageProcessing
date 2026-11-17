@@ -52,6 +52,15 @@ FONT_CJK = _first_loadable(_CJK_BOLD_CANDIDATES, _CJK_BOLD_CANDIDATES[0])
 FONT_CJK_REG = _first_loadable(_CJK_REG_CANDIDATES, _CJK_REG_CANDIDATES[0])
 
 
+def ocr_available() -> bool:
+    """OCR 依赖是否真的能加载（onnxruntime 在部分平台/版本上 import 就会失败）。"""
+    try:
+        import rapidocr_onnxruntime  # noqa: F401
+    except (ImportError, OSError):
+        return False
+    return True
+
+
 def has_cjk_font() -> bool:
     """字体不只是存在，还要真的能打开（CI 上常见"路径存在但字体损坏/是符号链接"）。"""
     for path in (FONT_CJK, FONT_CJK_REG):

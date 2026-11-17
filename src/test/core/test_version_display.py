@@ -16,7 +16,7 @@ from src.python import __version__
 from src.python import version as version_mod
 from src.python.cli import main as cli_main
 from src.python.core import audit
-from src.test._support import FakeWin, TuiTestCase
+from src.test._support import FakeWin, TuiTestCase, ocr_available
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -42,6 +42,7 @@ class VersionIsPrinted(TuiTestCase):
             cli_main.main(["--version"])
         self.assertIn(f"img-p {version_mod.VERSION}", out.getvalue() + err.getvalue())
 
+    @unittest.skipUnless(ocr_available(), "需要可用的 OCR 依赖（onnxruntime）")
     def test_cli_banner_goes_to_stderr_so_listing_stays_clean(self):
         out, err = io.StringIO(), io.StringIO()
         with (

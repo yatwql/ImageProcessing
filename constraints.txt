@@ -3,7 +3,7 @@
 # 直接依赖见 pyproject.toml，本文件同时锁住它们的传递依赖。
 # Python 3.10 上少数包没有对应 wheel（Pillow 13 / numpy 2.5 / onnxruntime 1.31 都要 3.11+），
 # 用环境标记给 3.10 单独钉一档；安装器按解释器版本自动取其一。
-# coverage 同理：7.17 只发 3.11+ 的 wheel。
+# coverage / shapely 同理：7.17 与 2.2.0 只发 3.11+ 的 wheel。
 ast_serialize==0.13.1
 coverage==7.17.2; python_version >= "3.11"
 coverage==7.16.2; python_version < "3.11"
@@ -35,6 +35,7 @@ pytest==9.2.0
 PyYAML==6.0.3
 rapidocr-onnxruntime==1.2.3
 ruff==0.17.4
-shapely==2.2.0
+shapely==2.2.0; python_version >= "3.11"
+shapely==2.1.2; python_version < "3.11"
 six==1.17.0
 typing_extensions==4.16.0

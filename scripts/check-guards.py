@@ -174,7 +174,7 @@ def check_test_layout() -> list[str]:
     return problems
 
 
-PIN_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)$")
+PIN_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)(?:\s*;\s*.+)?$")
 
 
 def _dep_name(spec: str) -> str:

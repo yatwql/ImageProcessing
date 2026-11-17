@@ -1,6 +1,8 @@
 # 锁定的依赖组合（本仓库 CI 与本地已验证通过的版本）。
 # 升级方式：改这里 → 跑 ./scripts/test.sh 全绿 → 提交；pip 用 -c constraints.txt 安装。
 # 直接依赖见 pyproject.toml，本文件同时锁住它们的传递依赖。
+# Python 3.10 上少数包没有对应 wheel（Pillow 13 / numpy 2.5 / onnxruntime 1.31 都要 3.11+），
+# 用环境标记给 3.10 单独钉一档；安装器按解释器版本自动取其一。
 ast_serialize==0.13.1
 coverage==7.17.2
 flatbuffers==25.12.19
@@ -10,13 +12,16 @@ librt==0.16.0
 MarkupSafe==3.0.4
 mypy==2.4.1
 mypy_extensions==1.2.0
-numpy==2.5.4
-onnxruntime==1.31.1
+numpy==2.5.4; python_version >= "3.11"
+numpy==2.2.6; python_version < "3.11"
+onnxruntime==1.31.1; python_version >= "3.11"
+onnxruntime==1.16.3; python_version < "3.11"
 opencv-python-headless==5.0.0.93
 opencv-python==5.0.0.93
 packaging==26.3
 pathspec==1.1.1
-pillow==13.0.0
+pillow==13.0.0; python_version >= "3.11"
+pillow==12.2.0; python_version < "3.11"
 pluggy==1.7.0
 protobuf==7.36.2
 pyclipper==1.4.0

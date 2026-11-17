@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+# 提交前门禁（P0）：静态检查 + 工程守护 + 全量用例。
+#
+#   sh .githooks/install-hooks.sh      # 启用（git config core.hooksPath .githooks）
+#   IMG_P_SKIP_HOOK=1 git commit ...   # 临时跳过（仅限明确知道后果时）
+#
+# 只改了非代码文件时直接放行；有一点用例较慢（约 35s），换来的是一次提交即全绿。
+
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+if [ "${IMG_P_SKIP_HOOK:-0}" = "1" ]; then
+  echo "[pre-commit] IMG_P_SKIP_HOOK=1，跳过"
+  exit 0
+fi
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(py|toml|sh|ps1|yml|yaml|md)$' || true)
+[ -z "$STAGED" ] && exit 0
+
+PY=".venv/bin/python"
+if [ ! -x "$PY" ]; then
+  echo "[pre-commit] 缺少 .venv，先跑 ./scripts/setup.sh（已跳过门禁）" >&2
+  exit 0
+fi
+
+echo "[pre-commit] ruff"
+"$PY" -m ruff check src/ scripts/ >/dev/null
+
+echo "[pre-commit] guards"
+"$PY" scripts/check-guards.py --ci
+
+case "$STAGED" in
+  *.py*|*pyproject.toml*)
+    echo "[pre-commit] pytest"
+    "$PY" -m pytest src/test -q -x -p no:cacheprovider >/dev/null
+    ;;
+  *)
+    echo "[pre-commit] 无 Python 改动，跳过用例"
+    ;;
+esac
+
+echo "[pre-commit] ok"

@@ -1,5 +1,1 @@
-pillow>=10.0
-numpy>=1.24
-opencv-python-headless>=4.8
-rapidocr-onnxruntime>=1.2
-windows-curses; sys_platform == "win32"
+-e .

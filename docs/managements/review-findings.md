@@ -1,6 +1,8 @@
 # 自检记录与缺陷
 
 > 记录开发自检时发现的问题、处理方式与遗留风险。编号 `RF-x`；
+> **编号约定**：本文件的任务与缺陷一律 `RF-x`（连续编号，不复用；早期 `TD-x` 已并入本系列）；
+> `plan.md` 里的任务一律 `PLAN-x`。
 > 状态：`已修` / `待办` / `待定` / `不修（有理由）`。
 
 ## 2026-11-10 写盘日志（FR-7）
@@ -50,13 +52,13 @@
 
 | 编号 | 位置 | 说明 | 影响 |
 | --- | --- | --- | --- |
-| TD-1 | `core/audit.record_write` | 无跨进程锁，仅靠 POSIX 单行 `O_APPEND` 的原子性 | 已修：`flock` 串行写 + 解锁后关闭 |
-| TD-2 | `core/image.unique_path` | 先查后写（TOCTOU） | 已修：新增 `reserve_path()`（`O_CREAT\|O_EXCL`），CLI/TUI 均改用；失败清理占位文件 |
-| TD-3 | TUI | 核心层警告只能屏蔽、不能显示 | 已修：`Options.warn` 回调 + `App.on_core_warning()`，警告进消息行 |
-| TD-4 | `core/image.save_image` | JPEG 质量硬编 95 | 已修：`quality` 参数 + CLI `--quality` + TUI 样式面板 |
-| TD-5 | 日志字段 | 不记尺寸/哈希 | 已修：`dst_sha256` `dst_width` `dst_height` |
-| TD-6 | `core/audit.record_write` | 不 `fsync` | 已修：写后 `fsync`，失败抛 `CoreError` |
-| TD-7 | `data/output/` | 旧用例往仓库输出目录写文件 | 已修：用例改为前后快照并清理；历史 `report-*.png` 已删 |
+| RF-33 | `core/audit.record_write` | 无跨进程锁，仅靠 POSIX 单行 `O_APPEND` 的原子性 | 已修：`flock` 串行写 + 解锁后关闭 |
+| RF-34 | `core/image.unique_path` | 先查后写（TOCTOU） | 已修：新增 `reserve_path()`（`O_CREAT\|O_EXCL`），CLI/TUI 均改用；失败清理占位文件 |
+| RF-35 | TUI | 核心层警告只能屏蔽、不能显示 | 已修：`Options.warn` 回调 + `App.on_core_warning()`，警告进消息行 |
+| RF-36 | `core/image.save_image` | JPEG 质量硬编 95 | 已修：`quality` 参数 + CLI `--quality` + TUI 样式面板 |
+| RF-37 | 日志字段 | 不记尺寸/哈希 | 已修：`dst_sha256` `dst_width` `dst_height` |
+| RF-38 | `core/audit.record_write` | 不 `fsync` | 已修：写后 `fsync`，失败抛 `CoreError` |
+| RF-39 | `data/output/` | 旧用例往仓库输出目录写文件 | 已修：用例改为前后快照并清理；历史 `report-*.png` 已删 |
 
 ## 遗留缺陷（非本次引入）
 
@@ -65,8 +67,26 @@
 | RF-9 | `test_text_layout.py` | 导入语句未按 ruff isort 格式化，静态检查告警 | 已用 `ruff --fix` 整理 | 已修 |
 | RF-16 | `data/output/` | 早期用例会向仓库默认输出目录生成图片（已用 `report-*` 后缀堆积） | 新用例均指定临时 `--out-dir`；旧用例暂未改动，产物已被 `.gitignore` 忽略 | 待定 |
 
+## 2026-11-10 全面评估（工程化整改）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-40 | 工程缺口 | 无 `pyproject.toml`：依赖在两份 requirements、ruff/pytest 参数散在脚本里，`pip install -e .` 不可用 | 建 `pyproject.toml` 作为单一配置源（依赖 + `dev` extra + ruff/mypy/pytest/coverage），requirements 退化为 `-e .` / `-e .[dev]` | 已修 |
+| RF-41 | 工程缺口 | 无 CI：本地全绿靠自觉，格式/类型/文档漂移无人拦 | 新增 `.github/workflows/ci.yml` 五个作业（test/lint/typecheck/guards/perf） | 已修 |
+| RF-42 | 工程缺口 | 无提交前门禁 | `.githooks/pre-commit` + `install-hooks.sh`（`core.hooksPath`，不动 `.git/hooks`） | 已修 |
+| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `scripts/check-guards.py` 六项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
+| RF-44 | 质量缺口 | 无类型检查、无覆盖率门禁 | `mypy` 守 `core`（28 处历史 error 全部修掉：补注解、`rendered` 可空标注、dtype 标注）；`fail_under = 75` | 已修 |
+| RF-45 | 类型桩冲突 | numpy 2.5 的桩要求 `ndarray.min()/max()` 显式给 axis，`int(arr.min())` 被判成无匹配重载 | 改成内建 `min()/max()`（坐标数组很小，取值方式不影响耗时），不再依赖 `disable_error_code` 兜底 | 已修 |
+| RF-46 | 测试结构 | `src/test/image_processing/**` 与 `src/test/core/**` 两套命名并存，`image_processing/degrade/` 是空包，文档只写了 core/tui/cli | 七个测试子目录并入 `src/test/core/**`，删空包，`technical.md`/`CLAUDE.md` 同步 | 已修 |
+| RF-47 | 可维护 | `tui/ui.py` 856 行，逼近 1000 行红线，绘制/按键/动作/文案混在一处 | 拆成 `ui_base`（文案+宽字符+颜色）、`ui_draw`（布局）、`ui_input`（按键+输入行）、`ui_actions`（分发+编辑），`ui.py` 只留入口与门面 | 已修 |
+| RF-48 | 画质缺陷 | 擦除半径写死 4：粗笔画/大标题 inpaint 后留模糊边 | `edit.inpaint_radius` 按笔画宽度自适应（4~14），细体仍停在 4；补 6 个用例 | 已修 |
+| RF-49 | 交互缺陷 | 批量替换无进度、不可中断，等半天不知道做到哪张 | `apply_all(progress, should_stop)`：逐图进度 + Esc 中断，状态行显示「已取消，完成 x/n」；`_poll_cancel` 只认 Esc（q 不误停） | 已修 |
+| RF-50 | 可观测缺口 | 日志只能写不能查，核对「这张图被换过几次」只能 `grep` | `core.audit.read_entries/summarize`（坏行跳过、目录缺失返回空）+ `scripts/log-query.py`（原图/日期/渠道、`--json`） | 已修 |
+| RF-51 | 可测性 | `record_write` 不接受显式时间，按历史日期补录/用例无法固定落哪个按天文件 | 加 `when` 参数并透传给 `log_path`/`build_entry` | 已修 |
+| RF-52 | 环境缺陷 | 目录从 `img-p` 改名后 `.venv/bin/pip` 的 shebang 仍指向旧路径，任何 `pip install` 直接“无法执行” | setup 脚本统一用 `.venv/bin/python -m pip` | 已修 |
+
 ## 已验证项
 
-- `ruff check --select E,F,B,I --ignore E501 src/`：零告警。
-- `pytest src/test -q`：201 passed，全绿。
+- `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`scripts/check-guards.py`：6/6 通过。
+- `pytest src/test -q`：全绿（用例数随迭代增长）。
 - 冗余/无效用例复查：全用例均含断言；无重复用例名；无法满足的断言仅 RF-15 一处，已改正。

@@ -19,3 +19,8 @@ test-reports/
 # 覆盖率数据（正常写到 /data/tmp）
 .coverage
 .coverage.*
+
+# 打包产物（pip install -e .）
+*.egg-info/
+build/
+dist/

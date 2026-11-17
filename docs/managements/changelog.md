@@ -3,6 +3,33 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-10 — 工程化整改（配置/CI/门禁/分层/画质/可观测）
+
+### 新增
+
+- `pyproject.toml`：依赖与 `dev` extra、ruff、mypy（守 `core`）、pytest、coverage（`fail_under = 75`）；
+  `requirements.txt` / `requirements-dev.txt` 改为 `-e .` / `-e .[dev]`。
+- `.github/workflows/ci.yml`：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf。
+- `.githooks/pre-commit` + `install-hooks.sh`：提交前 ruff → guards → 全量用例。
+- `scripts/check-guards.py`（编号/分层/文件长度/显式编码/测试目录/空包）、`scripts/check-perf.py`（四步热路径）、
+  `scripts/log-query.py`（按原图/日期/渠道查写盘记录，支持 `--json`）。
+- `core.audit.read_entries/summarize`（坏行跳过）、`record_write(when=)` 显式时间。
+- `core.edit.inpaint_radius` 与常量 `INPAINT_RADIUS_MIN/MAX/STROKE_FACTOR`（4 / 14 / 0.75）。
+- `App.apply_all(progress, should_stop)`：逐图进度 + Esc 中断；`App.cancel` 中断标志。
+
+### 变更
+
+- TUI 拆分：`ui.py`（入口/主循环/门面）+ `ui_base.py`（文案/宽字符/颜色）+ `ui_draw.py`（布局）+
+  `ui_input.py`（按键/输入行）+ `ui_actions.py`（分发/编辑动作）；用例改为按层引用。
+- 测试目录收敛：`src/test/image_processing/**` → `src/test/core/**`，删除空包 `degrade/`。
+- 擦除半径从固定 4 改为按笔画宽度自适应（粗笔画不再留糊边）。
+- 源码里所有 `int(arr.min())` / `arr.max()` 改为内建 `min()/max()`，不再依赖 numpy 类型桩的 axis 重载。
+
+### 验证
+
+- `ruff check src/ scripts/` 零告警；`python -m mypy` 零错误；`scripts/check-guards.py` 6/6；
+  `scripts/check-perf.py` 合计约 0.6s（上限 6s）；`pytest src/test -q` 全绿。
+
 ## 2026-11-10 — 配置、临时目录与仓库清理
 
 ### 新增

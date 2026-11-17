@@ -10,6 +10,7 @@ from __future__ import annotations
 import unittest
 
 import src.python.tui.ui as ui
+import src.python.tui.ui_draw as ui_draw
 from src.test._support import FakeWin, TuiTestCase
 
 
@@ -57,12 +58,12 @@ class LayoutRendering(TuiTestCase):
         def boom(*_args, **_kwargs):
             raise RuntimeError("画不动了")
 
-        original = ui.draw_wide
-        ui.draw_wide = boom
+        original = ui_draw.draw_wide
+        ui_draw.draw_wide = boom
         try:
-            ui.draw_frame(win, app)               # 不应抛出
+            ui.draw_frame(win, app)  # 不应抛出
         finally:
-            ui.draw_wide = original
+            ui_draw.draw_wide = original
         self.assertIn("界面绘制出错", app.message)
 
 

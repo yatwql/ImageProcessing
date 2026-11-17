@@ -115,7 +115,7 @@ def load_image(path: str) -> tuple[np.ndarray, np.ndarray | None]:
     im.load()
     rgba = np.array(im.convert("RGBA"))
     alpha = rgba[:, :, 3].copy()
-    if not alpha.size or int(alpha.min()) == 255:      # 全不透明就不带 alpha
+    if not alpha.size or int(min(alpha.ravel())) == 255:      # 全不透明就不带 alpha
         alpha = None
     return rgba[:, :, :3].copy(), alpha
 

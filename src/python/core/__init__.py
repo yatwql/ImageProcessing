@@ -9,7 +9,9 @@ from .audit import (
                     build_entry,
                     log_path,
                     prune_logs,
+                    read_entries,
                     record_write,
+                    summarize,
 )
 from .edit import erase, replace_image
 from .errors import CoreError
@@ -38,5 +40,5 @@ __all__ = [
     "fit_font", "guess_size", "ink_size", "jobs_from_blocks", "load_image", "load_meta",
     "make_jobs", "norm_map", "ocr_crop", "ocr_regions", "parse_color",
     "plan_jobs", "render_line", "replace_image", "reserve_path", "same_file", "save_image",
-    "prune_logs", "solve_tracking", "unique_path", "warn", "build_entry", "log_path", "record_write",
+    "prune_logs", "solve_tracking", "unique_path", "warn", "build_entry", "log_path", "read_entries", "record_write", "summarize",
 ]

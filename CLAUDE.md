@@ -6,15 +6,21 @@ PNG 文字替换：把图片里指定的一些字换成别的字，其余文字�
 新文字自动沿用原文字的字体、字号、字重、字色、字距与位置，原图永不覆盖。
 
 ```text
-scripts/                 只有启动脚本：cli/tui/setup/test 的 .sh 与 .ps1（Windows）
+scripts/                 启动脚本（cli/tui/setup/test 的 .sh 与 .ps1）+
+                         工程守护（check-guards.py / check-perf.py / log-query.py）
+.githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
+.github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf
+pyproject.toml           单一配置源：依赖、可选依赖 dev、ruff、mypy、pytest、coverage
 src/python/              程序代码
   config.py              路径约定（data/ 输入、data/output 输出）
-  core/                  核心层：OCR / 版式分析 / 字体匹配 / 擦除重绘
+  core/                  核心层：OCR / 版式分析 / 字体匹配 / 擦除重绘 / 写盘审计
   cli/                   命令行渠道（参数、批量流程、输出汇总）
-  tui/                   app.py 状态 + ui.py（curses 界面）
+  tui/                   交互渠道：app.py 状态；ui.py 入口；
+                         ui_base/ui_draw/ui_input/ui_actions 分层
 src/test/                测试用例
   _support.py            公共设施（字体路径、合成图、OCR 桩、FakeWin、用例基类）
-  core/  tui/  cli/      按场景分类的用例
+  core/                  核心层用例（primitives/layout/font/color/format/background/pipeline）
+  cli/  tui/             渠道与交互用例
 data/  data/output/      输入图片 / 默认输出
 docs/managements/  docs/manuals/   需求、技术设计 / 使用手册
 src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把临时目录指向 /data/tmp
@@ -24,14 +30,20 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 - **一律使用项目虚拟环境解释器**：`.venv/bin/python`。**禁止**裸 `python` / `python3` / `pytest`
   （会命中系统解释器，缺 Pillow / numpy / cv2 / rapidocr，报 `ModuleNotFoundError`）。
-- 首次准备：`./scripts/setup.sh`；开发依赖：`.venv/bin/pip install -r requirements-dev.txt`。
+- 首次准备：`./scripts/setup.sh`；开发依赖：`.venv/bin/python -m pip install -e ".[dev]"`。
+- 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳。
+- 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`），`IMG_P_SKIP_HOOK=1` 临时跳过。
 - 配置文件：`/data/config/img-p.json`（模板见 `/data/config/img-p.example.json`，可用 `IMG_P_CONFIG` 指定）；
   测试中间文件写 `/data/tmp`，测试报告写 `/test-reports`。
 - 入口：`./scripts/cli.sh`（= `python -m src.python.cli`）、`./scripts/tui.sh`（= `python -m src.python.tui`）；
   Windows 用 `scripts\cli.ps1` / `tui.ps1` / `setup.ps1` / `test.ps1`，虚拟环境解释器在 `.venv\Scripts\python.exe`。
 
 ```bash
-.venv/bin/ruff check --select E,F,B,I --ignore E501 src/             # 静态检查
+.venv/bin/ruff check src/ scripts/                                 # 静态检查
+.venv/bin/python -m mypy                                              # 类型检查（守 core）
+.venv/bin/python scripts/check-guards.py                              # 编号/分层/长度/编码/测试目录
+.venv/bin/python scripts/check-perf.py                                # 耗时守卫
+.venv/bin/python scripts/log-query.py --src 报告                        # 查写盘记录
 .venv/bin/python -m pytest src/test -q                                # 全部用例
 ./scripts/test.sh                                                     # 全量用例 + 报告
 ./scripts/cli.sh data --list                                          # OCR 是否正常
@@ -64,9 +76,12 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 ## 测试纪律
 
 - **三档维度都要有覆盖**，不要只盯一条路径：
-  1. **图片处理**（`src/test/core/`）：匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
-  2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程；
+  1. **图片处理**（`src/test/core/`，含 `primitives/` `layout/` `font/` `color/` `format/` `background/` `pipeline/`）：
+     匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
+  2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程与中断；
   3. **稳定**（跨档）：错误契约、幂等重跑、输出覆盖保护、缓存失效、异常不外溢。
+- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 守 `core`、`check-guards.py` 六项全过、
+  `check-perf.py` 不超阈值、覆盖率不低于 `pyproject.toml` 的 `fail_under`。
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。
 - **修复缺陷必须补回归用例**（直接断言缺陷场景）；**新增功能必须带用例**；全部用例须保持全绿。
@@ -79,6 +94,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 ## 文档纪律
 
 - 三份文档随实现同步：
+- `docs/managements/plan.md` 的任务编号一律 `PLAN-x`，`docs/managements/review-findings.md`
+  的任务/缺陷编号一律 `RF-x`；两者连续编号、不复用，新增任务只在对应文件里追加。
   - `docs/managements/requirements.md`：功能/非功能需求（`FR-x`/`NFR-x`）与验收标准
   - `docs/managements/technical.md`：分层、模块表、算法与阈值、性能、测试文件对照表、扩展点
   - `docs/manuals/how-to-use.md`：安装、CLI/TUI 上手、参数、按键、FAQ、限制

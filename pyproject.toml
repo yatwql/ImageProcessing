@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "img-p"
+version = "1.0.0"
+description = "PNG 文字替换：换掉指定文字，其余内容与排版一像素不动"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "pillow>=10.0",
+  "numpy>=1.24",
+  "opencv-python-headless>=4.8",
+  "rapidocr-onnxruntime>=1.2",
+  "windows-curses; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "pytest-html>=4.1",
+  "ruff>=0.5",
+  "mypy>=1.10",
+]
+
+[project.scripts]
+img-p = "src.python.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+# ── 静态检查 ─────────────────────────────────────────────────────────
+# 基线命令：ruff check --select E,F,B,I --ignore E501 src/
+# 与 CLAUDE.md 一致：行宽不设限（中文文案与长字符串较多），其余照默认。
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+# ── 类型检查 ─────────────────────────────────────────────────────────
+# 只守 core：核心层是纯函数 + dataclass，类型契约最值得固定；
+# cli/tui 与 Pillow/cv2 的动态接口多，纳入会让门禁长期红着。
+[tool.mypy]
+python_version = "3.10"
+files = ["src/python/core"]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = false
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["cv2.*", "numpy.*", "rapidocr_onnxruntime.*"]
+ignore_missing_imports = true
+
+# 渠道层直接面对 curses / PIL 的动态接口，逐函数注解收益低、噪音大：
+# 只要求 core 的全量注解（上面 disallow_untyped_defs），渠道层放宽。
+[[tool.mypy.overrides]]
+module = ["src.python.tui.*", "src.python.cli.*", "src.test.*", "scripts.*"]
+disallow_untyped_defs = false
+
+# ── 测试与覆盖率 ─────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["src/test"]
+addopts = "-ra"   # 保留用例汇总行，失败时给出简要原因
+markers = [
+  "slow: 需要加载 OCR / 真实字体的较慢用例",
+]
+
+[tool.coverage.run]
+source = ["src/python"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+# 阈值取当前实测值向下取整（见 guards 守护与 CI）；只降不升说明退化。
+fail_under = 70

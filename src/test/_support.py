@@ -60,6 +60,21 @@ class FakeWin:
     def timeout(self, ms):
         self.timeout_ms = ms
 
+    def nodelay(self, flag):
+        """非阻塞模式开关（批量替换途中轮询 Esc 用）。"""
+        self.no_delay = bool(flag)
+
+    def getch(self):
+        """非阻塞取键：队列空了或遇上 None 就返回 -1（curses 的约定）。"""
+        if not self.keys or self.keys[0] is None:
+            if self.keys:
+                self.keys.pop(0)
+            return -1
+        key = self.keys.pop(0)
+        if isinstance(key, str):
+            return ord(key[0])
+        return -1 if key is None else int(key)
+
     def move(self, *_args):
         pass
 
@@ -77,7 +92,7 @@ class FakeWin:
         if not self.keys:
             if self.timeout_ms >= 0:
                 raise curses.error("timeout")
-            raise KeyboardInterrupt          # 队列空了＝人跑了，循环自行收尾
+            raise KeyboardInterrupt  # 队列空了＝人跑了，循环自行收尾
         return self.keys.pop(0)
 
 
@@ -95,7 +110,7 @@ class TuiTestCase(unittest.TestCase):
 
     def setUp(self):
         patch_curses()
-        self.tmp = tempfile.TemporaryDirectory()      # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(self.tmp.cleanup)
 
     def make_app(self, count: int = 3):
@@ -109,7 +124,7 @@ class TuiTestCase(unittest.TestCase):
             canvas.save(os.path.join(images_dir, f"img{i + 1}.png"))
         app = App([images_dir])
         app.out_dir = os.path.join(self.tmp.name, "out")
-        for img in app.images:                 # 预置文字块，跳过 OCR
+        for img in app.images:  # 预置文字块，跳过 OCR
             img.blocks = [Block(f"第{i}行文字", (10, 20 + i * 30, 200, 24)) for i in range(3)]
         return app
 
@@ -125,9 +140,17 @@ class TuiTestCase(unittest.TestCase):
 # --------------------------------------------------------------------------- 图片与 OCR
 
 
-def make_text_image(lines: Sequence[str], *, size: int = 36, color=(30, 30, 30),
-                    bg=(255, 255, 255), line_gap: int = 60, margin: int = 40,
-                    font_path: str | None = None, index: int = 0) -> tuple[np.ndarray, list[tuple[str, Rect]]]:
+def make_text_image(
+    lines: Sequence[str],
+    *,
+    size: int = 36,
+    color=(30, 30, 30),
+    bg=(255, 255, 255),
+    line_gap: int = 60,
+    margin: int = 40,
+    font_path: str | None = None,
+    index: int = 0,
+) -> tuple[np.ndarray, list[tuple[str, Rect]]]:
     """按行画一张白底图，返回 (rgb ndarray, [(文字, (x, y, w, h))])。"""
     font = ImageFont.truetype(font_path or FONT_CJK, size, index=index)
     width = margin * 2 + max(1, max(len(s) for s in lines)) * size

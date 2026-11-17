@@ -1,0 +1,128 @@
+# CI 门禁 —— 与 `CLAUDE.md` 的约束一一对应
+#
+#   test       全量用例 × Python 3.10/3.12/3.13（阻塞）
+#   lint       ruff check（阻塞）、ruff format 漂移（非阻塞，只报告）
+#   typecheck  mypy 守 core（阻塞）
+#   guards     编号 / 分层 / 文件长度 / 显式编码 / 测试目录（阻塞）
+#   perf       渲染与擦除的耗时守卫（阻塞，阈值见 scripts/check-perf.py）
+#
+# 本地等价命令：
+#   .venv/bin/ruff check src/
+#   .venv/bin/python -m mypy
+#   .venv/bin/python scripts/check-guards.py
+#   .venv/bin/python scripts/check-perf.py
+#   .venv/bin/python -m pytest src/test -q
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+
+      - name: 全量用例
+        env:
+          IMG_P_TMP_DIR: ${{ runner.temp }}/img-p
+        run: python -m pytest src/test -q --junitxml="$IMG_P_TMP_DIR/junit.xml"
+
+      # 拆成两行，避免单行过长（workflow 里不好折行的长命令最容易漏改）
+      - name: 覆盖率
+        env:
+          IMG_P_TMP_DIR: ${{ runner.temp }}/img-p
+        run: |
+          python -m pytest src/test -q --cov --cov-report=term \
+            --cov-report=xml:"$IMG_P_TMP_DIR/coverage.xml"
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.python-version }}
+          path: |
+            ${{ runner.temp }}/img-p/junit.xml
+            ${{ runner.temp }}/img-p/coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+
+      - name: ruff check（阻塞）
+        run: python -m ruff check src/ scripts/
+
+      # 格式是风格问题，不阻断合入：只报告需要重排的文件，避免历史格式差异卡住 PR。
+      - name: ruff format 漂移（非阻塞）
+        continue-on-error: true
+        run: python -m ruff format --check src/ scripts/
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+      - name: mypy 守 core
+        run: python -m mypy
+
+  guards:
+    # 这些漂移不会让用例变红，只会让约束悄悄失效，所以单独成作业、阻塞合入。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+      - name: 工程守护
+        run: python scripts/check-guards.py
+
+  perf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+      - name: 渲染/擦除耗时守卫
+        run: python scripts/check-perf.py

@@ -20,7 +20,7 @@ from src.test._support import TuiTestCase, has_cjk_font, make_text_image
 
 class ApplyFlow(TuiTestCase):
     def build_app(self, out_sub: str = "out") -> App:
-        tmp = tempfile.TemporaryDirectory()            # noqa: SIM115
+        tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(tmp.cleanup)
         rgb, boxes = make_text_image(["年度报告2023", "其余文字不动"])
         path = os.path.join(tmp.name, "report.png")
@@ -68,7 +68,7 @@ class ApplyFlow(TuiTestCase):
 
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_output_dir_inside_input_dir_is_refused(self):
-        app = self.build_app(out_sub=".")              # 输出到输入目录 = 会覆盖原图
+        app = self.build_app(out_sub=".")  # 输出到输入目录 = 会覆盖原图
         img = self.current(app)
         self.blocks_of(app)[0].override = "年度总结2024"
         ok, msg = app.apply_one(img)
@@ -98,20 +98,46 @@ class ApplyFlow(TuiTestCase):
 
     def test_core_warnings_are_routed_to_the_message_hook(self):
         app = self.build_app()
-        self.assertTrue(callable(app.opts.warn))     # 不再让核心层 print 冲花 curses
+        self.assertTrue(callable(app.opts.warn))  # 不再让核心层 print 冲花 curses
         app.on_core_warning("字体不可靠")
         self.assertEqual(app.warned[-1], "字体不可靠")
 
     def test_warnings_are_cleared_before_each_apply(self):
         app = self.build_app()
         app.warned.append("上一张图的旧提示")
-        app.apply_one(self.current(app))                 # 没有新文字 → 提前返回
-        self.assertTrue(any("旧提示" in w for w in app.warned))   # 提前返回时不清理
+        app.apply_one(self.current(app))  # 没有新文字 → 提前返回
+        self.assertTrue(any("旧提示" in w for w in app.warned))  # 提前返回时不清理
         self.blocks_of(app)[0].override = "年度总结2024"
         app.apply_one(self.current(app))
         self.assertFalse(any("旧提示" in w for w in app.warned))
 
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
+    def test_batch_progress_reports_index_and_name(self):
+        app = self.build_app()
+        self.blocks_of(app)[0].override = "年度总结2024"
+        seen: list[str] = []
+        app.apply_all(progress=seen.append)
+        self.assertTrue(
+            any("1/1" in msg and "report.png" in msg for msg in seen),
+            f"进度信息应含序号与图名，实际：{seen}",
+        )
+
+    def test_batch_stops_before_first_image_when_should_stop_is_true(self):
+        app = self.build_app()
+        self.blocks_of(app)[0].override = "年度总结2024"
+        app.images = app.images * 2  # 两张待处理，便于看"完成 0/2"
+        app.apply_all(should_stop=lambda: True)
+        self.assertTrue(app.cancel)
+        self.assertIn("已取消", app.status)
+        self.assertIn("0/2", app.status)
+
+    def test_batch_runs_to_the_end_when_should_stop_is_false(self):
+        app = self.build_app()
+        self.blocks_of(app)[0].override = "年度总结2024"
+        app.apply_all(should_stop=lambda: False)
+        self.assertFalse(app.cancel)
+        self.assertIn("批量完成", app.status)
+
     def test_pixel_outside_target_stays_identical(self):
         app = self.build_app()
         img = self.current(app)

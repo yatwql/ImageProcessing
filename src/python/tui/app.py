@@ -52,8 +52,8 @@ class Block:
     def __init__(self, text: str, rect: tuple[int, int, int, int]):
         self.text = text
         self.rect = rect
-        self.override: str | None = None   # 新文字
-        self.find: str | None = None       # 行内替换：只换这一行里的这几个字
+        self.override: str | None = None  # 新文字
+        self.find: str | None = None  # 行内替换：只换这一行里的这几个字
         self.enabled = True
 
 
@@ -67,19 +67,24 @@ class ImageItem:
         self.error: str | None = None
         self.done = False
         self.sel = 0
-        self.saved: str | None = None      # 本次会话里输出到哪个文件（重复替换就覆盖它）
-        self.memo: dict = {}        # 分析/字体匹配缓存，重复替换时秒出
+        self.saved: str | None = None  # 本次会话里输出到哪个文件（重复替换就覆盖它）
+        self.memo: dict = {}  # 分析/字体匹配缓存，重复替换时秒出
 
 
 class App:
-    def __init__(self, inputs: list[str], out_dir: str | None = None,
-                 map_file: str | None = None, opts: Options | None = None):
+    def __init__(
+        self,
+        inputs: list[str],
+        out_dir: str | None = None,
+        map_file: str | None = None,
+        opts: Options | None = None,
+    ):
         paths: list[str] = []
         for p in inputs:
             paths += collect_images(p)
         self.dir: str | None = (
-            os.path.abspath(inputs[0])
-            if len(inputs) == 1 and os.path.isdir(inputs[0]) else None)
+            os.path.abspath(inputs[0]) if len(inputs) == 1 and os.path.isdir(inputs[0]) else None
+        )
         self.images: list[ImageItem] = [ImageItem(p) for p in paths]
         # 左栏的行：父目录 / 子目录 / 图片，顺序即显示顺序
         self.rows: list[tuple[str, str]] = [("img", p) for p in paths]
@@ -98,15 +103,16 @@ class App:
         self.sel_blk = 0
         self.sel_map = 0
         self.sel_setting = 0
-        self.img_start = 0          # 图片列表当前显示窗口的起始行（数字键用）
-        self.img_rows = 1           # 图片列表可见行数，由界面每帧写入
+        self.img_start = 0  # 图片列表当前显示窗口的起始行（数字键用）
+        self.img_rows = 1  # 图片列表可见行数，由界面每帧写入
         self.focus = "files"
-        self.panel = "main"          # main | map | help | settings
+        self.panel = "main"  # main | map | help | settings
         self.started = False
         self.status = "就绪"
         self.message = ""
         self.last_saved: str | None = None
         self.quit = False
+        self.cancel = False  # 批量替换的中断标志（界面轮询到 Esc 时置位）
         if self.dir:
             self._load_dir(self.dir)
         if map_file:
@@ -269,8 +275,7 @@ class App:
         self.warned = self.warned[-5:]
 
     def jobs_for(self, img: ImageItem) -> list[Job]:
-        return jobs_from_blocks(img.blocks or [], self.mapping, warn=False,
-                                sink=self.opts.warn)
+        return jobs_from_blocks(img.blocks or [], self.mapping, warn=False, sink=self.opts.warn)
 
     def pending_count(self, img: ImageItem) -> int:
         return len(self.jobs_for(img))
@@ -329,7 +334,7 @@ class App:
     def setting_notes(self) -> list[tuple[str, str, str]]:
         return [(key, title, self.setting_value(key)) for key, title, _hint in SETTING_ROWS]
 
-    def set_setting(self, key: str, raw: str) -> str:      # noqa: C901
+    def set_setting(self, key: str, raw: str) -> str:  # noqa: C901
         """按文本设置一个选项，返回给用户的提示。"""
         text = raw.strip()
         auto = text in ("", "自动", "auto", "-")
@@ -350,7 +355,7 @@ class App:
                     self.opts.color = None
                 else:
                     try:
-                        parse_color(text)               # 只做校验
+                        parse_color(text)  # 只做校验
                     except CoreError as e:
                         return str(e)
                     self.opts.color = text
@@ -411,15 +416,22 @@ class App:
         jobs = self.jobs_for(img)
         if not jobs:
             return False, "没有启用且填了新文字的块"
-        self.warned.clear()                    # 每张图重新收集，避免提示串图
+        self.warned.clear()  # 每张图重新收集，避免提示串图
         try:
             rgb, alpha = load_image(img.path)
         except OSError as e:
             return False, f"读取失败: {e}"
         pool = pool or self.pool([img])
         out, new_alpha, report = replace_image(
-            rgb, alpha, jobs, self.opts, pool,
-            tag=os.path.splitext(img.name)[0] + "_", memo=img.memo, source=img.path)
+            rgb,
+            alpha,
+            jobs,
+            self.opts,
+            pool,
+            tag=os.path.splitext(img.name)[0] + "_",
+            memo=img.memo,
+            source=img.path,
+        )
         if not report:
             return False, "替换全部失败"
         base = os.path.join(self.out_dir, os.path.splitext(img.name)[0] + ".png")
@@ -427,25 +439,30 @@ class App:
             return False, f"输出目录 {self.out_dir} 会覆盖原图，按 o 换个目录"
         reserved = False
         if img.saved and self._same_out_dir(img.saved):
-            dst = img.saved                        # 覆盖自己刚生成的那份
+            dst = img.saved  # 覆盖自己刚生成的那份
         else:
             try:
-                dst = reserve_path(base)           # 原子占名：已存在就 -1、-2 …
+                dst = reserve_path(base)  # 原子占名：已存在就 -1、-2 …
                 reserved = True
             except CoreError as e:
                 return False, str(e)
         try:
-            save_image(out, new_alpha, dst, quality=self.opts.quality,
-                       meta=load_meta(img.path))
+            save_image(out, new_alpha, dst, quality=self.opts.quality, meta=load_meta(img.path))
         except (OSError, CoreError) as e:
             if reserved:
                 with contextlib.suppress(OSError):
                     os.remove(dst)
             return False, str(e)
         note = ""
-        try:                                 # 真的写了盘才记日志
-            record_write(img.path, dst, report, log_dir=self.opts.log_dir or log_dir(),
-                         channel=self.opts.channel, options=self.opts)
+        try:  # 真的写了盘才记日志
+            record_write(
+                img.path,
+                dst,
+                report,
+                log_dir=self.opts.log_dir or log_dir(),
+                channel=self.opts.channel,
+                options=self.opts,
+            )
         except CoreError as e:
             note = f"；{e}"
         img.done = True
@@ -454,8 +471,9 @@ class App:
         changes = "、".join(f"{str(r['old'])[:12]}→{r['new']}" for r in report[:3])
         more = " 等" if len(report) > 3 else ""
         warn_note = f"；{self.warned[-1]}" if self.warned else ""
-        return True, (f"已保存 {os.path.abspath(dst)}（{len(report)} 处：{changes}{more}）"
-                      f"{note}{warn_note}")
+        return True, (
+            f"已保存 {os.path.abspath(dst)}（{len(report)} 处：{changes}{more}）{note}{warn_note}"
+        )
 
     def runnable(self) -> list[ImageItem]:
         return [img for img in self.images if self.jobs_for(img)]
@@ -467,9 +485,11 @@ class App:
         self.ensure_blocks()
         if not self.jobs_for(img):
             self.status = "未替换"
-            self.message = ("没有可替换的块：选中一行按 Enter（整行换）或 i（只换几个字）先设置新文字"
-                            if not any(b.override for b in self.blocks())
-                            else "启用的块没有新文字，按 空格 检查启用状态")
+            self.message = (
+                "没有可替换的块：选中一行按 Enter（整行换）或 i（只换几个字）先设置新文字"
+                if not any(b.override for b in self.blocks())
+                else "启用的块没有新文字，按 空格 检查启用状态"
+            )
             return
         if progress:
             progress("正在替换，请稍等…")
@@ -477,21 +497,33 @@ class App:
         self.status = "替换完成" if ok else "替换失败"
         self.message = msg
 
-    def apply_all(self, progress: Progress | None = None) -> None:
+    def apply_all(
+        self, progress: Progress | None = None, should_stop: Callable[[], bool] | None = None
+    ) -> None:
+        """批量替换。should_stop 每张图之前问一次，返回 True 则就此收手。"""
         todo = self.runnable()
         if not todo:
             self.message = "没有任何图片有可执行的替换"
             return
-        if progress:
-            progress(f"正在替换 {len(todo)} 张图片，请稍等…")
+        self.cancel = False
+        total = len(todo)
         pool = self.pool(todo)
         done = 0
         last = ""
-        for img in todo:
+        for idx, img in enumerate(todo, 1):
+            if should_stop is not None and should_stop():
+                self.cancel = True
+                break
+            if progress:
+                progress(f"替换中 {idx}/{total}：{img.name}（Esc 取消）")
             ok, msg = self.apply_one(img, pool)
             done += 1 if ok else 0
             last = f"{img.name}: {msg}"
-        self.status = f"批量完成 {done}/{len(todo)}"
+        if self.cancel:
+            self.status = f"已取消，完成 {done}/{total}"
+            self.message = last or "已取消，未开始替换"
+            return
+        self.status = f"批量完成 {done}/{total}"
         self.message = last
 
     # ---- 列表窗口
@@ -502,7 +534,7 @@ class App:
             return 0, []
         start = self.sel_row - rows + 1 if self.sel_row >= rows else 0
         start = max(0, min(start, max(0, len(self.rows) - rows)))
-        return start, self.rows[start:start + rows]
+        return start, self.rows[start : start + rows]
 
     def select_by_digit(self, digit: int) -> bool:
         """数字键 1..9、0(=10) 快速选中当前窗口里的第 N 张图片（目录行不计数）。"""

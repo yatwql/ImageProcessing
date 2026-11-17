@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -37,8 +38,12 @@ def make_jobs(rgb: np.ndarray, mapping: dict[str, str], areas: list[str]) -> lis
     return jobs
 
 
-def jobs_from_blocks(blocks, mapping: dict[str, str], warn: bool = True,
-                     sink: Callable[[str], None] | None = None) -> list[Job]:
+def jobs_from_blocks(
+    blocks: Sequence[Any],
+    mapping: dict[str, str],
+    warn: bool = True,
+    sink: Callable[[str], None] | None = None,
+) -> list[Job]:
     """TUI 用：块级自定义优先，其余块交给全局映射（支持行内子串）。"""
     jobs: list[Job] = []
     rest: list[dict] = []

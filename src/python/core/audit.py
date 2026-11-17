@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import glob
 import hashlib
 import importlib
 import json
@@ -182,12 +183,14 @@ def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
 
 def record_write(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
                  log_dir: str, action: str = ACTION_REPLACE, channel: str = "cli",
-                 options: object | None = None) -> str:
+                 options: object | None = None,
+                 when: dt.datetime | None = None) -> str:
     """追加一条写盘记录，返回写入的日志文件路径。
 
+    when: 记录时间与落哪个按天文件，默认取当前时间（测试与补录历史时显式传入）。
     写日志失败抛 CoreError：图片已经存好，由渠道提示一句即可，不算替换失败。
     """
-    when = dt.datetime.now().astimezone()
+    when = when or dt.datetime.now().astimezone()
     path = log_path(log_dir, when)
     entry = build_entry(src, dst, report, action=action, channel=channel,
                         options=options, when=when)
@@ -209,3 +212,60 @@ def record_write(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *
         os.close(fd)
     prune_logs(log_dir)
     return path
+
+
+def read_entries(log_dir: str, day: dt.date | None = None, src: str | None = None,
+                 channel: str | None = None) -> list[dict[str, Any]]:
+    """读回写盘记录（新→旧顺序不重要，按文件与写入顺序返回）。
+
+    day: 只读某一天（None = 该目录下所有按天日志）。
+    src: 原图文件名或路径的子串，用于"这张图都被换过什么"。
+    channel: 渠道精确匹配（cli / tui）。
+    坏行（被外部截断、手工编辑坏了）跳过，不因为一行坏掉整份日志读不出来。
+    """
+    if day is not None:
+        paths = [log_path(log_dir, dt.datetime.combine(day, dt.time()))]
+    else:
+        paths = sorted(glob.glob(os.path.join(log_dir, f"{LOG_PREFIX}*.log")))
+    entries: list[dict[str, Any]] = []
+    for path in paths:
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if not isinstance(entry, dict):
+                        continue
+                    if src and src not in str(entry.get("src_file", "")) \
+                            and src not in str(entry.get("src_path", "")):
+                        continue
+                    if channel and entry.get("channel") != channel:
+                        continue
+                    entries.append(entry)
+        except OSError as e:
+            raise CoreError(f"无法读取日志 {path}: {e}") from e
+    return entries
+
+
+def summarize(entries: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """汇总一批记录：条数、替换操作总数、每张原图被写了多少次。"""
+    per_src: dict[str, int] = {}
+    per_channel: dict[str, int] = {}
+    replacements = 0
+    for entry in entries:
+        name = str(entry.get("src_file") or "?")
+        per_src[name] = per_src.get(name, 0) + 1
+        chan = str(entry.get("channel") or "?")
+        per_channel[chan] = per_channel.get(chan, 0) + 1
+        replacements += int(entry.get("replaced") or 0)
+    return {
+        "writes": len(entries),
+        "replacements": replacements,
+        "per_src": dict(sorted(per_src.items(), key=lambda kv: -kv[1])),
+        "per_channel": dict(sorted(per_channel.items())),
+    }

@@ -7,8 +7,12 @@ from PIL import Image, ImageDraw
 
 from .fonts import FontFace
 
+InkBox = tuple[int, int, int, int]
 
-def render_line(text: str, face: FontFace, size: int, tracking: float = 0.0):
+
+def render_line(
+    text: str, face: FontFace, size: int, tracking: float = 0.0
+) -> tuple[np.ndarray, InkBox, int]:
     """渲染单行，返回 (alpha HxW uint8, ink_box(l,t,r,b), pad)。"""
     font = face.font(size)
     adv = [font.getlength(c) for c in text]
@@ -28,10 +32,14 @@ def render_line(text: str, face: FontFace, size: int, tracking: float = 0.0):
     ys, xs = np.nonzero(arr > 8)
     if len(xs) == 0:
         return arr, (0, 0, 0, 0), pad
-    return arr, (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1), pad
+    # 用内建 min/max 而不是 ndarray 的方法：坐标数组很小，取值方式不影响耗时，
+    # 但内建写法在 numpy 的类型桩下无需依赖任何配置就成立。
+    return arr, (int(min(xs)), int(min(ys)), int(max(xs)) + 1, int(max(ys)) + 1), pad
 
 
-def char_spans(text: str, face: FontFace, size: int, tracking: float, origin_x: float):
+def char_spans(
+    text: str, face: FontFace, size: int, tracking: float, origin_x: float
+) -> list[tuple[float, float]]:
     """整行墨迹左边界为 origin_x 时，反推每个字符的 [x0,x1]（图像坐标）。"""
     _arr, box, pad = render_line(text, face, size, tracking)
     if box[3] <= box[1]:
@@ -52,13 +60,21 @@ def ink_size(text: str, face: FontFace, size: int, tracking: float = 0.0) -> tup
     return max(1, right - left), max(1, bottom - top)
 
 
-def draw_text(canvas: np.ndarray, text: str, face: FontFace, size: int, tracking: float,
-              color, box: tuple[float, float, float, float], align: str,
-              alpha_canvas: np.ndarray | None = None) -> np.ndarray:
+def draw_text(
+    canvas: np.ndarray,
+    text: str,
+    face: FontFace,
+    size: int,
+    tracking: float,
+    color: tuple[int, int, int],
+    box: tuple[float, float, float, float],
+    align: str,
+    alpha_canvas: np.ndarray | None = None,
+) -> np.ndarray:
     """在参考框 box=(x0,x1,y0,y1) 内绘制；垂直居中，水平按 align。"""
     x0, x1, y0, y1 = box
     lines = text.split("\n")
-    rendered = []
+    rendered: list[tuple[np.ndarray | None, InkBox]] = []
     for ln in lines:
         if ln == "":
             rendered.append((None, (0, 0, 0, 0)))
@@ -72,8 +88,8 @@ def draw_text(canvas: np.ndarray, text: str, face: FontFace, size: int, tracking
     y_cursor = (y0 + y1) / 2.0 - total_h / 2.0
 
     H, W = canvas.shape[:2]
-    for arr, b in rendered:
-        if arr is None:
+    for arr_i, b in rendered:
+        if arr_i is None:
             y_cursor += pitch
             continue
         left, top_, right, bottom = b
@@ -92,8 +108,8 @@ def draw_text(canvas: np.ndarray, text: str, face: FontFace, size: int, tracking
             y_cursor += pitch
             continue
         sx, sy = px0 - xi, py0 - yi
-        patch = arr[top_:bottom, left:right].astype(np.float32) / 255.0
-        a = patch[sy:sy + (py1 - py0), sx:sx + (px1 - px0)][..., None]
+        patch = arr_i[top_:bottom, left:right].astype(np.float32) / 255.0
+        a = patch[sy : sy + (py1 - py0), sx : sx + (px1 - px0)][..., None]
         dst = canvas[py0:py1, px0:px1].astype(np.float32)
         col = np.array(color, np.float32)[None, None, :]
         canvas[py0:py1, px0:px1] = np.clip(dst * (1 - a) + col * a + 0.5, 0, 255).astype(np.uint8)

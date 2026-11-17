@@ -7,6 +7,7 @@ import json
 import os
 import re
 import subprocess
+from typing import Any
 
 from PIL import ImageFont
 
@@ -59,7 +60,7 @@ def font_dirs() -> list[str]:
 def fc_list_files() -> list[str]:
     out = _run(["fc-list", "--format", "%{file}\n"])
     files = [ln.strip() for ln in out.splitlines() if ln.strip().lower().endswith(FONT_EXTS)]
-    if not files:                     # 没有 fontconfig（含 Windows）时直接扫字体目录
+    if not files:  # 没有 fontconfig（含 Windows）时直接扫字体目录
         for root in font_dirs():
             for dirpath, _dirs, names in os.walk(root):
                 files += [os.path.join(dirpath, n) for n in names if n.lower().endswith(FONT_EXTS)]
@@ -134,7 +135,7 @@ def _write_cache(entries: dict) -> None:
         pass
 
 
-def _faces_from_rows(rows) -> list[FontFace] | None:
+def _faces_from_rows(rows: Any) -> list[FontFace] | None:
     faces = []
     try:
         for path, index, _name in rows:
@@ -157,8 +158,10 @@ def build_font_pool(texts: list[str], force_font: str | None, max_faces: int) ->
     files = fc_list_files()
     cache = _read_cache()
     key = hashlib.sha256(
-        json.dumps([_file_signature(files), sorted(set(joined)), max_faces],
-                   ensure_ascii=False).encode("utf-8")).hexdigest()
+        json.dumps(
+            [_file_signature(files), sorted(set(joined)), max_faces], ensure_ascii=False
+        ).encode("utf-8")
+    ).hexdigest()
     cached = _faces_from_rows(cache.get(key)) if key in cache else None
     if cached:
         _log(f"字体池来自缓存（{len(cached)} 个 face）")
@@ -191,7 +194,7 @@ def build_font_pool(texts: list[str], force_font: str | None, max_faces: int) ->
 
     rows = [[f.path, f.index, f.name] for f in faces]
     cache[key] = rows
-    while len(cache) > CACHE_ENTRIES:                 # 只留最近若干组
+    while len(cache) > CACHE_ENTRIES:  # 只留最近若干组
         cache.pop(next(iter(cache)))
     _write_cache(cache)
     return faces

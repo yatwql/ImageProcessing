@@ -28,30 +28,36 @@ scripts/tui.sh ──► src/python/tui ──┘
 ## 1.1 目录结构
 
 ```text
-scripts/                     只有启动脚本，不放业务代码
-  cli.sh / cli.ps1           命令行入口  → python -m src.python.cli
-  tui.sh / tui.ps1           交互入口    → python -m src.python.tui
+scripts/                     启动脚本 + 工程守护，不放业务代码
+  cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
+  tui.sh / tui.ps1           交互入口      → python -m src.python.tui
   setup.sh / setup.ps1       建 .venv 并安装依赖（ps1 支持 -Dev 装测试依赖）
   test.sh / test.ps1         全量用例 + 报告（ps1 支持 -Fast）
+  check-guards.py            工程守护：编号/分层/文件长度/显式编码/测试目录
+  check-perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
+  log-query.py               日志查询：按原图/日期/渠道过滤并汇总
+.githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
+  pre-commit                 提交前：ruff + guards + 全量用例
+  install-hooks.sh           启用 / --off 关闭
+.github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf
+pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
 src/
   python/                    程序代码
     config.py                路径约定 + /data/config/img-p.json 配置读取
     core/                    核心层（CLI 与 TUI 共用）
     cli/                     命令行渠道
-    tui/                     交互渠道：app.py 状态 + ui.py（curses）
+    tui/                     交互渠道
+      app.py                 会话状态与动作（不碰 curses）
+      ui.py                  入口：启动参数、主循环、窗口初始化（门面）
+      ui_base.py             文案（USAGE/HELP）、宽字符、颜色与落字
+      ui_draw.py             宽/窄两种布局的绘制
+      ui_input.py            按键序列解析与单行输入
+      ui_actions.py          按键分发与编辑动作
   test/                      测试用例（pytest / unittest 均可）
     __init__.py              测试包入口：注入仓库根到 sys.path、临时目录指向 /data/tmp
-data/                        待处理的图片
-data/output/                 默认输出目录
-logs/                        写盘日志（按天一个 JSONL 文件，不入库）
-/data/config/img-p.json      运行时配置文件
-/data/config/img-p.example.json  示例配置（setup 生成，含全部可配置键）
-/data/tmp                    测试中间文件（不碰 data/output）
-/test-reports                测试报告（junit / html / coverage / summary）
-docs/                        需求 / 技术设计 / 使用手册
-CLAUDE.md                    给 AI 协作者的项目约定（架构约束/测试/文档/纪律）
-requirements.txt             运行依赖
-requirements-dev.txt         开发依赖（pytest、ruff）
+    _support.py              公共设施：字体路径、合成图、OCR 桩、FakeWin、用例基类
+    core/                    核心层用例（含 background/color/font/format/layout/pipeline/primitives 子目录）
+    cli/  tui/               渠道与交互用例
 ```
 
 ## 2. 模块与职责
@@ -63,15 +69,19 @@ requirements-dev.txt         开发依赖（pytest、ruff）
 | `src/python/core/style.py` | 版式分析、字体/字号/字距反解 | `analyze` `fit_font` `guess_size` `soft_iou` `stroke_of` |
 | `src/python/core/fonts.py` | 本机字体发现（fontconfig 或系统目录）、候选池、ttc 多 face 展开 | `FontFace` `build_font_pool` `font_dirs` |
 | `src/python/core/render.py` | 字形渲染与落位 | `render_line` `char_spans` `ink_size` `draw_text` `solve_tracking` |
-| `src/python/core/edit.py` | 擦除 + 重绘编排 | `erase` `replace_image` |
-| `src/python/core/audit.py` | 写盘日志：组装并追加 JSONL 记录 | `record_write` `build_entry` `log_path` `ACTION_REPLACE` `ACTION_DEBUG` |
+| `src/python/core/edit.py` | 擦除 + 重绘编排 | `erase` `inpaint_radius` `replace_image` |
+| `src/python/core/audit.py` | 写盘日志：组装、追加、回读与汇总 | `record_write` `build_entry` `read_entries` `summarize` `log_path` `ACTION_REPLACE` `ACTION_DEBUG` |
 | `src/python/core/match.py` | Job 定义与匹配规则 | `Job` `norm_map` `plan_jobs` |
 | `src/python/core/jobs.py` | 各种入口 → Job 列表 | `area_jobs` `make_jobs` `jobs_from_blocks` |
 | `src/python/core/image.py` | 读写、元数据与目标占名 | `load_image` `load_meta` `save_image` `reserve_path` `unique_path` `same_file` `IMG_EXTS` |
 | `src/python/core/options.py` | 运行选项、字色解析、警告出口 | `Options` `parse_color` `warn` |
 | `src/python/cli/main.py` | 参数、两遍流程、批量汇总 | `main` `build_parser` `load_mapping` |
 | `src/python/tui/app.py` | 会话状态、动作、缓存 | `App` `Block` `ImageItem` |
-| `src/python/tui/ui.py` | 绘制、按键、输入行、入口 | `loop` `handle` `edit_line` |
+| `src/python/tui/ui.py` | 入口：启动参数、主循环、窗口初始化 | `loop` `main` `parse_args` |
+| `src/python/tui/ui_base.py` | 文案、宽字符处理、颜色与落字 | `USAGE` `HELP` `dwidth` `cut` `pad` `init_colors` `attr` `put` |
+| `src/python/tui/ui_draw.py` | 宽/窄两种布局的绘制 | `draw_frame` `draw_main` `draw_wide` `draw_narrow` `draw_map` `draw_settings` |
+| `src/python/tui/ui_input.py` | 按键序列解析与单行输入 | `read_key` `edit_line` `KEYMAP` `SEQ_MAP` |
+| `src/python/tui/ui_actions.py` | 按键分发与编辑动作 | `handle` `handle_map` `handle_settings` `edit_current` `edit_inline` |
 
 ## 3. 核心数据结构
 
@@ -141,7 +151,10 @@ class Options:                # 渠道无关的运行选项
 ### 4.4 擦除（`edit.erase`）
 
 - mask 外扩 1px（`dilate` 3×3），再高斯模糊后二值化，把抗锯齿边缘一起纳入。
-- `cv2.inpaint(..., 4, INPAINT_TELEA)` 修复，纯色与渐变背景都能无痕。
+- `cv2.inpaint(..., radius, INPAINT_TELEA)` 修复，半径由 `inpaint_radius(mask)` 按笔画宽度算：
+  `stroke = 2 × mean(distanceTransform(mask))`，`radius = clamp(round(stroke × 0.75), 4, 14)`。
+  细体停在 4（不糊到邻居），粗体/大标题自动放大（固定 4 会在粗笔画上留模糊边）。
+  常量：`INPAINT_RADIUS_MIN=4`、`INPAINT_RADIUS_MAX=14`、`INPAINT_STROKE_FACTOR=0.75`。
 - 有 alpha 通道时对 alpha 单独做同样的 inpaint，避免原字形残留成黑色轮廓。
 
 ### 4.5 重绘（`render.draw_text`）
@@ -293,6 +306,17 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 已做的优化：`soft_iou` 的模糊从“每个平移位置一次”提到“每张掩码一次”（字体匹配 0.78s → 0.50s/块）；
 字体池落盘缓存；`fit_font` 先按宽度比例剪枝再加权打分。
 
+性能门禁（`scripts/check-perf.py`，CI 的 `perf` 作业）在合成数据上钉住四步热路径，
+阈值 = 本机实测值 × 5 以上（只挡数量级退化，不追求机器间可比）：
+
+| 项目 | 上限 |
+| --- | --- |
+| `soft_iou` × 50（220×48） | 1.0s |
+| `erase`（2000×1500） | 1.5s |
+| PNG 读写（2000×1500） | 2.0s |
+| 日志追加 × 300 | 1.0s |
+| 合计 | 6.0s |
+
 实测后放弃的优化：**多线程并行处理多图**。在 15 张图和 4 张 20 块大图上分别测过
 （`thread-local` OCR 引擎 + 两遍流程都并行），1/2/4 线程的耗时为 21.8 / 23.8 / 25.8 秒
 与 7.8 / 8.9 / 10.0 秒 —— 并发只会更慢：OCR 的 onnxruntime 与会话本身已多线程，
@@ -300,16 +324,20 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 
 ## 10. 测试策略
 
-- 静态检查：`ruff check --select E,F,B,I --ignore E501 src/`，要求零告警。
+- 门禁四件套（与 CI 同源，`./scripts/test.sh` 之外单独可跑）：
+  `ruff check src/ scripts/`（零告警）、`python -m mypy`（守 `core` 全量注解）、
+  `python scripts/check-guards.py`（编号/分层/文件长度/显式编码/测试目录）、
+  `python scripts/check-perf.py`（耗时守卫）。覆盖率阈值 `fail_under = 75`（实测约 80%）。
 - 核心层：合成图（已知字体/字号/颜色）→ 断言 `fit_font` 选回原字体与字号、`analyze` 取回原字色。
 - 渠道层：TUI 的 `App` 可用伪造 `win` 驱动 `handle()` 做无终端单测（整行/行内/映射/批准确认）。
 - 端到端：`cli.sh data/demo --dry-run` 与 `cli.sh data/demo --map ...` 出图后人工比对原图。
 - 回归样例：`data/demo/` 四张真图（`示例-报告.png` 标题/正文/负责人/日期；`示例-通知1..3.png` 三种标题与不同电话），
   `src/test/cli/test_demo_assets.py` 直接在它们上面跑真实读取、单图替换、行内替换、批量与日志。
-- 自动测试：`src/test/` 按 `core/`、`cli/`、`tui/`、`image_processing/` 分目录，236 个用例（`unittest` 写、`pytest` 与 `unittest` 都能跑），覆盖匹配规则、
+- 自动测试：`src/test/` 按 `core/`（含 `primitives/` `layout/` `font/` `color/` `format/` `background/` `pipeline/`）、`cli/`、`tui/` 分目录，用例数随迭代变化（`unittest` 写、`pytest` 与 `unittest` 都能跑），覆盖匹配规则、
   块级任务、渲染与字距、图片读写格式表、合成图端到端（其它区域像素不变、memo 两次结果一致）、输出覆盖保护（`same_file` 与
   CLI 拒绝覆盖）、写盘日志（字段/追加/预演不记/日志失败不毁结果）、TUI 按键归一（转义序列/方向键/数字跳图/单 Esc 不退出）。
-- 开发依赖：`requirements-dev.txt`（pytest、ruff）。
+- 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-cov、pytest-html、ruff、mypy）；
+  `requirements.txt` = `-e .`、`requirements-dev.txt` = `-e .[dev]`，只为兼容既有脚本。
 
 ## 10.0 测试报告脚本
 
@@ -317,14 +345,19 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 `/test-reports/{junit.xml,test-report.html,coverage/index.html,summary.md}`（`--fast` 跳过覆盖率与 HTML）；
 目录不可写时退回 `./reports`。测试中间文件统一写 `/data/tmp`（`PYTHONPYCACHEPREFIX`、`TMPDIR`、
 `COVERAGE_FILE` 都指过去），脚本结束时清掉仓库里的 `__pycache__` / `.pytest_cache`。
-覆盖率基线约 77% 行覆盖；入口文件（`cli/__main__.py`、`tui/__main__.py`）只有 4 行、不单独覆盖。
+覆盖率基线约 80% 行覆盖，阈值写在 `pyproject.toml` 的 `fail_under`；入口文件（`cli/__main__.py`、`tui/__main__.py`）只有 4 行、不单独覆盖。
 
 ## 10.1 自测命令
 
 ```bash
-./scripts/setup.sh                                            # 建环境（或者已有 .venv）
+./scripts/setup.sh                                            # 建环境（或者已有 .venv；等价 pip install -e ".[dev]"）
+sh .githooks/install-hooks.sh                                 # 启用提交前门禁（ruff + guards + 用例）
 ./scripts/test.sh                                             # 全量用例 + 测试报告
-.venv/bin/ruff check --select E,F,B,I --ignore E501 src/             # 静态检查，应零告警
+.venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
+.venv/bin/python -m mypy                                      # 类型检查，守 core
+.venv/bin/python scripts/check-guards.py                      # 工程守护（编号/分层/长度/编码/测试目录）
+.venv/bin/python scripts/check-perf.py                        # 耗时守卫
+.venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数
 ./scripts/cli.sh data/demo --list                              # OCR 是否正常（示例图）
 ./scripts/cli.sh data/demo --map "2023=2024" --dry-run          # 批量预演
 ./scripts/cli.sh data/demo --map "2023=2024"                  # 出图到 data/output/

@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import cv2
 import numpy as np
 
 from .fonts import FontFace
 from .options import _log
-from .render import ink_size, render_line
+from .render import InkBox, ink_size, render_line
 
 
-def _bin(mask: np.ndarray, box) -> np.ndarray:
+def _bin(mask: np.ndarray, box: InkBox) -> np.ndarray:
     left, top, right, bottom = box
     return mask[top:bottom, left:right] > 127
 
@@ -30,9 +32,9 @@ def soft_iou(A: np.ndarray, B: np.ndarray, radius: int = 3) -> float:
     if min(ha, wa, hb, wb) == 0:
         return 0.0
     H, W = max(ha, hb) + 2 * radius, max(wa, wb) + 2 * radius
-    fa = np.zeros((H, W), np.float32)
-    fa[(H - ha) // 2:(H - ha) // 2 + ha, (W - wa) // 2:(W - wa) // 2 + wa] = A
-    fb_small = np.zeros((hb, wb), np.float32)
+    fa: np.ndarray = np.zeros((H, W), np.float32)
+    fa[(H - ha) // 2 : (H - ha) // 2 + ha, (W - wa) // 2 : (W - wa) // 2 + wa] = A
+    fb_small: np.ndarray = np.zeros((hb, wb), np.float32)
     fb_small[:] = B
     # 模糊与平移无关，先各自模糊一次，循环里只做搬移和逐元素运算
     fa = cv2.GaussianBlur(fa, (0, 0), 1.0)
@@ -49,7 +51,7 @@ def soft_iou(A: np.ndarray, B: np.ndarray, radius: int = 3) -> float:
             if x < 0 or x + wb > W:
                 continue
             fb[:] = 0
-            fb[y:y + hb, x:x + wb] = fb_small
+            fb[y : y + hb, x : x + wb] = fb_small
             inter = float(np.minimum(fa, fb).sum())
             union = float(np.maximum(fa, fb).sum())
             if union > 0:
@@ -59,7 +61,7 @@ def soft_iou(A: np.ndarray, B: np.ndarray, radius: int = 3) -> float:
     return best
 
 
-def analyze(img_rgb: np.ndarray, rect: tuple[int, int, int, int]):
+def analyze(img_rgb: np.ndarray, rect: tuple[int, int, int, int]) -> dict[str, Any] | None:
     """分析文字块：mask / 墨迹框 / 字色 / 笔画粗细。"""
     x, y, w, h = rect
     H, W = img_rgb.shape[:2]
@@ -75,15 +77,17 @@ def analyze(img_rgb: np.ndarray, rect: tuple[int, int, int, int]):
     k = min(int(max(9, round(h * 1.3)) // 2 * 2 + 1), (min(ch, cw) - 1) // 2 * 2 + 1)
     bg_est = cv2.medianBlur(crop, k) if k >= 3 else cv2.blur(crop, (3, 3))
     dist = np.abs(crop.astype(np.int16) - bg_est.astype(np.int16)).max(axis=2).astype(np.uint8)
-    if dist.max() < 6:
+    if int(max(dist.ravel())) < 6:
         return None
     tight = np.zeros((ch, cw), np.uint8)
-    tight[max(0, y - cy0 - 2):min(ch, y - cy0 + h + 2),
-          max(0, x - cx0 - 2):min(cw, x - cx0 + w + 2)] = 1
+    tight[
+        max(0, y - cy0 - 2) : min(ch, y - cy0 + h + 2),
+        max(0, x - cx0 - 2) : min(cw, x - cx0 + w + 2),
+    ] = 1
 
     # 用区内最大色差反推阈值：Otsu 在"背景占多数"时阈值会塌到 0，不可靠
-    dmax = float(dist[tight.astype(bool)].max())
-    m = np.zeros((ch, cw), np.uint8)
+    dmax = float(max(dist[tight.astype(bool)]))
+    m: np.ndarray = np.zeros((ch, cw), np.uint8)
     for frac in (0.45, 0.3, 0.2):
         m = ((dist >= max(14.0, dmax * frac)).astype(np.uint8)) & tight
         if int(m.sum()) >= 12:
@@ -93,15 +97,14 @@ def analyze(img_rgb: np.ndarray, rect: tuple[int, int, int, int]):
     m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
 
     # 更严格的阈值再取一次"笔画核心"：字重判别用它，避免抗锯齿把常规体看成粗体
-    m_core = ((dist >= max(16.0, dmax * 0.72)).astype(np.uint8)) & tight
+    m_core: np.ndarray = ((dist >= max(16.0, dmax * 0.72)).astype(np.uint8)) & tight
     m_core = cv2.morphologyEx(m_core, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     core_stroke = stroke_of(m_core) if int(m_core.sum()) >= 20 else 0.0
     ys, xs = np.nonzero(m)
-    ink = (int(xs.min()) + cx0, int(ys.min()) + cy0,
-           int(xs.max()) + 1 + cx0, int(ys.max()) + 1 + cy0)
+    ink = (int(min(xs)) + cx0, int(min(ys)) + cy0, int(max(xs)) + 1 + cx0, int(max(ys)) + 1 + cy0)
 
     # 字色：取色差最大的那批像素（笔画核心），腐蚀在细笔画上会失效
-    sel = ((dist >= np.percentile(dist[m.astype(bool)], 80)) & m.astype(bool))
+    sel = (dist >= np.percentile(dist[m.astype(bool)], 80)) & m.astype(bool)
     if int(sel.sum()) < 6:
         sel = m.astype(bool)
     text_color = np.median(crop[sel], axis=0)
@@ -110,18 +113,23 @@ def analyze(img_rgb: np.ndarray, rect: tuple[int, int, int, int]):
     ys_m, xs_m = np.nonzero(m)
     slant = 0.0
     if len(xs_m) > 20:
-        mid = (ys_m.min() + ys_m.max()) / 2.0
+        mid = (min(ys_m) + max(ys_m)) / 2.0
         upper = xs_m[ys_m < mid]
         lower = xs_m[ys_m >= mid]
         if len(upper) > 5 and len(lower) > 5:
-            span = max(1.0, float(ys_m.max() - ys_m.min()))
+            span = max(1.0, float(max(ys_m) - min(ys_m)))
             slant = float(lower.mean() - upper.mean()) / span
 
     full = np.zeros((H, W), np.uint8)
     full[cy0:cy1, cx0:cx1] = m
-    return {"mask": full.astype(bool), "ink_box": ink,
-            "text_color": tuple(int(round(v)) for v in text_color),
-            "stroke": stroke_of(m), "stroke_core": core_stroke, "slant": slant}
+    return {
+        "mask": full.astype(bool),
+        "ink_box": ink,
+        "text_color": tuple(int(round(v)) for v in text_color),
+        "stroke": stroke_of(m),
+        "stroke_core": core_stroke,
+        "slant": slant,
+    }
 
 
 def _is_italic(face: FontFace) -> bool:
@@ -129,8 +137,15 @@ def _is_italic(face: FontFace) -> bool:
     return any(k in name for k in ("italic", "oblique"))
 
 
-def fit_font(text: str, mask: np.ndarray, ink_box, pool: list[FontFace], max_eval: int,
-             a_stroke: float | None = None, slant: float | None = None):
+def fit_font(
+    text: str,
+    mask: np.ndarray,
+    ink_box: InkBox,
+    pool: list[FontFace],
+    max_eval: int,
+    a_stroke: float | None = None,
+    slant: float | None = None,
+) -> tuple[float, FontFace, int, float, float] | None:
     """找出与原文字最像的 (score, 字体, 字号, 字距, iou)。
 
     字距分两轮搜索：先只允许正常排版范围（±0.35em），避免靠大间距"作弊"；
@@ -150,8 +165,8 @@ def fit_font(text: str, mask: np.ndarray, ink_box, pool: list[FontFace], max_eva
             pool = upright
     n_gap = max(1, len(text) - 1)
 
-    def search(track_limit: float):
-        coarse = []
+    def search(track_limit: float) -> tuple[float, FontFace, int, float, float] | None:
+        coarse: list[tuple[float, FontFace, int, float]] = []
         for face in pool[:max_eval]:
             try:
                 h100 = ink_size(text, face, 100)[1]

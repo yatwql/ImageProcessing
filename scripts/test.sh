@@ -24,11 +24,11 @@ fi
 
 PY=".venv/bin/python"
 if [ ! -x "$PY" ]; then
-  echo "缺少运行环境，请先执行 ./scripts/setup.sh（再装测试依赖: .venv/bin/pip install -r requirements-dev.txt）" >&2
+  echo "缺少运行环境，请先执行 ./scripts/setup.sh（再装测试依赖: .venv/bin/python -m pip install -e ".[dev]"）" >&2
   exit 1
 fi
 if ! $PY -c "import pytest" >/dev/null 2>&1; then
-  echo "缺少 pytest，请先执行 .venv/bin/pip install -r requirements-dev.txt" >&2
+  echo '缺少 pytest，请先执行 .venv/bin/python -m pip install -e ".[dev]"' >&2
   exit 1
 fi
 

@@ -413,6 +413,8 @@ class App:
         return os.path.abspath(os.path.dirname(path)) == os.path.abspath(self.out_dir)
 
     def apply_one(self, img: ImageItem, pool=None) -> tuple[bool, str]:
+        if self.cancel:
+            return False, "已取消"
         jobs = self.jobs_for(img)
         if not jobs:
             return False, "没有启用且填了新文字的块"
@@ -431,9 +433,10 @@ class App:
             tag=os.path.splitext(img.name)[0] + "_",
             memo=img.memo,
             source=img.path,
+            should_stop=lambda: self.cancel,      # 单张图内按 Esc 也能停在块之间
         )
         if not report:
-            return False, "替换全部失败"
+            return False, "已取消" if self.cancel else "替换全部失败"
         base = os.path.join(self.out_dir, os.path.splitext(img.name)[0] + ".png")
         if same_file(base, img.path):
             return False, f"输出目录 {self.out_dir} 会覆盖原图，按 o 换个目录"
@@ -482,6 +485,7 @@ class App:
         img = self.cur
         if img is None:
             return
+        self.cancel = False
         self.ensure_blocks()
         if not self.jobs_for(img):
             self.status = "未替换"

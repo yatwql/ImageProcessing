@@ -414,6 +414,17 @@ class TuiWritesAuditLog(TuiTestCase):
         self.assertEqual(sorted(e["src_file"] for e in entries), ["a.png", "b.png"])
         self.assertTrue(all(e["channel"] == "tui" for e in entries))
 
+    def test_apply_one_records_the_running_version(self):
+        """日志要能回答"这是哪一版写的"：真实写盘的记录带 app_version。"""
+        from src.python.version import VERSION
+
+        app = self.build_app()
+        img = app.cur
+        assert img is not None
+        self.first_block(img).override = "改过的文字"
+        app.apply_one(img)
+        self.assertEqual(self.logs(app)[0]["app_version"], VERSION)
+
 
 if __name__ == "__main__":
     unittest.main()

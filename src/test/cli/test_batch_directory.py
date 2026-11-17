@@ -109,6 +109,20 @@ class BatchDirectoryRun(unittest.TestCase):
         self.assertIn("拒绝覆盖", err)
         self.assertTrue(os.path.exists(src))
 
+    def test_broken_image_is_skipped_but_others_still_processed(self):
+        """一张图读不了不能拖垮整批：跳过它、报一句，其余照常出图。"""
+        self.make_image("a.png")
+        broken = os.path.join(self.src_dir, "b.png")
+        with open(broken, "wb") as f:
+            f.write(b"not a png")
+
+        code, _text, err = self.run_cli(self.src_dir, "--map", "2023=2024",
+                                        "--out-dir", self.out_dir)
+        # 契约：只要有一张成功就算成功（退出码 0），失败的张数在 stderr 与摘要里体现
+        self.assertEqual(code, 0)
+        self.assertIn("跳过", err)
+        self.assertTrue(os.path.exists(os.path.join(self.out_dir, "a.png")))
+
 
 if __name__ == "__main__":
     unittest.main()

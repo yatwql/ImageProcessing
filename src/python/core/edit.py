@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 
 import cv2
 import numpy as np
@@ -63,17 +64,23 @@ def replace_image(
     tag: str = "",
     memo: dict | None = None,
     source: str | None = None,
+    should_stop: Callable[[], bool] | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None, list[dict]]:
     """在已加载的图上执行全部任务，返回 (新图, 新alpha, 报告)。
 
     memo: 可选的每图缓存，重复执行同一张图时跳过 OCR 分析/字体匹配（TUI 用）。
     source: 原图路径，仅用于给调试图的写盘日志记录源文件。
+    should_stop: 可选中断回调，每处理一块之前问一次；返回 True 就停手，
+        已完成的块保留在报告里（调用方据此提示“已取消，完成 x/y”）。
     """
     H, W = rgb.shape[:2]
     out = rgb.copy()
     report: list[dict] = []
 
     for idx, job in enumerate(jobs):
+        if should_stop is not None and should_stop():
+            _log(f"已取消，完成 {len(report)}/{len(jobs)} 块")
+            break
         key_a = ("a", tuple(job.rect))
         info = memo.get(key_a) if memo is not None else None
         if info is None:

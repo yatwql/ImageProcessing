@@ -34,15 +34,21 @@ class VersionSource(unittest.TestCase):
 class VersionIsPrinted(TuiTestCase):
     def test_cli_prints_version_before_work(self):
         out, err = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
-                contextlib.suppress(SystemExit):
+        with (
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+            contextlib.suppress(SystemExit),
+        ):
             cli_main.main(["--version"])
         self.assertIn(f"img-p {version_mod.VERSION}", out.getvalue() + err.getvalue())
 
     def test_cli_banner_goes_to_stderr_so_listing_stays_clean(self):
         out, err = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
-                contextlib.suppress(SystemExit):
+        with (
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+            contextlib.suppress(SystemExit),
+        ):
             cli_main.main(["--list", "data/demo"])
         self.assertIn(f"img-p {version_mod.VERSION}", err.getvalue())
         self.assertTrue(out.getvalue().startswith("== "), "stdout 只能是清单内容")

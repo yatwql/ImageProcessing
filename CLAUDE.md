@@ -33,7 +33,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - **一律使用项目虚拟环境解释器**：`.venv/bin/python`。**禁止**裸 `python` / `python3` / `pytest`
   （会命中系统解释器，缺 Pillow / numpy / cv2 / rapidocr，报 `ModuleNotFoundError`）。
 - 首次准备：`./scripts/setup.sh`；开发依赖：`.venv/bin/python -m pip install -e ".[dev]"`。
-- 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳。
+- 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳；
+  版本组合由 `constraints.txt` 锁定，安装与 CI 都要带 `-c constraints.txt`。
 - 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`），`IMG_P_SKIP_HOOK=1` 临时跳过。
 - 配置文件：`/data/config/img-p.json`（模板见 `/data/config/img-p.example.json`，可用 `IMG_P_CONFIG` 指定）；
   测试中间文件写 `/data/tmp`，测试报告写 `/test-reports`。
@@ -82,7 +83,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
      匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
   2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程与中断；
   3. **稳定**（跨档）：错误契约、幂等重跑、输出覆盖保护、缓存失效、异常不外溢。
-- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 守 `core`、`check-guards.py` 六项全过、
+- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`check-guards.py` 八项全过、
   `check-perf.py` 不超阈值、覆盖率不低于 `pyproject.toml` 的 `fail_under`。
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。

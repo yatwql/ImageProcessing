@@ -38,12 +38,13 @@ Windows（PowerShell）用同名 `.ps1`：
 sh .githooks/install-hooks.sh                         # 启用提交前门禁（一次）
 .venv/bin/ruff check src/ scripts/                    # 静态检查
 .venv/bin/python -m mypy                              # 类型检查（守 core）
-.venv/bin/python scripts/check-guards.py              # 编号/分层/文件长度/编码/测试目录
+.venv/bin/python scripts/check-guards.py              # 编号/分层/长度/编码/测试目录/版本/依赖锁
 .venv/bin/python scripts/check-perf.py                # 耗时守卫
 .venv/bin/python -m pytest src/test -q                # 全量用例（覆盖率阈值 75%）
 ```
 
-GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lint、typecheck、guards、perf 五个作业。
+GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lint、typecheck、guards、perf 五个作业；
+依赖版本由 `constraints.txt` 锁定，安装时用 `pip install -c constraints.txt -e ".[dev]"`。
 
 ## 文档
 

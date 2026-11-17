@@ -126,5 +126,22 @@ class ArgumentGuards(unittest.TestCase):
             main([self.tmp.name, "--map", "2023=2024"])
 
 
+class VersionFlag(unittest.TestCase):
+    """`--version` 是脚本/打包检查的契约，输出里必须带程序名与版本号。"""
+
+    def test_version_flag_prints_name_and_version(self):
+        import contextlib
+        import io
+
+        from src.python.cli.main import main
+        from src.python.version import VERSION
+
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as ctx:
+            main(["--version"])
+        self.assertEqual(ctx.exception.code, 0)
+        self.assertIn(f"img-p {VERSION}", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,29 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-17 — 依赖锁定、单图内中断、交互用例补齐
+
+### 新增
+
+- `constraints.txt`：精确固定直接与传递依赖；`setup.sh` / `setup.ps1` / CI 全部改用
+  `pip install -c constraints.txt`，升级路径写进文件头注释。
+- `core.replace_image(should_stop=...)`：每处理一块之前询问回调，停手时保留已完成块。
+- `scripts/check-guards.py` 第 8 项：依赖锁（全部 `==` 且覆盖 pyproject 的直接依赖）。
+- `src/test/tui/test_key_dispatch.py`：主界面 / 全局映射 / 样式选项三块面板的逐键用例 +
+  批量中断；`src/test/core/test_cancel_pipeline.py`：核心层中断语义。
+
+### 变更
+
+- `App.apply_one` 接入 `should_stop`，`App.cancel` 在单张图内也生效；取消时返回「已取消」，
+  `apply_all` 状态行显示「已取消，完成 x/n」。
+- CLI 契约用例补强：`--version` 输出、版本横幅只走 stderr、坏图跳过不拖垮整批、
+  日志记录 `app_version`。
+
+### 验证
+
+- `ruff` 零告警、`mypy` 73 文件零错误、`check-guards.py` 8/8、`check-perf.py` 通过；
+  `pytest src/test -q` 297 passed，覆盖率 84%（`ui_actions.py` 55% → 88%，`ui.py` 64% → 82%）。
+
 ## 2026-11-17 — 版本号贯穿（v0.1）
 
 ### 新增

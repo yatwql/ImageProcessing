@@ -159,5 +159,23 @@ class SingleImageOutputPixels(unittest.TestCase):
             self.assertFalse(np.array_equal(before[30:80, 30:400], after[30:80, 30:400]))
 
 
+class VersionBanner(unittest.TestCase):
+    """每次运行都报版本，但只能走 stderr：stdout 是清单/摘要，脚本要能直接解析。"""
+
+    def test_banner_goes_to_stderr_and_keeps_stdout_clean(self):
+        import contextlib
+        import io
+
+        from src.python.cli.main import main
+        from src.python.version import VERSION
+
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            with contextlib.suppress(SystemExit):
+                main(["data/demo", "--list"])
+        self.assertIn(f"img-p {VERSION}", err.getvalue())
+        self.assertNotIn(f"img-p {VERSION}", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

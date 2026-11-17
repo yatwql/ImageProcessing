@@ -95,6 +95,14 @@
 | RF-54 | 用户体验 | 运行时不报版本，反馈问题时无法确认跑的是哪一版 | CLI 每次运行先打 `img-p 0.1` 到 stderr（stdout 留给清单/摘要），TUI 进 curses 前打印并写进标题栏与帮助页 | 已修 |
 | RF-55 | 文档 | 8 份文档没有版本行，容易拿旧文档对照新行为 | 各文档开头统一 `> 版本：v0.1`，`check-guards.py` 第 7 项校验代码/打包/文档三处一致 | 已修 |
 
+## 2026-11-17 稳定性与交互补强
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-56 | 可复现性 | 依赖只有下界：`opencv`/`rapidocr`/`onnxruntime` 大版本漂移会静默改变像素结果，CI 与本地也可能跑在不同版本上 | 新增 `constraints.txt` 精确固定直接与传递依赖；setup 与 CI 统一 `pip install -c`；守护第 8 项校验"全部 `==` 且覆盖 pyproject 的直接依赖" | 已修 |
+| RF-57 | 交互缺陷 | 批量取消只在两张图之间生效：单张图里 OCR + 字体匹配最慢的几秒按 Esc 完全没反应 | `replace_image(should_stop=)` 每块之前询问回调，`App.apply_one` 传入 `self.cancel`；取消时返回「已取消」并保留已完成块 | 已修 |
+| RF-58 | 测试覆盖 | `ui_actions.py` 55%、`ui.py` 64%、`app.py` 78%：交互路径最可能坏却测最少 | 新增 `test_key_dispatch.py`（三块面板逐键）+ `test_cancel_pipeline.py`（核心中断）+ CLI 契约用例；总覆盖率 80% → 84% | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`scripts/check-guards.py`：6/6 通过。

@@ -11,6 +11,7 @@
   编码      文本 I/O 必须显式 `encoding=`（二进制模式除外）
   用例目录  `src/test` 下不得留只有 `__init__.py` 的空包，且目录要出现在 technical.md
   版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
+  依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ import ast
 import re
 import sys
 from pathlib import Path
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
@@ -171,6 +174,40 @@ def check_test_layout() -> list[str]:
     return problems
 
 
+PIN_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)$")
+
+
+def _dep_name(spec: str) -> str:
+    """'pillow>=10.0' / 'windows-curses; sys_platform == "win32"' → 'pillow'。"""
+    return re.split(r"[<>=!~;\[ ]", spec.strip(), maxsplit=1)[0].lower().replace("_", "-")
+
+
+def check_constraints() -> list[str]:
+    """依赖锁：必须全量精确固定，且覆盖 pyproject 的直接依赖（漏一个就会浮动升级）。"""
+    path = ROOT / "constraints.txt"
+    if not path.is_file():
+        return ["缺少 constraints.txt（依赖版本会随上游漂移）"]
+    pinned: set[str] = set()
+    problems = []
+    for raw in _read(path).splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        m = PIN_LINE.match(line)
+        if not m:
+            problems.append(f"constraints.txt 未精确固定：{line}")
+            continue
+        pinned.add(m.group(1).lower().replace("_", "-"))
+    data = tomllib.loads(_read(ROOT / "pyproject.toml"))
+    for spec in data.get("project", {}).get("dependencies", []):
+        name = _dep_name(spec)
+        if name == "windows-curses" and sys.platform != "win32":
+            continue                      # 平台条件依赖，非 Windows 上装不到也锁不到
+        if name not in pinned:
+            problems.append(f"constraints.txt 缺少直接依赖 {name}")
+    return problems
+
+
 VERSION_LINE = re.compile(r"^>\s*版本：v(\S+)\s*$", re.MULTILINE)
 VERSION_DOCS = [
     "README.md",
@@ -221,6 +258,7 @@ CHECKS = [
     ("显式编码", check_explicit_encoding),
     ("测试目录", check_test_layout),
     ("版本号", check_version_consistency),
+    ("依赖锁", check_constraints),
 ]
 
 

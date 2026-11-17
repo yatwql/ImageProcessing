@@ -26,9 +26,9 @@ if (-not (Test-Path $py)) {
 }
 
 & $py -m pip install --quiet --upgrade pip
-& $py -m pip install --quiet -r requirements.txt
+& $py -m pip install --quiet -c constraints.txt -r requirements.txt
 if ($Dev) {
-    & $py -m pip install --quiet -r requirements-dev.txt
+    & $py -m pip install --quiet -c constraints.txt -r requirements-dev.txt
 }
 
 # 配置文件：/data/config/img-p.json（不存在时写一份默认的；没有权限就跳过）

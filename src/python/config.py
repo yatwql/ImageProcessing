@@ -19,9 +19,17 @@ CONFIG_NAME = "img-p.json"
 
 # 配置文件里允许的键（其余忽略）
 CONFIG_KEYS = (
-    "data_dir", "out_dir", "log_dir",
-    "font", "size", "color", "align", "fit_width", "tracking",
-    "max_fonts", "quality",
+    "data_dir",
+    "out_dir",
+    "log_dir",
+    "font",
+    "size",
+    "color",
+    "align",
+    "fit_width",
+    "tracking",
+    "max_fonts",
+    "quality",
 )
 
 
@@ -99,8 +107,7 @@ def default_input() -> str:
 
 def default_out_dir() -> str:
     """输出目录：IMG_P_OUT_DIR > 配置 out_dir > 仓库 data/output。"""
-    return (os.environ.get("IMG_P_OUT_DIR") or conf_str("out_dir")
-            or DEFAULT_OUT_DIR)
+    return os.environ.get("IMG_P_OUT_DIR") or conf_str("out_dir") or DEFAULT_OUT_DIR
 
 
 def log_dir() -> str:

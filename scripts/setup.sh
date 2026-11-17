@@ -11,7 +11,7 @@ fi
 # 而 python 解释器自身是可直接运行的。
 PY=".venv/bin/python"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet -r requirements.txt
+"$PY" -m pip install --quiet -c constraints.txt -r requirements.txt
 
 # 配置目录：/data/config（写一份带注释说明的示例 + 默认配置；没有权限就跳过）
 CONF_DIR="/data/config"

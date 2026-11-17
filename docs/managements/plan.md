@@ -76,3 +76,7 @@
 | PLAN-42 | 界面显示版本 | TUI 标题栏 `文字替换 v0.1`、帮助页首行带版本 | 完成 |
 | PLAN-43 | 日志记版本 | 每条写盘日志新增 `app_version` 字段 | 完成 |
 | PLAN-44 | 文档与守护 | 8 份文档开头统一 `> 版本：v0.1`；`check-guards.py` 新增版本一致性检查（第 7 项） | 完成 |
+| PLAN-45 | 依赖锁定 | `constraints.txt` 固定全部直接/传递依赖；`setup.sh`/`setup.ps1`/CI 均用 `-c constraints.txt`；守护第 8 项校验"精确固定且覆盖直接依赖" | 完成 |
+| PLAN-46 | 单图内可中断 | `replace_image(should_stop=)` 每块之前询问，TUI 传入 `self.cancel`；`apply_one` 取消时返回「已取消」 | 完成 |
+| PLAN-47 | 交互用例补齐 | 新增 `test_key_dispatch.py`（主界面/映射/样式三块面板 + 批量中断）与 `test_cancel_pipeline.py`（核心中断），覆盖率 80% → 84%，`ui_actions.py` 55% → 88%、`ui.py` 64% → 82% | 完成 |
+| PLAN-48 | 契约用例补强 | CLI `--version`、版本横幅只走 stderr、坏图跳过不拖垮整批、日志记录 `app_version` | 完成 |

@@ -2,12 +2,12 @@
 #
 #   test       全量用例 × Python 3.10/3.12/3.13（阻塞）
 #   lint       ruff check（阻塞）、ruff format 漂移（非阻塞，只报告）
-#   typecheck  mypy 守 core（阻塞）
-#   guards     编号 / 分层 / 文件长度 / 显式编码 / 测试目录（阻塞）
-#   perf       渲染与擦除的耗时守卫（阻塞，阈值见 scripts/check-perf.py）
+#   typecheck  mypy 全树（阻塞）
+#   guards     编号 / 分层 / 文件长度 / 显式编码 / 测试目录 / 版本 / 依赖锁
+#   perf       渲染与擦除的耗时守卫（阈值见 scripts/check-perf.py）
 #
 # 本地等价命令：
-#   .venv/bin/ruff check src/
+#   .venv/bin/ruff check src/ scripts/
 #   .venv/bin/python -m mypy
 #   .venv/bin/python scripts/check-guards.py
 #   .venv/bin/python scripts/check-perf.py
@@ -37,13 +37,15 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      # constraints.txt 锁住已验证的版本组合，
+      # 避免大版本漂移悄悄改变像素结果
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
 
-      # 合成图与字体匹配用例需要真实中文字体：runner 默认没有，缺了会整批 skip。
-      # 装 fonts-noto-cjk 后这些用例在 CI 上真的跑；本地没装时同名用例自动 skip（见 _support.has_cjk_font）。
+      # runner 默认没有中文字体：合成图 / 字体匹配用例会整批 skip
       - name: 安装中文字体
         run: |
           sudo apt-get update -qq
@@ -52,14 +54,17 @@ jobs:
       - name: 全量用例
         env:
           IMG_P_TMP_DIR: ${{ runner.temp }}/img-p
-        run: python -m pytest src/test -q --junitxml="$IMG_P_TMP_DIR/junit.xml"
+        run: |
+          mkdir -p "$IMG_P_TMP_DIR"
+          python -m pytest src/test -q \
+            --junitxml="$IMG_P_TMP_DIR/junit.xml"
 
-      # 拆成两行，避免单行过长（workflow 里不好折行的长命令最容易漏改）
       - name: 覆盖率
         env:
           IMG_P_TMP_DIR: ${{ runner.temp }}/img-p
         run: |
-          python -m pytest src/test -q --cov --cov-report=term \
+          python -m pytest src/test -q --cov \
+            --cov-report=term \
             --cov-report=xml:"$IMG_P_TMP_DIR/coverage.xml"
 
       - name: 上传报告
@@ -82,12 +87,15 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+      - name: 安装依赖
+        run: |
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
 
       - name: ruff check（阻塞）
         run: python -m ruff check src/ scripts/
 
-      # 格式是风格问题，不阻断合入：只报告需要重排的文件，避免历史格式差异卡住 PR。
+      # 格式属风格问题，不阻断合入：只报告需要重排的文件
       - name: ruff format 漂移（非阻塞）
         continue-on-error: true
         run: python -m ruff format --check src/ scripts/
@@ -101,12 +109,15 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
-      - name: mypy 守 core
+      - name: 安装依赖
+        run: |
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
+      - name: mypy 全树
         run: python -m mypy
 
   guards:
-    # 这些漂移不会让用例变红，只会让约束悄悄失效，所以单独成作业、阻塞合入。
+    # 这些漂移不会让用例变红，只会让约束悄悄失效，故单独成作业
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -117,7 +128,10 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+      - name: 安装依赖
+        run: |
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
       - name: 工程守护
         run: python scripts/check-guards.py
 
@@ -130,6 +144,9 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - run: python -m pip install --retries 5 --timeout 60 -e ".[dev]"
+      - name: 安装依赖
+        run: |
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
       - name: 渲染/擦除耗时守卫
         run: python scripts/check-perf.py

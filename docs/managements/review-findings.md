@@ -309,6 +309,13 @@
 | RF-133 | 本地不可复现 | "非 UTF-8 控制台 / C locale"这档只在 runner 上出现 | `check_all --ci-matrix` 在本地复现两档（cp1252+C locale、无中文字体），全量模式默认跑 | 已修 |
 | RF-134 | 用例可移植 | 真终端冒烟在 C locale 下必然失败（curses 按终端编码输出） | 非 UTF-8 终端显式 skip，并说明是终端限制 | 已修 |
 
+## 2026-11-18 windows 的 bash 语法检查失败（换行符）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-135 | 平台缺陷 | Windows 检出把 `.sh` 转成 CRLF，`bash -n` 报语法错 → `test_shell_scripts_pass_syntax_check` 全挂 | 新增 `.gitattributes` 固定 `.sh` 为 LF（`.ps1` 保持 CRLF+BOM）；守护「跨平台」校验规则存在 | 已修 |
+| RF-136 | 测试环境 | 该用例在 Windows 上还依赖 PATH 里有 bash | 加 `skipUnless(shutil.which("bash"))`，没有 bash 时跳过而不是红 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`src/python/tools/check_guards.py`：6/6 通过。

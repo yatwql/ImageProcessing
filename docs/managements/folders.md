@@ -129,7 +129,7 @@ ImageProcessing/
 │   │   │   ├── test_batch_directory.py       # CLI 目录批量测试：逐图处理、汇总统计、输出命名、dry-run 与过滤规则
 │   │   │   ├── test_bootstrap_launch.py      # 环境引导与启动器：`bootstrap.py` / `launch.py` 的分支与错误路径
 │   │   │   ├── test_demo_assets.py           # 用仓库自带示例图（data/demo）跑真实图片流程：读取、单图替换、批量、日志
-│   │   │   ├── test_entry_smoke.py           # 入口冒烟：每个对外入口都能起来、给出正确退出码（不需要真终端）
+│   │   │   ├── test_entry_smoke.py           # 入口冒烟：每个对外入口都能起来、给出正确退出码与帮助文本
 │   │   │   ├── test_launch_env.py            # 启动器与环境引导：首次运行自动装依赖，设 `IMG_P_NO_AUTO_SETUP=1` 才退回手动
 │   │   │   ├── test_log_query_cli.py         # 日志查询入口（`src/python/cli/log_query.py`）：过滤、`--json`、坏参
 │   │   │   └── test_single_image.py          # CLI 单图流程测试：--list、输出位置、dry-run、样式覆盖、失败提示
@@ -196,6 +196,7 @@ ImageProcessing/
 │   │   ├── __init__.py                       # 测试用例包：统一仓库根路径与测试临时目录
 │   │   └── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口
 │   └── __init__.py                           # 项目源码包：src.python 为程序代码，src.test 为测试用例
+├── .gitattributes                            # 仓库根
 ├── .gitignore                                # 忽略虚拟环境 / 缓存 / 输出 / 日志
 ├── CLAUDE.md                                 # AI 协作者约定：架构硬约束、纪律、已知坑
 ├── README.md                                 # 项目简介 / 快速开始 / 门禁 / 文档索引

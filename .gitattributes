@@ -1,0 +1,11 @@
+# 统一换行符：Windows 检出时不要把 .sh 变成 CRLF，否则 Git Bash 里 bash -n 直接报错
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+# PowerShell 脚本保持 BOM + CRLF（PS 5.1 依赖 BOM 识别 UTF-8）
+*.ps1 text eol=crlf
+*.png binary

@@ -130,3 +130,4 @@
 | PLAN-96 | 技术债清理 | 工具共用 `_paths.ROOT`（10 处收敛）、去掉 check_perf 的 sys.path 注入、audit 平台 pragma 只留一处其余用真用例覆盖、工具入口统一 `ensure_utf8_stdio()`、3.10 的 tomllib→tomli 回退、Windows 不适用用例显式 skip/打桩 | 完成 |
 | PLAN-97 | 跨平台守护 | 新增 `check_platform_safety.py`（POSIX 路径 / 子进程编码 / POSIX-only 导入），并入守护第 17 项；修 7 处 `subprocess text=True` 缺 encoding 的隐患与两处 Windows 用例 | 完成 |
 | PLAN-98 | CI 矩阵本地化 | 入口冒烟改本进程（runpy）避免子进程编码问题；`check_all --ci-matrix` 在本地复现"cp1252 控制台 + C locale"与"无中文字体"两档；pty 冒烟在非 UTF-8 终端跳过 | 完成 |
+| PLAN-99 | 换行符规则 | 新增 `.gitattributes`（.sh/.py/.md 等 LF，.ps1 CRLF，png binary）；守护「跨平台」校验该规则存在；修 Windows 上 `bash -n` 因 CRLF 报错 | 完成 |

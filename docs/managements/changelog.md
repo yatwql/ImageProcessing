@@ -5,6 +5,17 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 修 windows 的 bash 语法检查：新增 .gitattributes 固定换行符
+
+### 修复
+
+- Windows 检出默认把文本转 CRLF，`scripts/*.sh` 变成 CRLF 后 `bash -n` 直接报语法错
+  （windows 作业 `test_shell_scripts_pass_syntax_check` 全挂）。
+- 新增 `.gitattributes`：`*.sh`、`*.py`、`*.md`、`*.toml`、`*.yml`、`*.json`、`*.txt` 一律 LF；
+  `*.ps1` 用 CRLF（保留 BOM）；`*.png` 声明 binary。
+- `check_platform_safety` 增加规则：`.gitattributes` 必须包含 `*.sh text eol=lf`，
+  否则守护「跨平台」直接红——防止以后有人删掉这条。
+
 ## 2026-11-18 — CI 矩阵本地化：入口冒烟改本进程 + cp1252/C-locale 复跑
 
 ### 变更

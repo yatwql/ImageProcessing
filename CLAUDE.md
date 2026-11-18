@@ -162,6 +162,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
   （Windows 没有 `/data`）；`IMG_P_CONFIG_DIR` 给相对路径时按仓库根解析。
 - TUI 在手机/窄终端：宽度 < 60 列自动单栏；`Esc` 只返回不退出（退出用 `q`）；
   方向键原始转义序列由 `read_key()` 自己解析。
+- 换行符由 `.gitattributes` 固定：`*.sh` 为 LF、`*.ps1` 为 CRLF——CRLF 的 `.sh` 在 Windows 上
+  `bash -n` 会直接报语法错（守护「跨平台」检查这条规则）。
 - **`scripts/*.ps1` 必须存成 UTF-8 with BOM**：Windows PowerShell 5.1 读无 BOM 的脚本按 ANSI
   （GBK）解释，文件里的中文提示会变成「缂哄皯杩愯鐜」这类乱码，用户完全看不懂；
   `check-guards.py` 的「PS 编码」会拦。

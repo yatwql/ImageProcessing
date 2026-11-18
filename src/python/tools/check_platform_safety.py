@@ -70,12 +70,27 @@ def check_file(path: Path) -> list[str]:
     return problems
 
 
+def check_line_endings() -> list[str]:
+    """`.gitattributes` 必须把 `.sh` 钉成 LF。
+
+    Windows 检出默认可能把文本转成 CRLF，Git Bash 里 `bash -n foo.sh` 会直接报语法错——
+    本轮 windows 作业就是这么红的。规则写进仓库，检出时自动生效。
+    """
+    path = ROOT / ".gitattributes"
+    if not path.is_file():
+        return [".gitattributes 不存在：至少需要 `*.sh text eol=lf`"]
+    text = path.read_text(encoding="utf-8")
+    if "*.sh" not in text or "eol=lf" not in text:
+        return [".gitattributes 缺少 `*.sh text eol=lf`（Windows 检出成 CRLF 会让 bash -n 失败）"]
+    return []
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)
         return 0
-    problems: list[str] = []
+    problems: list[str] = check_line_endings()
     for path in _iter_sources():
         problems += check_file(path)
     if problems:

@@ -105,6 +105,8 @@
 - 差异点必须抽象成可打桩用例：无中文字体（`IMG_P_TEST_NO_CJK_FONT=1`）、
   `curses.ACS_*` 为 int、路径长度、平台默认目录、venv 解释器路径。
 - 文本 I/O 一律显式 `encoding="utf-8"`（守卫检查）；`.ps1` 必须 UTF-8 with BOM。
+- 换行符由 `.gitattributes` 固定：`*.sh` 必须 LF（CRLF 会让 Windows 上的 `bash -n` 直接报错），
+  `*.ps1` 用 CRLF；守护「跨平台」会核对这条规则存在。
 - Windows 上无法用 `script(1)`：真终端冒烟自动 skip，由 ACS int 模拟 + windows 作业兜底。
 - **本地 CI 矩阵**（`python -m src.python.tools.check_all --ci-matrix`，全量模式默认包含）：
   ① 无中文字体（`IMG_P_TEST_NO_CJK_FONT=1`）；

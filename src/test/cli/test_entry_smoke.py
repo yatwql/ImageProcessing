@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import io
 import runpy
+import shutil
 import subprocess
 import sys
 import unittest
@@ -18,6 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 PY = sys.executable
+BASH = shutil.which("bash")      # Windows runner 不一定把 Git Bash 放进 PATH
 
 
 def call(module: str, argv: list[str]) -> tuple[int, str, str]:
@@ -86,6 +88,7 @@ class EntryPoints(unittest.TestCase):
                 self.assertTrue(out.strip(), "工具的 --help 应当打印用法")
 
 
+@unittest.skipUnless(BASH, "需要 bash（Windows runner 上可能没有）")
 class ScriptLaunchers(unittest.TestCase):
     """shell 薄壳只在真进程里有意义：只看语法与退出码，不看输出。"""
 

@@ -32,6 +32,12 @@
 - 守护「跨平台」两条规则收紧：`tools/` 里有 `main()` 必须调 `ensure_utf8_stdio()`（+3 例）；
   子进程编码检查改为按「整次调用」判断（原来只看 3 行，跨行写法漏检）。
 
+### 修复（windows 作业「工程守护」红：工作流自检）
+
+- `src/python/tools/check_workflows.py`：以前直接 `bash -n` 每个 `run:` 块；windows-latest 上 `bash`
+  是 WSL 存根（退 1、stderr 空），于是逐条报"bash 语法错误"。改为先探测 `bash -c "exit 0"`
+  （`BASH_OK`），不可用时跳过 bash 检查，只保留 YAML 与 `python -c` 片段校验。
+
 ### 新增
 
 - `src/python/tools/junit_summary.py` + `src/test/tools/test_junit_summary.py`（5 例）：失败/错误用例

@@ -19,6 +19,7 @@
 | PLAN-105 | 门禁 | windows 作业「类型检查」红：`fcntl`/`os.mkfifo` 在 Windows 的 typeshed 里不存在 | `audit.py` 用 `Any` 间接引用、真终端冒烟走 `getattr`；`check_all` 新增 `mypy --platform win32` 档，本地即可复现 | 完成 |
 
 | PLAN-106 | 门禁 | windows 作业「工程守护」红：四个工具缺 `ensure_utf8_stdio()`、五个工具子进程 `text=True` 缺 `encoding=` | 全部补齐；守护「跨平台」新增 stdio 规则并把子进程编码检查改成整次调用判定；+3 例 | 完成 |
+| PLAN-107 | 门禁 | windows 作业「工程守护」红：`check_workflows` 直接 `bash -n`，在 WSL 存根上逐条报语法错误 | 先探测 `bash -c "exit 0"`（`BASH_OK`），不可用则跳过 bash 检查；汇总到日志说明；+5 例（含 heredoc 禁令） | 完成 |
 ## 归档
 
 > 已发布版本的旧内容整块搬进 `docs/archive/`，本文件只留当前开发版本的内容；

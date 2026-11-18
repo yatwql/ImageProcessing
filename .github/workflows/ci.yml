@@ -150,3 +150,30 @@ jobs:
             -c constraints.txt -e ".[dev]"
       - name: 渲染/擦除耗时守卫
         run: python tools/check_perf.py
+
+  windows:
+    # Windows 与 Linux 的差异只在两处：curses 实现（windows-curses）与路径/编码，
+    # 所以这里跑全量用例 + 类型 + 守护 + 耗时，避免"只在 Linux 绿"。
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
+      - name: 全量用例
+        env:
+          IMG_P_NO_AUTO_SETUP: "1"
+        run: python -m pytest src/test -q
+      - name: 类型检查
+        run: python -m mypy
+      - name: 工程守护
+        run: python tools/check_guards.py
+      - name: 耗时守卫
+        run: python tools/check_perf.py

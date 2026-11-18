@@ -165,6 +165,13 @@
 | RF-79 | 严重缺陷（真机） | 修完刷新仍黑：`curses.ACS_*` 在本机构建里是 **int**，`hline()` 用 `addstr` 拼 ACS 字符 → `TypeError`，`draw_frame` 兜底吞掉后整帧什么都没画 | `hline`/`vline` 改为一格格 `addch`（curses 的 addch 同时接受 str 与 ACS int）；`box()` 只画线不拼字符串 | 已修 |
 | RF-80 | 测试保真度 | 两个真机问题单测都没抓到：`FakeWin.addstr` 接受任意对象、`refresh()` 是空实现 | `FakeWin.addstr` 与真 curses 一致只收 str（传 ACS int 立刻 TypeError）；`refresh` 计数；新增 `BorderDrawing`（addch 计数 > 20）与 `test_tui_real_terminal.py`（`script(1)` 伪终端跑真 curses，断言标题/表头/边框字符真的出现） | 已修 |
 
+## 2026-11-18 Windows 覆盖
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-81 | 测试盲区 | CI 只有 ubuntu 作业：Windows 上 `windows-curses` 的行为（ACS 常量是 int、路径/编码差异）从未被验证，而黑屏正是在这类差异里发生 | CI 新增 `windows-latest` 作业（全量用例 + mypy + guards + perf）；`constraints.txt` 锁 `windows-curses==2.4.2` | 已修 |
+| RF-82 | 回归覆盖 | 没有断言"ACS 常量是 int 时布局仍能画"的用例 | 新增 `WindowsStyleAcs`：临时把 `curses.ACS_*` 换成 int，断言布局正常、边框确实经 `addch` 画出、无绘制错误 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

@@ -5,6 +5,7 @@
 # 用环境标记给 3.10 单独钉一档；安装器按解释器版本自动取其一。
 # coverage / shapely 同理：7.17 与 2.2.0 只发 3.11+ 的 wheel。
 # onnxruntime 1.16 的 cp310 轮子在 Ubuntu 22.04 上会 execstack 失败，故 3.10 固定 1.22.0。
+# Windows 的 TUI 依赖 windows-curses（仅 win32 安装），同样锁版本。
 ast_serialize==0.13.1
 coverage==7.17.2; python_version >= "3.11"
 coverage==7.16.2; python_version < "3.11"
@@ -36,6 +37,7 @@ pytest==9.2.0
 PyYAML==6.0.3
 rapidocr-onnxruntime==1.2.3
 ruff==0.17.4
+windows-curses==2.4.2; sys_platform == "win32"
 shapely==2.2.0; python_version >= "3.11"
 shapely==2.1.2; python_version < "3.11"
 six==1.17.0

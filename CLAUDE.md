@@ -11,7 +11,8 @@ retype（图片文字替换）：把图片里指定的一些字换成别的字�
 scripts/                 只放薄壳启动脚本（.sh/.ps1 + log-query.py 壳；超 40 行守护会拦）
 tools/                   工程工具：check_guards.py / check_perf.py / run_tests.py
 .githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
-.github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf
+.github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf /
+                         windows（windows-latest 跑全量用例）
 pyproject.toml           单一配置源：依赖、可选依赖 dev、ruff、mypy、pytest、coverage
 src/python/              程序代码
   config.py              路径约定（data/ 输入、data/output 输出）
@@ -118,6 +119,9 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - `--area` 手工框里的原文若未被 OCR 认全，字体匹配会不准 → 会打印提示并退回默认字体，
   这时用 `--font` 或改用 `--map` 走整行匹配。
 - 字体池缓存在 `~/.cache/retype/fonts.json`（按字体文件签名失效）；验证「首次构建」路径要先删缓存。
+- Windows 专项：TUI 用 `windows-curses`（约束在 `constraints.txt`），它把 `curses.ACS_*`
+  暴露成 int；改动绘制层后至少跑 `src/test/tui/test_layout_rendering.py` 的
+  `WindowsStyleAcs`（把 ACS 常量换成 int 的模拟）与 CI 的 windows 作业。
 - TUI 绘制两条铁律：① 每帧结尾必须 `win.refresh()`；② 线框只能 `addch`，不能把
   `curses.ACS_*`（可能是 int）拼进 `addstr`——两者出错都表现为真机黑屏，`FakeWin` 已按此收紧，
   另有 `test_tui_real_terminal.py` 用 `script(1)` 跑真 curses 冒烟。

@@ -43,7 +43,7 @@ tools/                       工程工具（不进运行时包）
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
   pre-commit                 提交前：ruff + guards + 全量用例
   install-hooks.sh           启用 / --off 关闭
-.github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf
+.github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf / windows
 pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
 constraints.txt              锁定的依赖组合（pip -c 使用；升级须跑全量用例）
 
@@ -229,6 +229,10 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 底部固定三行：详情（当前块与新文字的对照）/ 状态（输出目录、已保存、批量进度条）/
 键位提示；键位提示按 `w < 40`、`w < 60`、其余三档给不同长度。
 配色 8 组：title / sel / dim / ok / warn / err / accent / frame（`ui_base.PAIR`）。
+
+**Windows**：TUI 依赖 `windows-curses`（`pyproject` 的平台标记 + `constraints.txt` 锁 2.4.2）；
+该实现把 `curses.ACS_*` 暴露成 **int**，正是"线框必须走 addch"的直接原因。
+CI 有独立 `windows-latest` 作业跑全量用例 + 类型 + 守护 + 耗时，避免"只在 Linux 绿"。
 
 **绘制注意**：每帧最后必须 `win.refresh()`（只改缓冲区不刷新＝真机黑屏）；
 线框一律 `addch`——`curses.ACS_*` 在部分构建里是 **int**，`addstr` 只收 str，

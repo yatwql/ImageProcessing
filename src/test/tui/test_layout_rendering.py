@@ -68,6 +68,52 @@ class LayoutRendering(TuiTestCase):
         self.assertIn("界面绘制出错", app.message)
 
 
+# ACS 常量在 Windows 的 windows-curses（及部分 Linux 构建）里是 int：
+# 线框必须走 addch（str/int 都收），拼进 addstr 会 TypeError → 真机黑屏。
+INT_ACS = {
+    "ACS_HLINE": 113, "ACS_VLINE": 120,
+    "ACS_ULCORNER": 108, "ACS_URCORNER": 107,
+    "ACS_LLCORNER": 109, "ACS_LRCORNER": 106,
+    "ACS_LTEE": 116, "ACS_RTEE": 117,
+}
+
+
+class WindowsStyleAcs(TuiTestCase):
+    """Windows 的 windows-curses 把 ACS_* 暴露成 int；部分 Linux 构建也是。
+
+    线框必须走 `addch`（str 与 int 都收），不能拼进 `addstr`（只收 str）。
+    这里把 ACS 常量临时换成 int，模拟 Windows 构建，确保布局照样画得出来。
+    """
+
+    def setUp(self):
+        super().setUp()
+        import curses
+
+        self._saved = {name: getattr(curses, name, None) for name in INT_ACS}
+        for name, value in INT_ACS.items():
+            setattr(curses, name, value)
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        import curses
+
+        for name, value in self._saved.items():
+            if value is None:
+                delattr(curses, name)
+            else:
+                setattr(curses, name, value)
+
+    def test_int_acs_constants_do_not_break_the_layout(self):
+        app = self.make_app()
+        win = FakeWin([], rows=26, cols=100)
+        ui.draw_frame(win, app)               # 不能抛（真机抛了就是黑屏）
+        text = "\n".join(win.screen)
+        self.assertIn("① 图片", text)
+        self.assertIn("② 识别到的文字", text)
+        self.assertGreater(win.cell_count, 20, "线框应通过 addch 逐格画出")
+        self.assertNotIn("界面绘制出错", app.message, "绘制不该失败")
+
+
 class RefreshFlush(TuiTestCase):
     """每一帧都必须 refresh：漏掉就是用户看到的"一片黑屏"。
 

@@ -43,7 +43,7 @@ sh .githooks/install-hooks.sh                         # 启用提交前门禁（
 .venv/bin/python -m pytest src/test -q                # 全量用例（覆盖率阈值 75%）
 ```
 
-GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lint、typecheck、guards、perf 五个作业；
+GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lint、typecheck、guards、perf、windows（windows-latest 全量用例）六个作业；
 依赖版本由 `constraints.txt` 锁定，安装时用 `pip install -c constraints.txt -e ".[dev]"`。
 
 ## 文档

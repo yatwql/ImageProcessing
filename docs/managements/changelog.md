@@ -5,6 +5,21 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — Windows 覆盖
+
+### 新增
+
+- CI `windows` 作业（`windows-latest`）：全量用例 + `mypy` + `check_guards.py` + `check_perf.py`，
+  避免"只在 Linux 绿"。
+- `constraints.txt`：`windows-curses==2.4.2; sys_platform == "win32"`（TUI 在 Windows 的 curses 实现）。
+- 用例 `WindowsStyleAcs`：把 `curses.ACS_*` 临时换成 int（Windows / 部分 Linux 构建的行为），
+  断言布局正常、边框经 `addch` 逐格画出、无"界面绘制出错"。
+
+### 说明
+
+- Windows 没有 `script(1)`，真终端冒烟用例自动跳过；Windows 侧的保障是
+  "全量用例 + ACS int 模拟 + 守护/类型/耗时在 windows-latest 上跑"。
+
 ## 2026-11-18 — 修复 TUI 黑屏（真机），补齐真终端冒烟
 
 ### 修复

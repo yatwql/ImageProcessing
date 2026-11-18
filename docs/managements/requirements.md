@@ -201,7 +201,7 @@
 | NFR-1 | 离线可用 | OCR 模型随依赖包分发，无网络调用 |
 | NFR-2 | 性能 | 单图 1 处替换 ≤ 6s（首次），同图重复替换 ≤ 0.5s；TUI 启动到可操作 ≤ 6s；字体池跨进程缓存 ≤ 0.1s |
 | NFR-3 | 可移植 | Linux/macOS + Python ≥ 3.10；仅依赖 pip 包与系统字体（fontconfig） |
-| NFR-4 | 可维护 | 核心逻辑单点实现，CLI 与 TUI 不重复实现替换逻辑；`ruff` 零告警、`mypy` 全树零错误、`tools/check_guards.py` 十一项全过 |
+| NFR-4 | 可维护 | 核心逻辑单点实现，CLI 与 TUI 不重复实现替换逻辑；`ruff` 零告警、`mypy` 全树零错误、`tools/check_guards.py` 十二项全过 |
 | NFR-8 | 门禁自动化 | CI（GitHub Actions）与 `pre-commit` 同源执行 ruff / mypy / guards / perf / 全量用例；任一项失败即拦截 |
 | NFR-11 | 依赖可复现 | `constraints.txt` 精确固定直接与传递依赖，setup 与 CI 统一 `pip install -c`；升级须全绿才算通过 |
 | NFR-10 | 版本可溯源 | 版本号单点定义；运行横幅、界面标题、日志字段、文档开头四处一致，漂移即被守护拦截 |

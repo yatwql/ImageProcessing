@@ -76,7 +76,7 @@
 | RF-40 | 工程缺口 | 无 `pyproject.toml`：依赖在两份 requirements、ruff/pytest 参数散在脚本里，`pip install -e .` 不可用 | 建 `pyproject.toml` 作为单一配置源（依赖 + `dev` extra + ruff/mypy/pytest/coverage），requirements 退化为 `-e .` / `-e .[dev]` | 已修 |
 | RF-41 | 工程缺口 | 无 CI：本地全绿靠自觉，格式/类型/文档漂移无人拦 | 新增 `.github/workflows/ci.yml` 五个作业（test/lint/typecheck/guards/perf） | 已修 |
 | RF-42 | 工程缺口 | 无提交前门禁 | `.githooks/pre-commit` + `install-hooks.sh`（`core.hooksPath`，不动 `.git/hooks`） | 已修 |
-| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `tools/check_guards.py` 十一项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
+| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `tools/check_guards.py` 十二项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
 | RF-44 | 质量缺口 | 无类型检查、无覆盖率门禁 | `mypy` 守 `core`（28 处历史 error 全部修掉：补注解、`rendered` 可空标注、dtype 标注）；`fail_under = 75` | 已修 |
 | RF-45 | 类型桩冲突 | numpy 2.5 的桩要求 `ndarray.min()/max()` 显式给 axis，`int(arr.min())` 被判成无匹配重载 | 改成内建 `min()/max()`（坐标数组很小，取值方式不影响耗时），不再依赖 `disable_error_code` 兜底 | 已修 |
 | RF-46 | 测试结构 | `src/test/image_processing/**` 与 `src/test/core/**` 两套命名并存，`image_processing/degrade/` 是空包，文档只写了 core/tui/cli | 七个测试子目录并入 `src/test/core/**`，删空包，`technical.md`/`CLAUDE.md` 同步 | 已修 |
@@ -179,6 +179,12 @@
 | RF-83 | 一致性 | `scripts/` 里还留着一个 `.py` 薄壳（`log-query.py`），与"只放 .sh/.ps1 启动脚本"的约定不符；守护也没拦 | 删 `.py`，改为 `log-query.sh` / `log-query.ps1`；守护「scripts 薄壳」收紧为只允许 `.sh`/`.ps1` | 已修 |
 | RF-84 | 可读性 | `scripts/test.sh` 名字像"测试框架"，实际只是 `tools/run_tests.py` 的壳 | 更名 `runTest.sh` / `runTest.ps1`，全仓库引用与文档同步 | 已修 |
 | RF-85 | CI 缺陷（Windows） | windows 作业里用反斜杠续行写 pip 安装，PowerShell 把 `\` 当路径参数，报 `Directory '\' is not installable` | 该步骤显式 `shell: bash`（与 Ubuntu 作业同款写法），并保留注释说明原因 | 已修 |
+
+## 2026-11-18 目录树文档
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-86 | 文档缺口 | 目录结构只有 `technical.md` 的主干摘要，没有"每个文件是干什么的"清单；新人（和 AI）找入口只能靠猜，文件移动后也无人察觉 | 新增 `docs/managements/folders.md`（对齐 investor-review 的写法）：项目统计表 + 逐行注释的目录树 + 排除项 + 维护规则；守护新增「目录树文档」（第 12 项），直接解析树里的层级还原完整路径，任何源文件/文档缺失即红 | 已修 |
 
 ## 已验证项
 

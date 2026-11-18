@@ -41,15 +41,17 @@ class RealTerminalSmoke(unittest.TestCase):
             os.mkfifo(fifo)
             record = Path(tmp) / "typescript"
             # 保持 stdin 打开，过几秒再送 q：让界面画出至少一帧
-            feeder = (
-                f"exec 3>{fifo}; sleep {seconds}; printf q >&3; sleep 1"
-            )
+            feeder = f"exec 3>{fifo}; sleep {seconds}; printf q >&3; sleep 1"
             proc = subprocess.Popen(["sh", "-c", feeder])
             try:
                 subprocess.run(
                     [str(SCRIPT), "-qec", "./scripts/tui.sh data/demo", str(record)],
-                    cwd=str(ROOT), stdin=fifo.open("rb"), stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL, timeout=seconds + 40, check=False,
+                    cwd=str(ROOT),
+                    stdin=fifo.open("rb"),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=seconds + 40,
+                    check=False,
                 )
             finally:
                 proc.wait(timeout=20)

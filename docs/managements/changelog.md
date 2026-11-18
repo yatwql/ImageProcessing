@@ -5,6 +5,21 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 目录树文档 folders.md
+
+### 新增
+
+- `docs/managements/folders.md`（对齐 investor-review 的写法）：项目统计表（按类别：主程序 /
+  测试 / 工具 / 脚本 / CI / 文档 / 示例图，含文件数与行数）+ 逐行注释的目录树（109 个跟踪文件）
+  + 排除项表（`data/output`、`logs`、`/data/tmp`、`/test-reports`、字体缓存、`.venv`）+ 维护规则。
+- `tools/check_guards.py` 第 12 项「目录树文档」：解析树状图的缩进还原完整路径，逐个核对
+  `src/`、`tools/`、`scripts/`、`docs/`、`.githooks/`、`.github/` 与根文件，缺一个即红。
+
+### 变更
+
+- `technical.md` 的「目录结构」加指引入口；README 文档索引新增「目录结构」一行；
+  门禁项数文档同步 11 → 12。
+
 ## 2026-11-18 — scripts/ 只留 .sh/.ps1；test 更名 runTest
 
 ### 变更
@@ -50,7 +65,7 @@
 
 ### 验证
 
-- `ruff` 零告警、`mypy` 80 文件零错误、`check_guards.py` 11/11、369 用例全绿
+- `ruff` 零告警、`mypy` 80 文件零错误、`check_guards.py` 12/12、369 用例全绿
   （含 2 个真终端冒烟用例）。
 
 ## 2026-11-17 — 文档全面校准（retype / v0.1）
@@ -60,7 +75,7 @@
 - 8 份文档统一到当前状态：程序名 `retype`、版本 `v0.1`、门禁 11 项
   （编号 / review 编号 / 分层 / 文件长度 / 显式编码 / 测试目录 / 版本 / 名称 / 依赖锁 / PS 编码 / scripts 薄壳）。
 - 修正历史残留：字体缓存路径 `~/.cache/img-p` → `~/.cache/retype`（CLAUDE.md、technical.md）；
-  门禁"六项" → "十一项"（requirements NFR-4、review-findings RF-43）；
+  门禁"六项" → "十二项"（requirements NFR-4、review-findings RF-43）；
   `mypy 守 core` → `mypy 全树`。
 - 目录结构补全新分层：`tools/`（check_guards / check_perf / run_tests）、
   `src/python/{bootstrap,launch}.py`、`src/python/cli/log_query.py`、`src/python/tui/browse.py`、
@@ -71,7 +86,7 @@
 
 ### 验证
 
-- `tools/check_guards.py` 11/11（含「版本号」与「名称」一致性检查）、
+- `tools/check_guards.py` 12/12（含「版本号」与「名称」一致性检查）、
   `ruff` 零告警、`mypy` 79 文件零错误、全量用例 357 passed。
 
 ## 2026-11-17 — 技术债清理与架构核查
@@ -94,7 +109,7 @@
 
 ### 验证
 
-- `ruff` 零告警、`mypy` 78 文件零错误、`check_guards.py` 11/11、全量用例全绿。
+- `ruff` 零告警、`mypy` 78 文件零错误、`check_guards.py` 12/12、全量用例全绿。
 
 ## 2026-11-17 — 更名 retype + TUI 进阶美化
 
@@ -113,7 +128,7 @@
 ### 验证
 
 - 新增 7 个响应式布局用例（32~130 列不溢出、窄屏断点、键位提示长度）；
-  `ruff` 零告警、`mypy` 78 文件零错误、`check_guards.py` 11/11、全量用例全绿。
+  `ruff` 零告警、`mypy` 78 文件零错误、`check_guards.py` 12/12、全量用例全绿。
 
 ## 2026-11-17 — 空目录可启动、配置目录分平台
 

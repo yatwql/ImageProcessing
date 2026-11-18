@@ -29,6 +29,8 @@ scripts/tui.sh ──► src/python/tui ──┘
 
 ## 1.1 目录结构
 
+> 完整逐文件说明见 `docs/managements/folders.md`（守护会核对是否漏文件）；本节只列主干。
+
 ```text
 scripts/                     只放薄壳启动脚本（逻辑在 src/python 或 tools/，守护会拦超 40 行）
   cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
@@ -369,7 +371,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
   渠道/用例/脚本放宽）、`python tools/check_guards.py`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 11 项）、`python tools/check_perf.py`（耗时守卫）。
+  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 12 项）、`python tools/check_perf.py`（耗时守卫）。
   覆盖率阈值 `fail_under = 75`（实测约 84%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。

@@ -12,6 +12,7 @@
   用例目录  `src/test` 下不得留只有 `__init__.py` 的空包，且目录要出现在 technical.md
   版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
   名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
+  目录树    `docs/managements/folders.md` 必须覆盖所有源文件与文档（新增文件要同步）
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
   scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
@@ -246,6 +247,74 @@ def current_name() -> str:
     return m.group(1)
 
 
+TREE_LINE = re.compile(r"^((?:│   |    )*)(?:├── |└── )(.+)$")
+TREE_FENCE = "```text"
+
+
+def tree_paths(text: str) -> set[str]:
+    """把 folders.md 里的树状图解析成完整路径集合（按缩进还原层级）。
+
+    目录以 `/` 结尾；行尾的 `# 说明` 先剥掉再取名字。
+    """
+    paths: set[str] = set()
+    stack: list[str] = []
+    inside = False
+    for line in text.splitlines():
+        if line.startswith(TREE_FENCE):
+            inside, stack = True, []
+            continue
+        if inside and line.startswith("```"):
+            break
+        if not inside:
+            continue
+        m = TREE_LINE.match(line)
+        if m is None:
+            continue
+        depth = len(m.group(1)) // 4
+        name = m.group(2).split("#", 1)[0].strip()
+        stack = stack[:depth]
+        if not name:
+            continue
+        if name.endswith("/"):
+            stack.append(name.rstrip("/"))
+        else:
+            paths.add("/".join([*stack, name]))
+    return paths
+
+
+def check_folders_doc() -> list[str]:
+    """目录树文档必须覆盖所有源文件/文档：新增或移动文件时忘了同步，这里会红。
+
+    运行期产物（data/output、logs、reports、.venv、缓存）不在核对范围内。
+    """
+    doc = DOCS / "folders.md"
+    if not doc.is_file():
+        return ["缺少 docs/managements/folders.md（目录树文档）"]
+    documented = tree_paths(_read(doc))
+    if not documented:
+        return ["folders.md 里没有可解析的目录树（```text 区块）"]
+    roots = [SRC, ROOT / "tools", ROOT / "scripts", ROOT / "docs",
+             ROOT / ".githooks", ROOT / ".github"]
+    missing = []
+    for base in roots:
+        for path in sorted(base.rglob("*")):
+            if not path.is_file() or "__pycache__" in path.parts:
+                continue
+            rel = path.relative_to(ROOT).as_posix()
+            if rel == "docs/managements/folders.md":
+                continue                    # 自引用：文档自己在树里出现会显得多余
+            if rel not in documented:
+                missing.append(rel)
+    for name in ("README.md", "CLAUDE.md", "pyproject.toml", "constraints.txt",
+                 "requirements.txt", "requirements-dev.txt", ".gitignore"):
+        if name not in documented:
+            missing.append(name)
+    if missing:
+        return [f"folders.md 未覆盖：{', '.join(missing[:6])}"
+                + (f" 等 {len(missing)} 个文件" if len(missing) > 6 else "")]
+    return []
+
+
 def check_name_consistency() -> list[str]:
     """程序名：version.NAME 是唯一来源，打包名与入口脚本名必须与之一致。"""
     name = current_name()
@@ -330,6 +399,7 @@ CHECKS = [
     ("测试目录", check_test_layout),
     ("版本号", check_version_consistency),
     ("名称", check_name_consistency),
+    ("目录树文档", check_folders_doc),
     ("依赖锁", check_constraints),
     ("PS 编码", check_windows_scripts),
     ("scripts 薄壳", check_scripts_are_launchers),

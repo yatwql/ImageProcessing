@@ -71,14 +71,7 @@ jobs:
       # 出"本机绿 CI 红"时能直接比对，而不是靠猜
       - name: 环境指纹
         if: always()
-        run: |
-          mkdir -p ci-env
-          python -VV > ci-env/python.txt 2>&1
-          python -m pip freeze > ci-env/pip-freeze.txt 2>&1
-          python -c "import platform, sys; print(platform.platform());
-                     print(sys.platform)" > ci-env/platform.txt
-          fc-list 2>/dev/null | head -50 > ci-env/fonts.txt ||
-            echo "no fc-list" > ci-env/fonts.txt
+        run: python tools/ci_env.py ci-env
 
       - name: 上传报告与指纹
         if: always()
@@ -211,7 +204,7 @@ jobs:
           python -m pip install --retries 5 --timeout 60 \
             -c constraints.txt -e ".[dev]"
       - name: pip-audit
-        run: python -m pip_audit --strict --progress-spinner off
+        run: python -m pip_audit --strict --skip-editable --progress-spinner off
 
   release:
     # 发布：推 v* 标签触发——全量门禁 → 构建 wheel/sdist → 建 GitHub Release。

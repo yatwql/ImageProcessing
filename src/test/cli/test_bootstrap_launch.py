@@ -73,32 +73,42 @@ class MissingModules(unittest.TestCase):
 
 class EnsureDependencies(unittest.TestCase):
     def test_no_missing_modules_is_a_noop(self):
-        with mock.patch.object(bootstrap, "missing_modules", return_value=[]), \
-                mock.patch.object(bootstrap, "pip_install") as pip:
+        with (
+            mock.patch.object(bootstrap, "missing_modules", return_value=[]),
+            mock.patch.object(bootstrap, "pip_install") as pip,
+        ):
             self.assertTrue(bootstrap.ensure_dependencies(Path("/x/python")))
         pip.assert_not_called()
 
     def test_auto_disabled_reports_and_refuses(self):
-        with mock.patch.object(bootstrap, "missing_modules", return_value=["PIL"]), \
-                mock.patch.object(bootstrap, "pip_install") as pip, \
-                mock.patch("sys.stderr"):
+        with (
+            mock.patch.object(bootstrap, "missing_modules", return_value=["PIL"]),
+            mock.patch.object(bootstrap, "pip_install") as pip,
+            mock.patch("sys.stderr"),
+        ):
             self.assertFalse(bootstrap.ensure_dependencies(Path("/x/python"), auto=False))
         pip.assert_not_called()
 
     def test_auto_enabled_installs_runtime_then_rechecks(self):
         results = [["PIL"], []]
-        with mock.patch.object(bootstrap, "missing_modules", side_effect=results), \
-                mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")), \
-                mock.patch.object(bootstrap, "pip_install") as pip, mock.patch("sys.stderr"):
+        with (
+            mock.patch.object(bootstrap, "missing_modules", side_effect=results),
+            mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")),
+            mock.patch.object(bootstrap, "pip_install") as pip,
+            mock.patch("sys.stderr"),
+        ):
             self.assertTrue(bootstrap.ensure_dependencies(Path("/x/python")))
         installed = [call.args[1:] for call in pip.call_args_list]
         self.assertTrue(any("requirements.txt" in args for args in installed))
 
     def test_dev_flag_installs_dev_requirements(self):
         results = [["pytest"], []]
-        with mock.patch.object(bootstrap, "missing_modules", side_effect=results), \
-                mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")), \
-                mock.patch.object(bootstrap, "pip_install") as pip, mock.patch("sys.stderr"):
+        with (
+            mock.patch.object(bootstrap, "missing_modules", side_effect=results),
+            mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")),
+            mock.patch.object(bootstrap, "pip_install") as pip,
+            mock.patch("sys.stderr"),
+        ):
             bootstrap.ensure_dependencies(Path("/x/python"), need_dev=True)
         installed = [call.args[1:] for call in pip.call_args_list]
         self.assertTrue(any("requirements-dev.txt" in args for args in installed))
@@ -109,9 +119,11 @@ class WriteConfig(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             example = Path(tmp) / "retype.example.json"
             config = Path(tmp) / "retype.json"
-            with mock.patch.object(bootstrap, "CONF_DIR", Path(tmp)), \
-                    mock.patch.object(bootstrap, "EXAMPLE", example), \
-                    mock.patch.object(bootstrap, "CONFIG", config):
+            with (
+                mock.patch.object(bootstrap, "CONF_DIR", Path(tmp)),
+                mock.patch.object(bootstrap, "EXAMPLE", example),
+                mock.patch.object(bootstrap, "CONFIG", config),
+            ):
                 bootstrap.write_config()
             self.assertTrue(example.exists())
             self.assertTrue(config.exists())
@@ -122,17 +134,21 @@ class WriteConfig(unittest.TestCase):
             example = Path(tmp) / "retype.example.json"
             config = Path(tmp) / "retype.json"
             config.write_text('{"data_dir": "/mine"}', encoding="utf-8")
-            with mock.patch.object(bootstrap, "CONF_DIR", Path(tmp)), \
-                    mock.patch.object(bootstrap, "EXAMPLE", example), \
-                    mock.patch.object(bootstrap, "CONFIG", config):
+            with (
+                mock.patch.object(bootstrap, "CONF_DIR", Path(tmp)),
+                mock.patch.object(bootstrap, "EXAMPLE", example),
+                mock.patch.object(bootstrap, "CONFIG", config),
+            ):
                 bootstrap.write_config()
             self.assertIn("/mine", config.read_text(encoding="utf-8"))
 
     def test_unwritable_dir_is_reported_not_raised(self):
-        with mock.patch.object(bootstrap, "CONF_DIR", Path("/proc/nope")), \
-                mock.patch.object(bootstrap, "EXAMPLE", Path("/proc/nope/e.json")), \
-                mock.patch.object(bootstrap, "CONFIG", Path("/proc/nope/c.json")), \
-                mock.patch("builtins.print") as fake_print:
+        with (
+            mock.patch.object(bootstrap, "CONF_DIR", Path("/proc/nope")),
+            mock.patch.object(bootstrap, "EXAMPLE", Path("/proc/nope/e.json")),
+            mock.patch.object(bootstrap, "CONFIG", Path("/proc/nope/c.json")),
+            mock.patch("builtins.print") as fake_print,
+        ):
             bootstrap.write_config()
         self.assertTrue(any("无法创建" in str(c) for c in fake_print.call_args_list))
 
@@ -145,17 +161,21 @@ class BootstrapMain(unittest.TestCase):
             self.assertEqual(bootstrap.main(["--check"]), 0)
 
     def test_skip_install_only_prepares_venv_and_config(self):
-        with mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")), \
-                mock.patch.object(bootstrap, "pip_install") as pip, \
-                mock.patch.object(bootstrap, "write_config") as write:
+        with (
+            mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")),
+            mock.patch.object(bootstrap, "pip_install") as pip,
+            mock.patch.object(bootstrap, "write_config") as write,
+        ):
             self.assertEqual(bootstrap.main(["--skip-install"]), 0)
         pip.assert_not_called()
         write.assert_called_once()
 
     def test_dev_flag_passes_dev_requirements(self):
-        with mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")), \
-                mock.patch.object(bootstrap, "pip_install") as pip, \
-                mock.patch.object(bootstrap, "write_config"):
+        with (
+            mock.patch.object(bootstrap, "ensure_venv", return_value=Path("/x/python")),
+            mock.patch.object(bootstrap, "pip_install") as pip,
+            mock.patch.object(bootstrap, "write_config"),
+        ):
             bootstrap.main(["--dev"])
         installed = [call.args[1:] for call in pip.call_args_list]
         self.assertTrue(any("requirements-dev.txt" in args for args in installed))
@@ -181,18 +201,23 @@ class LaunchDispatch(unittest.TestCase):
             self.assertEqual(launch.main(["nope"]), 2)
 
     def test_execv_is_used_with_the_venv_interpreter(self):
-        with mock.patch.object(bootstrap, "ensure_dependencies", return_value=True), \
-                mock.patch.object(launch.os, "chdir"), \
-                mock.patch.object(launch.os, "execv", side_effect=OSError("boom")) as execv, \
-                mock.patch("sys.stderr"):
+        with (
+            mock.patch.object(bootstrap, "ensure_dependencies", return_value=True),
+            mock.patch.object(launch.os, "chdir"),
+            mock.patch.object(launch.os, "execv", side_effect=OSError("boom")) as execv,
+            mock.patch("sys.stderr"),
+        ):
             code = launch.main(["cli", "--version"])
         self.assertEqual(code, 1, "execv 失败要退化成一句提示 + 非零退出")
         self.assertEqual(execv.call_args.args[0], str(bootstrap.venv_python()))
 
     def test_disabled_auto_setup_blocks_exec(self):
-        with mock.patch.object(bootstrap, "ensure_dependencies", return_value=False), \
-                mock.patch.dict(os.environ, {"IMG_P_NO_AUTO_SETUP": "1"}), \
-                mock.patch.object(launch.os, "execv") as execv, mock.patch("sys.stderr"):
+        with (
+            mock.patch.object(bootstrap, "ensure_dependencies", return_value=False),
+            mock.patch.dict(os.environ, {"IMG_P_NO_AUTO_SETUP": "1"}),
+            mock.patch.object(launch.os, "execv") as execv,
+            mock.patch("sys.stderr"),
+        ):
             self.assertEqual(launch.main(["cli"]), 1)
         execv.assert_not_called()
 

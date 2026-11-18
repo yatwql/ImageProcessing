@@ -20,16 +20,24 @@ from src.python.core import audit
 
 class LogQueryCli(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(self.tmp.cleanup)
         self.logs = os.path.join(self.tmp.name, "logs")
         audit.record_write(
-            src="报告.png", dst="报告-1.png", report=[{"old": "2023", "new": "2024"}],
-            log_dir=self.logs, channel="cli", when=dt.datetime(2026, 11, 18, 10, 0),
+            src="报告.png",
+            dst="报告-1.png",
+            report=[{"old": "2023", "new": "2024"}],
+            log_dir=self.logs,
+            channel="cli",
+            when=dt.datetime(2026, 11, 18, 10, 0),
         )
         audit.record_write(
-            src="通知.png", dst="通知-1.png", report=[{"old": "A", "new": "B"}] * 2,
-            log_dir=self.logs, channel="tui", when=dt.datetime(2026, 11, 18, 11, 0),
+            src="通知.png",
+            dst="通知-1.png",
+            report=[{"old": "A", "new": "B"}] * 2,
+            log_dir=self.logs,
+            channel="tui",
+            when=dt.datetime(2026, 11, 18, 11, 0),
         )
 
     def run_cli(self, *args: str) -> tuple[int, str, str]:

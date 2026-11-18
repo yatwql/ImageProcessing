@@ -339,8 +339,14 @@ def check_folders_doc() -> list[str]:
     documented = tree_paths(_read(doc))
     if not documented:
         return ["folders.md 里没有可解析的目录树（```text 区块）"]
-    roots = [SRC, ROOT / "tools", ROOT / "scripts", ROOT / "docs",
-             ROOT / ".githooks", ROOT / ".github"]
+    roots = [
+        SRC,
+        ROOT / "tools",
+        ROOT / "scripts",
+        ROOT / "docs",
+        ROOT / ".githooks",
+        ROOT / ".github",
+    ]
     missing = []
     for base in roots:
         for path in sorted(base.rglob("*")):
@@ -348,16 +354,25 @@ def check_folders_doc() -> list[str]:
                 continue
             rel = path.relative_to(ROOT).as_posix()
             if rel == "docs/managements/folders.md":
-                continue                    # 自引用：文档自己在树里出现会显得多余
+                continue  # 自引用：文档自己在树里出现会显得多余
             if rel not in documented:
                 missing.append(rel)
-    for name in ("README.md", "CLAUDE.md", "pyproject.toml", "constraints.txt",
-                 "requirements.txt", "requirements-dev.txt", ".gitignore"):
+    for name in (
+        "README.md",
+        "CLAUDE.md",
+        "pyproject.toml",
+        "constraints.txt",
+        "requirements.txt",
+        "requirements-dev.txt",
+        ".gitignore",
+    ):
         if name not in documented:
             missing.append(name)
     if missing:
-        return [f"folders.md 未覆盖：{', '.join(missing[:6])}"
-                + (f" 等 {len(missing)} 个文件" if len(missing) > 6 else "")]
+        return [
+            f"folders.md 未覆盖：{', '.join(missing[:6])}"
+            + (f" 等 {len(missing)} 个文件" if len(missing) > 6 else "")
+        ]
     return []
 
 
@@ -369,7 +384,7 @@ def check_name_consistency() -> list[str]:
     if re.search(rf'^name\s*=\s*"{re.escape(name)}"', pyproject, re.MULTILINE) is None:
         problems.append(f"pyproject.toml 的 [project].name 不是 {name!r}")
     if re.search(rf'^{re.escape(name)}\s*=\s*"', pyproject, re.MULTILINE) is None:
-        problems.append(f"pyproject.toml 缺控制台脚本 {name} = \"...\"")
+        problems.append(f'pyproject.toml 缺控制台脚本 {name} = "..."')
     audit = _read(SRC / "python" / "core" / "audit.py")
     if '"app": NAME' not in audit:
         problems.append("写盘日志没有记录 app 字段（core/audit.build_entry）")
@@ -388,7 +403,10 @@ def git_src_date() -> str | None:
     try:
         out = subprocess.run(
             ["git", "log", "-1", "--format=%cs", "--", "src"],
-            cwd=str(ROOT), capture_output=True, text=True, check=False,
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
         )
     except OSError:
         return None
@@ -470,17 +488,25 @@ def check_scripts_are_launchers() -> list[str]:
 
 def check_import_surface() -> list[str]:
     """架构约束（AR-1/AR-2）：导入方向必须单一，渠道之间不得互相依赖。"""
-    result = subprocess.run([sys.executable, "tools/check_import_surface.py"],
-                            cwd=str(ROOT), capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        [sys.executable, "tools/check_import_surface.py"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     if result.returncode == 0:
         return []
-    return [line.strip().removeprefix("[FAIL] ") for line in result.stdout.splitlines()
-            if line.startswith("[FAIL]")] or ["导入方向检查失败"]
+    return [
+        line.strip().removeprefix("[FAIL] ")
+        for line in result.stdout.splitlines()
+        if line.startswith("[FAIL]")
+    ] or ["导入方向检查失败"]
 
 
 def check_docs_index() -> list[str]:
     """文档索引：`docs/README.md` 必须链接到每份管理文档与手册，否则等于没入口。"""
-    index = (ROOT / "docs" / "README.md")
+    index = ROOT / "docs" / "README.md"
     if not index.is_file():
         return ["缺少 docs/README.md（文档索引）"]
     text = _read(index)
@@ -493,6 +519,17 @@ def check_docs_index() -> list[str]:
             if path.name not in text and rel not in text:
                 problems.append(f"{rel} 未出现在 docs/README.md 索引里")
     return problems
+
+
+def check_workflows() -> list[str]:
+    """CI 工作流自检：run 块的 bash 语法、python -c 片段、audit 参数、release 作业。"""
+    result = subprocess.run([sys.executable, "tools/check_workflows.py"],
+                            cwd=str(ROOT), capture_output=True, text=True, check=False)
+    if result.returncode == 0:
+        return []
+    problems = [line.strip().removeprefix("[FAIL] ") for line in result.stdout.splitlines()
+                if line.startswith("[FAIL]")]
+    return problems or ["工作流自检失败"]
 
 
 CHECKS = [
@@ -508,6 +545,7 @@ CHECKS = [
     ("测试字体", check_test_font_usage),
     ("导入方向", check_import_surface),
     ("文档索引", check_docs_index),
+    ("工作流", check_workflows),
     ("依赖锁", check_constraints),
     ("PS 编码", check_windows_scripts),
     ("scripts 薄壳", check_scripts_are_launchers),

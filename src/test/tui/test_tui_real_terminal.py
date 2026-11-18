@@ -57,14 +57,20 @@ class RealTerminalSmoke(unittest.TestCase):
                 proc.wait(timeout=20)
             return _clean(record.read_text(encoding="utf-8", errors="replace"))
 
+    def assert_usable_terminal(self, text: str) -> None:
+        if "could not find terminal" in text or "setupterm" in text:
+            self.skipTest("该环境无法初始化 curses（TERM/terminfo 缺失），真终端冒烟跳过")
+
     def test_main_screen_really_renders(self):
         text = self.run_tui()
+        self.assert_usable_terminal(text)
         self.assertIn("retype v", text, "标题栏没画出来")
         self.assertIn("图片", text, "左栏表头没画出来")
         self.assertIn("识别到的文字", text, "右栏表头没画出来")
 
     def test_border_characters_are_present(self):
         text = self.run_tui()
+        self.assert_usable_terminal(text)
         # ACS 线框在 UTF-8 终端里是这些字符；退化成 ASCII 时是 - | +
         self.assertTrue(
             any(ch in text for ch in "─│┌├+"),

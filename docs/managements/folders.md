@@ -144,6 +144,7 @@ ImageProcessing/
 │   │   │   ├── __init__.py                   # core 场景测试
 │   │   │   ├── test_cancel_pipeline.py       # 替换过程中的中断：`replace_image(should_stop=...)` 要在块与块之间能停手
 │   │   │   ├── test_config_file.py           # 配置文件（<配置目录>/retype.json，兼容旧 img-p.json）：读取、容错与优先级
+│   │   │   ├── test_coverage_gaps.py         # 补齐覆盖率薄弱点：把每个模块最后的"难触达分支"逐个打掉
 │   │   │   ├── test_error_contract.py        # 错误契约测试：核心层用 CoreError 报可预期失败，不直接退出进程
 │   │   │   ├── test_feature_edges.py         # 功能边界：映射规则、颜色解析、任务构造、日志轮转等容易漏的输入
 │   │   │   ├── test_log_query.py             # 日志查询：按日期/原图/渠道过滤，并汇总替换次数
@@ -178,6 +179,8 @@ ImageProcessing/
 │   ├── check_guards.py                       # 工程守护 13 项
 │   ├── check_import_surface.py               # 架构约束：模块导入方向（谁可以依赖谁）
 │   ├── check_perf.py                         # 耗时守卫（四步热路径）
+│   ├── check_workflows.py                    # CI 工作流自检：把"只在 runner 上才炸"的脚本错误搬到本地
+│   ├── ci_env.py                             # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
 │   ├── coverage_report.py                    # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统计
 │   ├── mutation_check.py                     # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
 │   ├── release.py                            # 发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停

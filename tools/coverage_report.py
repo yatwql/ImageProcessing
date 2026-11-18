@@ -28,25 +28,54 @@ OUTPUT = ROOT / "docs" / "managements" / "test-coverage.md"
 
 # 覆盖率下限与 tools/check_coverage.py 保持一致
 MODULE_MIN = {
-    "core/match.py": 0.90, "core/options.py": 0.90,
-    "core/edit.py": 0.85, "core/render.py": 0.85, "core/image.py": 0.85, "core/audit.py": 0.85,
-    "tui/ui_actions.py": 0.80, "tui/ui_draw.py": 0.85, "tui/app.py": 0.80,
-    "bootstrap.py": 0.90, "launch.py": 0.90, "tui/ui.py": 0.90,
-    "tui/ui_input.py": 0.80, "tui/ui_base.py": 0.80,
-    "cli/main.py": 0.85, "cli/log_query.py": 0.90,
+    "core/match.py": 0.90,
+    "core/options.py": 0.90,
+    "core/edit.py": 0.85,
+    "core/render.py": 0.85,
+    "core/image.py": 0.85,
+    "core/audit.py": 0.85,
+    "tui/ui_actions.py": 0.80,
+    "tui/ui_draw.py": 0.85,
+    "tui/app.py": 0.80,
+    "bootstrap.py": 0.90,
+    "launch.py": 0.90,
+    "tui/ui.py": 0.90,
+    "tui/ui_input.py": 0.80,
+    "tui/ui_base.py": 0.80,
+    "cli/main.py": 0.85,
+    "cli/log_query.py": 0.90,
 }
 TOTAL_MIN = 0.75
 SKIP_MAX = 0.15
 
-UNIT_DIRS = ("src.test.core.primitives", "src.test.core.layout", "src.test.core.font",
-             "src.test.core.format", "src.test.core.color", "src.test.core.background",
-             "src.test.core.pipeline")
-UNIT_FILES = ("test_properties", "test_feature_edges", "test_platform_stability",
-              "test_style_analysis", "test_rendering_primitives")
+UNIT_DIRS = (
+    "src.test.core.primitives",
+    "src.test.core.layout",
+    "src.test.core.font",
+    "src.test.core.format",
+    "src.test.core.color",
+    "src.test.core.background",
+    "src.test.core.pipeline",
+)
+UNIT_FILES = (
+    "test_properties",
+    "test_feature_edges",
+    "test_platform_stability",
+    "test_style_analysis",
+    "test_rendering_primitives",
+)
 SCENARIO_DIRS = ("src.test.cli", "src.test.tui")
-SCENARIO_FILES = ("test_write_audit_log", "test_log_query", "test_cancel_pipeline",
-                  "test_version_display", "test_mapping_rules", "test_entry_smoke",
-                  "test_screen_snapshots", "test_key_dispatch", "test_apply_and_batch")
+SCENARIO_FILES = (
+    "test_write_audit_log",
+    "test_log_query",
+    "test_cancel_pipeline",
+    "test_version_display",
+    "test_mapping_rules",
+    "test_entry_smoke",
+    "test_screen_snapshots",
+    "test_key_dispatch",
+    "test_apply_and_batch",
+)
 
 
 def read_coverage() -> tuple[float, list[tuple[str, float, int, int]]]:
@@ -69,6 +98,7 @@ def read_coverage() -> tuple[float, list[tuple[str, float, int, int]]]:
 @dataclass(frozen=True)
 class Case:
     """一条 junit 用例（只留统计要用的字段）。"""
+
     file: str
     module: str
     name: str
@@ -92,10 +122,15 @@ def read_junit() -> tuple[list[Case], int, int]:
             status = "error"
         elif case.find("skipped") is not None:
             status = "skipped"
-        cases.append(Case(
-            file=classname, module=module, name=case.get("name", ""),
-            time=float(case.get("time", "0") or 0), status=status,
-        ))
+        cases.append(
+            Case(
+                file=classname,
+                module=module,
+                name=case.get("name", ""),
+                time=float(case.get("time", "0") or 0),
+                status=status,
+            )
+        )
     total = len(cases) if cases else int(root_node.get("tests", 0) if root_node is not None else 0)
     skipped = sum(1 for c in cases if c.status == "skipped")
     return cases, skipped, total
@@ -103,7 +138,9 @@ def read_junit() -> tuple[list[Case], int, int]:
 
 def classify(case: Case) -> str:
     module, name = case.module, case.name
-    if module.startswith(SCENARIO_DIRS) or any(key in module or key in name for key in SCENARIO_FILES):
+    if module.startswith(SCENARIO_DIRS) or any(
+        key in module or key in name for key in SCENARIO_FILES
+    ):
         return "场景测试"
     if module.startswith(UNIT_DIRS) or any(key in module for key in UNIT_FILES):
         return "单元测试"
@@ -204,7 +241,9 @@ def build() -> str:
     for package, items in sorted(packages.items()):
         hit = sum(i[1] for i in items)
         total_lines = sum(i[2] for i in items)
-        lines.append(f"| `{package}` | {len(items)} | {fmt_pct(hit / total_lines if total_lines else 0)} |")
+        lines.append(
+            f"| `{package}` | {len(items)} | {fmt_pct(hit / total_lines if total_lines else 0)} |"
+        )
 
     for title, group in (("4. 场景测试分组", "场景测试"), ("5. 单元测试分组", "单元测试")):
         rows = group_rows(cases, group)
@@ -221,8 +260,13 @@ def build() -> str:
 
     others = group_rows(cases, "其他")
     if others:
-        lines += ["", "## 6. 其他（未归类，需显式确认）", "",
-                  "| 分组 | 用例数 | 通过 | 覆盖的点 |", "| --- | ---: | ---: | --- |"]
+        lines += [
+            "",
+            "## 6. 其他（未归类，需显式确认）",
+            "",
+            "| 分组 | 用例数 | 通过 | 覆盖的点 |",
+            "| --- | ---: | ---: | --- |",
+        ]
         for key, number, ok, _seconds, covers in others:
             lines.append(f"| `{key}` | {number} | {ok} | {covers or '待归类'} |")
 

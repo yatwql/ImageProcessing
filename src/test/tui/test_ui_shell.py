@@ -21,18 +21,38 @@ from src.test._support import FakeWin, TuiTestCase, patch_curses
 class ParseArgs(unittest.TestCase):
     def test_defaults(self):
         inputs, out_dir, map_file, opts = ui.parse_args([])
-        self.assertEqual(len(inputs), 1)          # 默认输入目录
+        self.assertEqual(len(inputs), 1)  # 默认输入目录
         self.assertIsNone(out_dir)
         self.assertIsNone(map_file)
         self.assertEqual(opts.align, "auto")
 
     def test_all_value_flags_are_parsed(self):
-        _in, out_dir, map_file, opts = ui.parse_args([
-            "data", "-o", "/tmp/out", "-m", "map.json", "-f", "/tmp/a.ttf",
-            "--color", "#102030", "--align", "left", "--size", "28",
-            "--tracking", "-1.5", "--max-fonts", "40", "--quality", "80",
-            "--log-dir", "/tmp/logs", "--fit-width",
-        ])
+        _in, out_dir, map_file, opts = ui.parse_args(
+            [
+                "data",
+                "-o",
+                "/tmp/out",
+                "-m",
+                "map.json",
+                "-f",
+                "/tmp/a.ttf",
+                "--color",
+                "#102030",
+                "--align",
+                "left",
+                "--size",
+                "28",
+                "--tracking",
+                "-1.5",
+                "--max-fonts",
+                "40",
+                "--quality",
+                "80",
+                "--log-dir",
+                "/tmp/logs",
+                "--fit-width",
+            ]
+        )
         self.assertEqual(out_dir, "/tmp/out")
         self.assertEqual(map_file, "map.json")
         self.assertEqual(opts.font, "/tmp/a.ttf")
@@ -200,7 +220,7 @@ class BaseWidgets(unittest.TestCase):
     def test_box_and_divider_survive_tiny_windows(self):
         patch_curses()
         win = FakeWin([], rows=3, cols=4)
-        ui_base.box(win, 3, 4, "x", 0)          # 不抛即可
+        ui_base.box(win, 3, 4, "x", 0)  # 不抛即可
         ui_base.divider(win, 1, 0, 4, 0)
 
     def test_help_mentions_every_top_level_key(self):
@@ -218,9 +238,21 @@ class DrawEntry(unittest.TestCase):
     def test_too_small_screen_has_a_hint(self):
         patch_curses()
         win = FakeWin([], rows=6, cols=14)
-        ui_draw.draw_frame(win, mock.Mock(panel="main", images=[], message="", status="",
-                                          focus="files", out_dir="/x", last_saved=None,
-                                          cur=None, blocks=lambda: [], image_position=lambda: 0))
+        ui_draw.draw_frame(
+            win,
+            mock.Mock(
+                panel="main",
+                images=[],
+                message="",
+                status="",
+                focus="files",
+                out_dir="/x",
+                last_saved=None,
+                cur=None,
+                blocks=lambda: [],
+                image_position=lambda: 0,
+            ),
+        )
         self.assertIn("太窄", "\n".join(win.screen))
 
 

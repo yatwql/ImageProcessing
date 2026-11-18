@@ -98,12 +98,14 @@ def cmd_build() -> int:
     DIST.mkdir(exist_ok=True)
     for stale in DIST.iterdir():
         stale.unlink()
-    proc = subprocess.run([PY, "-m", "pip", "wheel", "--no-deps", "-w", str(DIST), "."],
-                          cwd=str(ROOT))
+    proc = subprocess.run(
+        [PY, "-m", "pip", "wheel", "--no-deps", "-w", str(DIST), "."], cwd=str(ROOT)
+    )
     if proc.returncode != 0:
         return 1
-    sdist = subprocess.run([PY, "-m", "build", "--sdist", "--outdir", str(DIST)], cwd=str(ROOT),
-                           check=False)
+    sdist = subprocess.run(
+        [PY, "-m", "build", "--sdist", "--outdir", str(DIST)], cwd=str(ROOT), check=False
+    )
     if sdist.returncode != 0:
         print("[!] 没有 `build` 包，跳过 sdist（pip install build 后可生成）")
     sums = []

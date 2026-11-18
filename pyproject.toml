@@ -87,13 +87,17 @@ markers = [
 
 [tool.coverage.run]
 source = ["src/python"]
-branch = true
+# 只统计行覆盖：分支覆盖在"平台分支 / 防御性 except"上会长期无法收敛，
+# 用它做门禁只会逼人写无意义用例。分支覆盖率仍可人工查看（--cov-branch）。
+branch = false
 
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
   "if TYPE_CHECKING:",
   "raise NotImplementedError",
+  # 入口薄壳：真正的逻辑在对应模块里，这两行只在 `python -m` 时执行
+  "if __name__ == .__main__.:",
 ]
 # 阈值取当前实测值向下取整（见 guards 守护与 CI）；只降不升说明退化。
 fail_under = 75

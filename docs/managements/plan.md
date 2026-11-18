@@ -94,3 +94,7 @@
 | PLAN-60 | 技术债清理 | `App` 的目录扫描抽到 `tui/browse.py`（纯函数）；去掉 `run_tests.py` 里的死条件与 `ui_draw._row` 空壳；面板分发改查表 | 完成 |
 | PLAN-61 | 架构核查 | 按 CLAUDE.md 逐条自检：core 无 argparse/curses/sys.exit、cli/tui 无替换逻辑副本、入口都先产出 Job、不覆盖原图、alpha 两路、单文件 <1000 行、文本 I/O 显式编码 | 完成 |
 | PLAN-62 | 文档补对照表 | `technical.md` 新增「用例对照表」：测试文件 → 需求/约束 | 完成 |
+| PLAN-63 | 文档全面校准 | 全量核对 8 份文档：名称统一 retype、版本 0.1、门禁 11 项、字体缓存 `~/.cache/retype`、目录树含 tools/ 与 browse.py/launch.py/bootstrap.py、用例对照表、TUI 响应式与键位 | 完成 |
+| PLAN-64 | 修黑屏 | `draw_main` 补 `refresh`；`hline/vline` 改用 `addch`（ACS 常量在部分构建里是 int） | 完成 |
+| PLAN-65 | 测试保真 | `FakeWin.addstr` 只收 str、`refresh/addch` 计数；新增 `RefreshFlush`、`BorderDrawing` | 完成 |
+| PLAN-66 | 真终端冒烟 | `test_tui_real_terminal.py`：`script(1)` 伪终端跑真 curses，断言标题/表头/边框字符出现 | 完成 |

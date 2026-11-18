@@ -64,6 +64,7 @@ src/
       ui_base.py             文案（USAGE/HELP）、宽字符、颜色与落字
       ui_draw.py             宽/窄两种布局的绘制
       ui_input.py            按键序列解析与单行输入
+  browse.py              目录扫描（父目录/子目录/图片的纯函数层）
       ui_actions.py          按键分发与编辑动作
   test/                      测试用例（pytest / unittest 均可）
     __init__.py              测试包入口：注入仓库根到 sys.path、临时目录指向 /data/tmp
@@ -229,6 +230,10 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 键位提示；键位提示按 `w < 40`、`w < 60`、其余三档给不同长度。
 配色 8 组：title / sel / dim / ok / warn / err / accent / frame（`ui_base.PAIR`）。
 
+**绘制注意**：每帧最后必须 `win.refresh()`（只改缓冲区不刷新＝真机黑屏）；
+线框一律 `addch`——`curses.ACS_*` 在部分构建里是 **int**，`addstr` 只收 str，
+拼字符串会抛 `TypeError` 并被兜底吞掉，表现为整帧空白。
+
 **响应式约束**：所有文字走 `put()`（按显示列裁剪，中文占两列），
 边框走 `addch`；`_support.FakeWin.addstr` 同样按显示列模拟，
 所以 `test_layout_rendering.ResponsiveLayout` 能在 32~130 列之间断言"不溢出、不丢关键信息"。
@@ -269,7 +274,7 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 | 缓存 | 位置 | 键 | 作用 |
 | --- | --- | --- | --- |
 | 字体池（内存） | `App._pool_cache` | 原文集合签名 | 避免重复 `fc-list` |
-| 字体池（磁盘） | `~/.cache/img-p/fonts.json` | 字体文件签名 + 文本字符集 + 上限 | 跨进程复用，实测 0.137s → 0.018s；字体文件变动自动失效 |
+| 字体池（磁盘） | `~/.cache/retype/fonts.json` | 字体文件签名 + 文本字符集 + 上限 | 跨进程复用，实测 0.137s → 0.018s；字体文件变动自动失效 |
 | 版式分析 | `ImageItem.memo` | `("a", rect)` | 重复替换跳过 mask/字色计算 |
 | 字体匹配 | `ImageItem.memo` | `("f", rect, src)` | 重复替换跳过字形比对 |
 
@@ -360,7 +365,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 门禁（与 CI 同源，`./scripts/test.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
   渠道/用例/脚本放宽）、`python tools/check_guards.py`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳，共 10 项）、`python tools/check_perf.py`（耗时守卫）。
+  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 11 项）、`python tools/check_perf.py`（耗时守卫）。
   覆盖率阈值 `fail_under = 75`（实测约 84%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。

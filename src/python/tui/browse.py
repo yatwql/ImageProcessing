@@ -10,7 +10,7 @@ import os
 
 from ..core import IMG_EXTS
 
-Row = tuple[str, str]          # ("parent" | "dir" | "img", 绝对路径)
+Row = tuple[str, str]  # ("parent" | "dir" | "img", 绝对路径)
 
 
 def scan_rows(path: str) -> tuple[list[Row], list[str], str | None]:

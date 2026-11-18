@@ -88,6 +88,8 @@ class FakeWin:
         self.cols = cols
         self.screen = [""] * rows
         self.timeout_ms = -1
+        self.refresh_count = 0          # 真的调过 refresh 才 +1（黑屏就是没刷新）
+        self.cell_count = 0             # addch 次数（边框走 addch，用来断言线框画了）
 
     def getmaxyx(self):
         return self.rows, self.cols
@@ -96,7 +98,7 @@ class FakeWin:
         self.screen = [""] * self.rows
 
     def refresh(self):
-        pass
+        self.refresh_count += 1
 
     def keypad(self, *_args):
         pass
@@ -125,9 +127,12 @@ class FakeWin:
     def addstr(self, y, x, text, _attr=0):
         """按**显示列**写，而不是按字符下标——真 curses 就是按列算的。
 
-        中文一个字占两列：如果按字符切片，混合中英文的行会越写越宽，
-        布局测试就查不出真实的溢出。
+        并且像真 curses 一样只接受 str：线框（ACS_*）在部分构建里是 **int**，
+        若误把 int 传给 addstr，真终端会抛 TypeError 导致整帧画不出来（黑屏），
+        这里同样抛，好让用例当场发现。
         """
+        if not isinstance(text, str):
+            raise TypeError(f"expect bytes or str, got {type(text).__name__}")
         if not 0 <= y < self.rows:
             return
         from src.python.tui.ui_base import cut, dwidth
@@ -137,8 +142,11 @@ class FakeWin:
         left += " " * max(0, x - dwidth(left))
         self.screen[y] = left + cut(text, max(0, self.cols - x))
 
-    def addch(self, *_args):
-        pass
+    def addch(self, y, x, ch, _attr=0):
+        """线框字符：可以是 str，也可以是 curses 的 ACS int 码（真 curses 两者都收）。"""
+        if not isinstance(ch, (str, int)):
+            raise TypeError(f"expect str or int, got {type(ch).__name__}")
+        self.cell_count += 1
 
     def get_wch(self):
         if self.keys and self.keys[0] is None:

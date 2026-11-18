@@ -61,7 +61,7 @@ GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lin
 
 ```text
 scripts/    薄壳启动脚本（cli/tui/setup/test 的 .sh + .ps1、log-query.py）
-tools/      工程工具（check_guards / check_perf / run_tests）
+tools/      工程工具（check_guards / check_perf / run_tests，不进运行时包）
 .githooks/  pre-commit 钩子（ruff + guards + 用例）与 install-hooks.sh
 .github/    CI 流水线（test / lint / typecheck / guards / perf）
 pyproject.toml  依赖与工具配置的唯一来源（ruff / mypy / pytest / coverage）

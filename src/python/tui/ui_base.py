@@ -155,15 +155,22 @@ def put(win, y: int, x: int, text: str, cols: int, a: int = 0) -> None:
 # 所有边框都用 addch 画（不进 FakeWin 的屏幕快照），文字仍走 put()。
 
 
-def _acs(name: str, fallback: str) -> str:
+def _acs(name: str, fallback: str) -> str | int:
+    """取 curses 的线框字符。
+
+    注意：ACS_* 在不同构建里可能是 **str**（'q'）也可能是 **int**（终端专用码），
+    而 `addstr` 只接受 str —— 所以线框一律用 `addch` 画（它两种都收）。
+    """
     return getattr(curses, name, fallback)
 
 
 def hline(win, y: int, x: int, cols: int, a: int = 0) -> None:
     if cols <= 0:
         return
-    with contextlib.suppress(curses.error):
-        win.addstr(y, x, _acs("ACS_HLINE", "-") * cols, a)
+    ch = _acs("ACS_HLINE", "-")
+    for offset in range(cols):
+        with contextlib.suppress(curses.error):
+            win.addch(y, x + offset, ch, a)
 
 
 def vline(win, x: int, top: int, bottom: int, a: int = 0) -> None:

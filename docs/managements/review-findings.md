@@ -76,7 +76,7 @@
 | RF-40 | 工程缺口 | 无 `pyproject.toml`：依赖在两份 requirements、ruff/pytest 参数散在脚本里，`pip install -e .` 不可用 | 建 `pyproject.toml` 作为单一配置源（依赖 + `dev` extra + ruff/mypy/pytest/coverage），requirements 退化为 `-e .` / `-e .[dev]` | 已修 |
 | RF-41 | 工程缺口 | 无 CI：本地全绿靠自觉，格式/类型/文档漂移无人拦 | 新增 `.github/workflows/ci.yml` 五个作业（test/lint/typecheck/guards/perf） | 已修 |
 | RF-42 | 工程缺口 | 无提交前门禁 | `.githooks/pre-commit` + `install-hooks.sh`（`core.hooksPath`，不动 `.git/hooks`） | 已修 |
-| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `tools/check_guards.py` 六项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
+| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `tools/check_guards.py` 十一项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
 | RF-44 | 质量缺口 | 无类型检查、无覆盖率门禁 | `mypy` 守 `core`（28 处历史 error 全部修掉：补注解、`rendered` 可空标注、dtype 标注）；`fail_under = 75` | 已修 |
 | RF-45 | 类型桩冲突 | numpy 2.5 的桩要求 `ndarray.min()/max()` 显式给 axis，`int(arr.min())` 被判成无匹配重载 | 改成内建 `min()/max()`（坐标数组很小，取值方式不影响耗时），不再依赖 `disable_error_code` 兜底 | 已修 |
 | RF-46 | 测试结构 | `src/test/image_processing/**` 与 `src/test/core/**` 两套命名并存，`image_processing/degrade/` 是空包，文档只写了 core/tui/cli | 七个测试子目录并入 `src/test/core/**`，删空包，`technical.md`/`CLAUDE.md` 同步 | 已修 |
@@ -149,6 +149,21 @@
 | RF-73 | 缺陷 | 按键用 `key.isdigit()` 判断数字：上标「²」也返回 True，`int("²")` 抛 ValueError，界面会因一次误触报错 | 改成 ASCII 白名单 `key in "0123456789"`，并补回归用例（含正常数字仍可跳图） | 已修 |
 | RF-74 | 技术债 | 三块面板的分发是三条 if 分支，新增面板要改两处 | 改为 `PANEL_HANDLERS` 查表（表放在模块末尾，避免引用未定义函数） | 已修 |
 | RF-75 | 文档债 | `technical.md` 只有目录名清单，没写"哪个测试文件守哪条需求" | 补「用例对照表」：28 个测试文件 → FR/NFR 映射 | 已修 |
+
+## 2026-11-17 文档校准
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-76 | 文档漂移 | 更名与门禁增项后，文档里仍留着旧字样：字体缓存写成 `~/.cache/img-p`（2 处）、门禁写成"六项"（2 处）、NFR-4 还写"mypy 守 core" | 全量校准 8 份文档：缓存路径、门禁项数、mypy 范围、目录树（tools/、browse.py、launch.py、bootstrap.py）、命令路径（tools/check_guards.py） | 已修 |
+| RF-77 | 需求缺口 | FR-12 只写版本，没写"名称"；TUI 响应式（窄屏断点）只在技术文档里描述，需求侧无验收口径 | requirements 补 FR-12.6（名称一致）与 FR-13（界面自适应：宽屏双栏/窄屏单栏/极窄收缩/状态可见） | 已修 |
+
+## 2026-11-18 TUI 黑屏事故（真机）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-78 | 严重缺陷（真机） | `./scripts/tui.sh` 在真终端一片黑：`draw_main` 重写时丢了 `win.refresh()`，缓冲区内容从不刷到屏幕 | `draw_main` 末尾补 `win.refresh()`；`FakeWin` 增加 `refresh_count`，新增 `RefreshFlush` 用例锁住"每个面板每帧都刷新" | 已修 |
+| RF-79 | 严重缺陷（真机） | 修完刷新仍黑：`curses.ACS_*` 在本机构建里是 **int**，`hline()` 用 `addstr` 拼 ACS 字符 → `TypeError`，`draw_frame` 兜底吞掉后整帧什么都没画 | `hline`/`vline` 改为一格格 `addch`（curses 的 addch 同时接受 str 与 ACS int）；`box()` 只画线不拼字符串 | 已修 |
+| RF-80 | 测试保真度 | 两个真机问题单测都没抓到：`FakeWin.addstr` 接受任意对象、`refresh()` 是空实现 | `FakeWin.addstr` 与真 curses 一致只收 str（传 ACS int 立刻 TypeError）；`refresh` 计数；新增 `BorderDrawing`（addch 计数 > 20）与 `test_tui_real_terminal.py`（`script(1)` 伪终端跑真 curses，断言标题/表头/边框字符真的出现） | 已修 |
 
 ## 已验证项
 

@@ -5,6 +5,48 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 修复 TUI 黑屏（真机），补齐真终端冒烟
+
+### 修复
+
+- `ui_draw.draw_main` 漏了 `win.refresh()`：重写布局时只改缓冲区、从不刷屏，真终端一片黑。
+- `ui_base.hline/vline` 用 `addstr` 拼 `curses.ACS_*`：本机构建的 ACS 常量是 **int**，
+  `addstr` 只收 str → `TypeError` → `draw_frame` 兜底吞掉 → 整帧空白。改为一格格 `addch`。
+
+### 测试
+
+- `FakeWin` 提高保真度：`addstr` 只接受 str（传 ACS int 立即 TypeError）、`refresh()` 计数、
+  `addch` 计数；新增 `RefreshFlush`（每个面板每帧必须刷新）与 `BorderDrawing`（边框确实画了）。
+- 新增 `src/test/tui/test_tui_real_terminal.py`：用 `script(1)` 开伪终端跑真 curses，
+  去掉转义序列后断言 `retype v`、`图片`、`识别到的文字` 与边框字符真的出现在屏幕上
+  （POSIX + `script` 才跑，其余平台自动跳过）。
+
+### 验证
+
+- `ruff` 零告警、`mypy` 80 文件零错误、`check_guards.py` 11/11、369 用例全绿
+  （含 2 个真终端冒烟用例）。
+
+## 2026-11-17 — 文档全面校准（retype / v0.1）
+
+### 变更
+
+- 8 份文档统一到当前状态：程序名 `retype`、版本 `v0.1`、门禁 11 项
+  （编号 / review 编号 / 分层 / 文件长度 / 显式编码 / 测试目录 / 版本 / 名称 / 依赖锁 / PS 编码 / scripts 薄壳）。
+- 修正历史残留：字体缓存路径 `~/.cache/img-p` → `~/.cache/retype`（CLAUDE.md、technical.md）；
+  门禁"六项" → "十一项"（requirements NFR-4、review-findings RF-43）；
+  `mypy 守 core` → `mypy 全树`。
+- 目录结构补全新分层：`tools/`（check_guards / check_perf / run_tests）、
+  `src/python/{bootstrap,launch}.py`、`src/python/cli/log_query.py`、`src/python/tui/browse.py`、
+  `ui_base/ui_draw/ui_input/ui_actions`；命令示例同步为 `tools/check_guards.py`。
+- requirements 新增 FR-12.6（名称一致）与 FR-13（界面自适应：宽屏双栏 / 窄屏单栏 /
+  极窄收缩 / 状态可见），验收口径补到需求侧。
+- technical 补「用例对照表」：28 个测试文件 → 需求/约束。
+
+### 验证
+
+- `tools/check_guards.py` 11/11（含「版本号」与「名称」一致性检查）、
+  `ruff` 零告警、`mypy` 79 文件零错误、全量用例 357 passed。
+
 ## 2026-11-17 — 技术债清理与架构核查
 
 ### 变更

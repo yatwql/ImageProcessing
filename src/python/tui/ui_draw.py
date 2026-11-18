@@ -59,7 +59,7 @@ def draw_main(win, app: App) -> None:
     _frame(win, h, w, _banner(), right)
 
     body_top = 2
-    body_bottom = h - 6                     # 分隔线在 h-5，其上为列表区
+    body_bottom = h - 6  # 分隔线在 h-5，其上为列表区
     body_h = max(1, body_bottom - body_top + 1)
     narrow = w < 60
 
@@ -71,6 +71,7 @@ def draw_main(win, app: App) -> None:
     # ── 分隔线 + 底部三行（详情 / 状态 / 键位）+ 底边框
     divider(win, h - 5, 1, w - 2, attr("frame"))
     _draw_footer(win, app, h, w, img)
+    win.refresh()          # 主界面必须自己 flush：漏了这一行就是一片黑屏
 
 
 def _draw_footer(win, app: App, h: int, w: int, img) -> None:
@@ -111,17 +112,26 @@ def _status_text(app: App, cols: int) -> str:
 
 def _keys_hint(app: App, w: int) -> str:
     """键位提示按宽度分三档：手机窄屏只留最常用的几个，宽屏才给全套。"""
-    if w < 40:                                  # 手机竖屏：一行只放得下 3~4 组
-        return "↑↓ 选  Enter 进  r 替换  ? 帮助" if app.focus == "files" else \
-               "↑↓ 选块  Enter 改  r 替换  Esc 返回"
-    if w < 60:                                  # 小窗口 / 分屏
-        return "↑↓ 选图  Enter 右栏  r 替换  Tab 换栏  q 退出" if app.focus == "files" else \
-               "↑↓ 选块  Enter 整行  i 行内  空格 启用  r 替换  Esc 返回"
+    if w < 40:  # 手机竖屏：一行只放得下 3~4 组
+        return (
+            "↑↓ 选  Enter 进  r 替换  ? 帮助"
+            if app.focus == "files"
+            else "↑↓ 选块  Enter 改  r 替换  Esc 返回"
+        )
+    if w < 60:  # 小窗口 / 分屏
+        return (
+            "↑↓ 选图  Enter 右栏  r 替换  Tab 换栏  q 退出"
+            if app.focus == "files"
+            else "↑↓ 选块  Enter 整行  i 行内  空格 启用  r 替换  Esc 返回"
+        )
     if app.focus == "files":
-        return ("↑↓ 选图  数字跳图  Enter 进右栏  m 映射  e 映射表  c 样式  r 替换  "
-                "R 全部  Ctrl-R 刷新  ? 帮助  q 退出")
-    return ("↑↓ 选块  Enter 整行换  i 只换几个字  空格 启用  u 清除  r 替换  "
-            "Esc 返回  Tab 换栏  q 退出")
+        return (
+            "↑↓ 选图  数字跳图  Enter 进右栏  m 映射  e 映射表  c 样式  r 替换  "
+            "R 全部  Ctrl-R 刷新  ? 帮助  q 退出"
+        )
+    return (
+        "↑↓ 选块  Enter 整行换  i 只换几个字  空格 启用  u 清除  r 替换  Esc 返回  Tab 换栏  q 退出"
+    )
 
 
 def row_label(app: App, kind: str, path: str, visible_index: int) -> str:
@@ -145,10 +155,15 @@ def draw_wide(win, app: App, h: int, w: int, body_h: int) -> None:
     nblk = len(app.blocks())
     pos_blk = f"{app.sel_blk + 1}/{nblk}" if nblk else "0/0"
     empty_hint = " 目录里还没有图片：放好图片后按 Ctrl-R 重新扫描" if not app.images else ""
-    hint = ("Enter 进右侧" if app.focus == "files"
-            else f"{pos_blk}　Enter 整行换　i 只换几个字")
-    put(win, 1, right_x, f" ② 识别到的文字 {empty_hint or hint}", right_w,
-        attr("title", curses.A_BOLD if app.focus != "blocks" else 0))
+    hint = "Enter 进右侧" if app.focus == "files" else f"{pos_blk}　Enter 整行换　i 只换几个字"
+    put(
+        win,
+        1,
+        right_x,
+        f" ② 识别到的文字 {empty_hint or hint}",
+        right_w,
+        attr("title", curses.A_BOLD if app.focus != "blocks" else 0),
+    )
     # 两栏之间一条竖线（从表头下到分隔线）
     vline(win, left_w, 1, h - 6, attr("frame"))
 
@@ -168,10 +183,16 @@ def draw_wide(win, app: App, h: int, w: int, body_h: int) -> None:
         put(win, 2, right_x, f" {app.cur.error}", right_w, attr("warn"))
     elif app.cur is not None and app.cur.blocks is None:
         put(win, 2, right_x, " 正在识别文字，请稍等…", right_w, attr("dim"))
-    for idx, blk in enumerate(app.blocks()[start:start + body_h]):
+    for idx, blk in enumerate(app.blocks()[start : start + body_h]):
         real = start + idx
-        put(win, 2 + idx, right_x, block_label(app, blk), right_w,
-             _sel_style(app, real == app.sel_blk, "blocks"))
+        put(
+            win,
+            2 + idx,
+            right_x,
+            block_label(app, blk),
+            right_w,
+            _sel_style(app, real == app.sel_blk, "blocks"),
+        )
 
 
 def draw_narrow(win, app: App, w: int, body_h: int) -> None:
@@ -207,9 +228,15 @@ def draw_narrow(win, app: App, w: int, body_h: int) -> None:
     elif app.cur is not None and app.cur.blocks is None:
         put(win, 2, 2, " 正在识别文字，请稍等…", inner, attr("dim"))
     start = max(0, app.sel_blk - body_h + 1) if app.sel_blk >= body_h else 0
-    for idx, blk in enumerate(app.blocks()[start:start + body_h]):
-        put(win, 2 + idx, 2, block_label(app, blk), inner,
-             _sel_style(app, start + idx == app.sel_blk, "blocks"))
+    for idx, blk in enumerate(app.blocks()[start : start + body_h]):
+        put(
+            win,
+            2 + idx,
+            2,
+            block_label(app, blk),
+            inner,
+            _sel_style(app, start + idx == app.sel_blk, "blocks"),
+        )
 
 
 def digit_of(offset: int) -> str:
@@ -252,13 +279,19 @@ def draw_map(win, app: App) -> None:
     if not items:
         put(win, 2, 3, "还没有条目。按 n 新增一条「旧文字 → 新文字」", w - 6, attr("dim"))
         put(win, 3, 3, "条目写的是片段时（如 2023），会做行内替换。", w - 6, attr("dim"))
-    for i, (k, v) in enumerate(items[:max(1, h - 6)]):
+    for i, (k, v) in enumerate(items[: max(1, h - 6)]):
         a = attr("sel", curses.A_BOLD) if i == app.sel_map else 0
         put(win, 2 + i, 2, f" {k}  →  {v}", w - 4, a)
     divider(win, h - 3, 1, w - 2, attr("frame"))
     put(win, h - 2, 2, app.message or app.status, w - 4, attr("warn"))
-    put(win, h - 2, max(2, w - 46), " n 新增  Enter 改  d 删除  w 导出  Esc 返回 ",
-        min(44, w - 4), attr("sel"))
+    put(
+        win,
+        h - 2,
+        max(2, w - 46),
+        " n 新增  Enter 改  d 删除  w 导出  Esc 返回 ",
+        min(44, w - 4),
+        attr("sel"),
+    )
     win.refresh()
 
 
@@ -267,17 +300,29 @@ def draw_settings(win, app: App) -> None:
     h, w = win.getmaxyx()
     _frame(win, h, w, f"{NAME} · 样式选项（对下一次 r / R 生效）")
     rows = app.setting_notes()
-    for i, (_field, title, value) in enumerate(rows[:max(1, h - 6)]):
+    for i, (_field, title, value) in enumerate(rows[: max(1, h - 6)]):
         sel = i == app.sel_setting
         a = attr("sel", curses.A_BOLD) if sel else 0
         put(win, 2 + i, 2, f" {title}：{value}", w - 4, a)
     hint = dict(app.SETTING_ROWS_HINT)
-    put(win, h - 4, 2, " " + hint.get(rows[app.sel_setting][0], "") if rows else "", w - 4,
-        attr("dim"))
+    put(
+        win,
+        h - 4,
+        2,
+        " " + hint.get(rows[app.sel_setting][0], "") if rows else "",
+        w - 4,
+        attr("dim"),
+    )
     divider(win, h - 3, 1, w - 2, attr("frame"))
     put(win, h - 2, 2, app.message or app.status, w - 4, attr("warn"))
-    put(win, h - 2, max(2, w - 42), " ↑↓ 选择  Enter 修改  留空=自动  Esc 返回 ",
-        min(40, w - 4), attr("sel"))
+    put(
+        win,
+        h - 2,
+        max(2, w - 42),
+        " ↑↓ 选择  Enter 修改  留空=自动  Esc 返回 ",
+        min(40, w - 4),
+        attr("sel"),
+    )
     win.refresh()
 
 
@@ -285,7 +330,7 @@ def draw_help(win, _app: App) -> None:
     win.erase()
     h, w = win.getmaxyx()
     _frame(win, h, w, f"{NAME} v{VERSION} · 帮助")
-    for i, line in enumerate(HELP.splitlines()[:h - 3]):
+    for i, line in enumerate(HELP.splitlines()[: h - 3]):
         a = attr("title", curses.A_BOLD) if line and not line.startswith(" ") else 0
         if line.startswith("  "):
             a = attr("dim")
@@ -321,6 +366,6 @@ def draw_frame(win, app: App) -> None:
             draw_main(win, app)
     except curses.error:
         with contextlib.suppress(curses.error):
-            curses.update_lines_cols()      # 窗口尺寸变了，刷新缓存后下一帧重画
-    except Exception as exc:                # 兜底：不退出，提示后继续
+            curses.update_lines_cols()  # 窗口尺寸变了，刷新缓存后下一帧重画
+    except Exception as exc:  # 兜底：不退出，提示后继续
         app.message = f"界面绘制出错: {exc}"

@@ -68,6 +68,58 @@ class LayoutRendering(TuiTestCase):
         self.assertIn("界面绘制出错", app.message)
 
 
+class RefreshFlush(TuiTestCase):
+    """每一帧都必须 refresh：漏掉就是用户看到的"一片黑屏"。
+
+    curses 的 erase/draw 只改缓冲区，不刷新等于什么都没画。
+    """
+
+    def counting_win(self, rows: int = 28, cols: int = 100) -> FakeWin:
+        """FakeWin 自带 refresh_count：只改缓冲区不刷新（真机黑屏）会被抓到。"""
+        return FakeWin([], rows=rows, cols=cols)
+
+    def test_main_view_flushes_every_frame(self):
+        app = self.make_app()
+        win = self.counting_win()
+        ui.draw_frame(win, app)
+        self.assertGreaterEqual(win.refresh_count, 1, "主界面必须 refresh，否则黑屏")
+
+    def test_every_panel_flushes(self):
+        app = self.make_app()
+        for panel in ("main", "map", "settings", "help"):
+            with self.subTest(panel=panel):
+                app.panel = panel
+                win = self.counting_win()
+                ui.draw_frame(win, app)
+                self.assertGreaterEqual(win.refresh_count, 1, f"{panel} 面板没有 refresh")
+
+    def test_too_small_screen_also_flushes(self):
+        app = self.make_app()
+        win = self.counting_win(rows=6, cols=14)
+        ui.draw_frame(win, app)
+        self.assertGreaterEqual(win.refresh_count, 1)
+
+
+class BorderDrawing(TuiTestCase):
+    """线框必须走 addch：ACS_* 在某些构建里是 int，传给 addstr 会 TypeError → 整帧黑屏。"""
+
+    def test_border_cells_are_drawn(self):
+        app = self.make_app()
+        win = FakeWin([], rows=26, cols=100)
+        ui.draw_frame(win, app)
+        self.assertGreater(win.cell_count, 20, "边框/分隔线一格格都没画出来")
+
+    def test_fake_window_rejects_non_str_to_addstr(self):
+        win = FakeWin([], rows=4, cols=20)
+        with self.assertRaises(TypeError):
+            win.addstr(0, 0, 104)          # curses 的 ACS int 码不能进 addstr
+
+    def test_fake_window_accepts_acs_int_in_addch(self):
+        win = FakeWin([], rows=4, cols=20)
+        win.addch(0, 0, 104, 0)            # 真 curses 允许 addch 收 ACS int
+        self.assertEqual(win.cell_count, 1)
+
+
 class ResponsiveLayout(TuiTestCase):
     """宽屏（电脑）与窄屏（手机）都要排得下：不溢出、不丢关键信息。"""
 

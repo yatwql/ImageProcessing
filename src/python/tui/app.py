@@ -80,7 +80,7 @@ class App:
         map_file: str | None = None,
         opts: Options | None = None,
     ):
-        self.inputs: list[str] = list(inputs)      # 重新扫描时按原输入重来
+        self.inputs: list[str] = list(inputs)  # 重新扫描时按原输入重来
         paths: list[str] = []
         for p in inputs:
             paths += collect_images(p)
@@ -447,7 +447,7 @@ class App:
             tag=os.path.splitext(img.name)[0] + "_",
             memo=img.memo,
             source=img.path,
-            should_stop=lambda: self.cancel,      # 单张图内按 Esc 也能停在块之间
+            should_stop=lambda: self.cancel,  # 单张图内按 Esc 也能停在块之间
         )
         if not report:
             return False, "已取消" if self.cancel else "替换全部失败"

@@ -19,7 +19,7 @@ src/python/              程序代码
   launch.py              统一启动器：缺环境先自动装，再 exec 到真正入口
   core/                  核心层：OCR / 版式分析 / 字体匹配 / 擦除重绘 / 写盘审计
   cli/                   命令行渠道（main=替换流程，log_query=日志查询）
-  tui/                   交互渠道：app.py 状态；ui.py 入口；
+  tui/                   交互渠道：app.py 状态；ui.py 入口；browse.py 目录扫描；
                          ui_base/ui_draw/ui_input/ui_actions 分层
 src/test/                测试用例
   _support.py            公共设施（字体路径、合成图、OCR 桩、FakeWin、用例基类）
@@ -117,7 +117,10 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 - `--area` 手工框里的原文若未被 OCR 认全，字体匹配会不准 → 会打印提示并退回默认字体，
   这时用 `--font` 或改用 `--map` 走整行匹配。
-- 字体池缓存在 `~/.cache/img-p/fonts.json`（按字体文件签名失效）；验证「首次构建」路径要先删缓存。
+- 字体池缓存在 `~/.cache/retype/fonts.json`（按字体文件签名失效）；验证「首次构建」路径要先删缓存。
+- TUI 绘制两条铁律：① 每帧结尾必须 `win.refresh()`；② 线框只能 `addch`，不能把
+  `curses.ACS_*`（可能是 int）拼进 `addstr`——两者出错都表现为真机黑屏，`FakeWin` 已按此收紧，
+  另有 `test_tui_real_terminal.py` 用 `script(1)` 跑真 curses 冒烟。
 - TUI 允许空目录启动：目录里没有图片时照样进界面，放好图片按 `Ctrl-R`（或 `F5`）重新扫描；
   这个键也是"先开界面、再复制文件进去"的唯一入口。
 - 配置目录默认值分平台：POSIX 用 `/data/config`，Windows 用仓库内 `data/config`

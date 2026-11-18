@@ -458,7 +458,7 @@ def git_src_date() -> str | None:
             ["git", "log", "-1", "--format=%cs", "--", "src"],
             cwd=str(ROOT),
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             check=False,
         )
     except OSError:
@@ -545,7 +545,7 @@ def check_import_surface() -> list[str]:
         [sys.executable, "-m", "src.python.tools.check_import_surface"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         check=False,
     )
     if result.returncode == 0:
@@ -626,7 +626,7 @@ def check_workflows() -> list[str]:
         [sys.executable, "-m", "src.python.tools.check_workflows"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         check=False,
     )
     if result.returncode == 0:

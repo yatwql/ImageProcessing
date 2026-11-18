@@ -41,7 +41,7 @@ def outdated() -> list[str]:
     out = subprocess.run(
         [sys.executable, "-m", "pip", "list", "--outdated", "--format=freeze"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
     )
     return [ln for ln in out.stdout.splitlines() if ln.strip()]
 

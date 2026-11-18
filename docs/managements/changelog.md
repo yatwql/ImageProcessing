@@ -22,6 +22,16 @@
 - `src/test/tui/test_tui_real_terminal.py`：`os.mkfifo` 同样是 POSIX-only 属性，改成 `cast(Any, os).mkfifo(...)`。
 - `check_all` 新增「mypy (win32 平台)」一步（`--platform win32`）：这类差异现在本地就红。
 
+### 修复（windows 作业「工程守护」红）
+
+- 四个工具（`check_guards` / `check_perf` / `check_platform_safety` / `gen_folders`）的 `main()` 缺
+  `ensure_utf8_stdio()`：Windows 控制台 cp1252 下打印中文 `[ok] 编号-plan` 直接 `UnicodeEncodeError`。
+- 五个工具（`check_guards` / `gen_folders` / `release` / `ci_env` / `update_constraints`）的
+  `subprocess.run(text=True)` 缺 `encoding=`：Windows 用 cp1252 解码 UTF-8 输出 →
+  `UnicodeDecodeError` + `stdout is None`。
+- 守护「跨平台」两条规则收紧：`tools/` 里有 `main()` 必须调 `ensure_utf8_stdio()`（+3 例）；
+  子进程编码检查改为按「整次调用」判断（原来只看 3 行，跨行写法漏检）。
+
 ### 新增
 
 - `src/python/tools/junit_summary.py` + `src/test/tools/test_junit_summary.py`（5 例）：失败/错误用例

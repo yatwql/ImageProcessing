@@ -131,12 +131,21 @@ def check_file(path: Path) -> list[str]:
     if rel.startswith("src/test/") and path.name != "_support.py" and rel != RULE_FIXTURE:
         problems += _check_test_hygiene(rel, lines)
 
-    # 子进程调用必须显式编码：同一行或后续两行内出现 encoding=
+    # 子进程调用必须显式编码：按"整次调用"判断（跨多行也行），
+    # 只看 3 行窗口会漏掉 `text=True` 与 `encoding=` 隔了好几行的写法。
     for lineno, line in enumerate(lines, 1):
         if not SUBprocess_TEXT.search(line):
             continue
-        window = " ".join(lines[lineno - 1 : lineno + 2])
-        if "text=True" in window and "encoding=" not in window:
+        chunk: list[str] = []
+        depth = 0
+        for offset in range(lineno - 1, min(len(lines), lineno - 1 + 40)):
+            current = lines[offset]
+            chunk.append(current)
+            depth += current.count("(") - current.count(")")
+            if offset > lineno - 1 and depth <= 0:
+                break
+        call = " ".join(chunk)
+        if "text=True" in call and "encoding=" not in call:
             problems.append(
                 f"{rel}:{lineno} 子进程 text=True 缺 encoding=（Windows 会用 cp1252 解码）"
             )

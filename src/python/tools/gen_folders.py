@@ -92,7 +92,7 @@ def tracked_files() -> list[str]:
         ["git", "-c", "core.quotepath=false", "ls-files", "-z"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
     ).stdout
     return [
         p

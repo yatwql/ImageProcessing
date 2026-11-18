@@ -30,4 +30,5 @@
 | RF-149 | 断言依赖本机事实 | 上轮把宽字距断言改成"与本机 fit 的排版宽度比"，但 pipeline 内部会再 fit 一次，字体/字号/字距未必相同；Windows（msyh）上期望 193、实际画 111，仍然红 | 期望宽度改用 `report` 里 pipeline 自己报告的 font/size/tracking 计算，并以「同字体、字距 0」的宽度为下限（收紧到 0 才算回归） | 已修 |
 | RF-150 | 门禁缺口 | CI 的「失败用例摘要」本来写在 `run:` 的 heredoc 里，Windows 控制台 cp1252 打印中文直接 `UnicodeEncodeError`——摘要步自己红了，还掩盖了真实失败列表 | 逻辑搬进 `src/python/tools/junit_summary.py`（`ensure_utf8_stdio()`）+ 5 例；守护「工作流」禁止 `run:` 内联 python（heredoc / `python -c`） | 已修 |
 | RF-151 | 门禁缺口 | windows 作业「类型检查」红：`mypy` 在 Windows 的 typeshed 下把 `fcntl.flock`/`LOCK_EX` 与 `os.mkfifo` 判为不存在——本地 Linux 跑 `mypy` 永远绿 | 属性访问改间接引用（`fcntl: Any`、`cast(Any, os).mkfifo`）；`check_all` 增加 `mypy --platform win32` 档，本地复现 | 已修 |
+| RF-152 | 门禁缺口 | windows 作业「工程守护」红两处：① 四个工具 `main()` 没调 `ensure_utf8_stdio()`，cp1252 控制台打印中文 `UnicodeEncodeError`；② 五个工具 `subprocess.run(text=True)` 缺 `encoding=`，解码炸后 `stdout` 变 None 再 `AttributeError` | 全部补齐；守护「跨平台」加 stdio 规则、子进程编码改按整次调用判断；3 例用例覆盖 | 已修 |
 

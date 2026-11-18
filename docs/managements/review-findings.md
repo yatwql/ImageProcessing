@@ -301,6 +301,14 @@
 | RF-130 | 用例可移植 | 不可写目录用例依赖 `/proc`（Windows 上可能真能建出来） | 打桩 `Path.mkdir` 抛 OSError | 已修 |
 | RF-131 | 门禁缺口 | "只在 Windows 上炸"的写法（POSIX 路径、子进程编码、POSIX-only 导入）没有本地检查，只能等 CI | 新增守护第 17 项「跨平台」；需豁免的行标 `# platform-safe` | 已修 |
 
+## 2026-11-18 CI 矩阵本地化
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-132 | 测试缺陷（Windows，重复发生） | 入口冒烟用子进程读 stdout，Windows 上 cp1252 解码 UTF-8 输出 → reader 线程异常 → stdout 空串；加 `encoding=` 也未彻底解决 | 改为**本进程内** `runpy` + 重定向跑入口，只对 shell 薄壳用子进程且只看退出码 | 已修 |
+| RF-133 | 本地不可复现 | "非 UTF-8 控制台 / C locale"这档只在 runner 上出现 | `check_all --ci-matrix` 在本地复现两档（cp1252+C locale、无中文字体），全量模式默认跑 | 已修 |
+| RF-134 | 用例可移植 | 真终端冒烟在 C locale 下必然失败（curses 按终端编码输出） | 非 UTF-8 终端显式 skip，并说明是终端限制 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`src/python/tools/check_guards.py`：6/6 通过。

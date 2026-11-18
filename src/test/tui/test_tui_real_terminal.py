@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import locale
 import os
 import re
 import shutil
@@ -60,6 +61,16 @@ class RealTerminalSmoke(unittest.TestCase):
     def assert_usable_terminal(self, text: str) -> None:
         if "could not find terminal" in text or "setupterm" in text:
             self.skipTest("该环境无法初始化 curses（TERM/terminfo 缺失），真终端冒烟跳过")
+        # curses 自己按终端编码输出，不经过 sys.stdout 的 reconfigure：
+        # 在 C/cp1252 locale 下中文本来就画不出来，这是终端限制，不是界面坏了
+        ioenc = (os.environ.get("PYTHONIOENCODING") or "").lower().replace("-", "")
+        c_locale = os.environ.get("LC_ALL") == "C" or os.environ.get("LANG") == "C"
+        preferred = locale.getpreferredencoding(False).lower().replace("-", "")
+        if c_locale or (ioenc and ioenc != "utf8") or preferred != "utf8":
+            self.skipTest(
+                f"当前不是 UTF-8 终端（io={ioenc or '未设'}, C-locale={c_locale}），"
+                "curses 画不了中文——这是终端限制，不是界面坏了"
+            )
         if "retype" not in text:
             self.skipTest(f"pty 里没有捕获到程序输出（环境限制）：{text[:120]!r}")
 

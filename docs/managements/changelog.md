@@ -5,6 +5,23 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — CI 矩阵本地化：入口冒烟改本进程 + cp1252/C-locale 复跑
+
+### 变更
+
+- `test_entry_smoke` 改为**在本进程内**跑入口（`runpy.run_module` + 重定向 stdout/stderr），
+  只对 shell 薄壳用子进程且只看退出码。根因：Windows 上 `subprocess(text=True)` 会把子进程
+  UTF-8 输出按 cp1252 解码，reader 线程异常后 stdout 变空串，于是"程序正常、测试误报"。
+- `check_all` 新增 `--ci-matrix`（全量模式默认包含）：在本地复现两档 CI 条件——
+  ① `IMG_P_TEST_NO_CJK_FONT=1`（无中文字体）；② `PYTHONIOENCODING=cp1252 LC_ALL=C LANG=C`
+  （Windows 控制台 + 最小 locale）。
+- `test_tui_real_terminal` 在非 UTF-8 终端下显式 skip（curses 按终端编码输出，C locale 下
+  画不了中文属终端限制）。
+
+### 验证
+
+- 两档矩阵在本地全绿；`check_all` 现在跑 3 遍用例（常规 / cp1252 矩阵 / 无字体）。
+
 ## 2026-11-18 — 修 windows 冒烟失败 + 新增「跨平台」守护
 
 ### 修复

@@ -106,6 +106,11 @@
   `curses.ACS_*` 为 int、路径长度、平台默认目录、venv 解释器路径。
 - 文本 I/O 一律显式 `encoding="utf-8"`（守卫检查）；`.ps1` 必须 UTF-8 with BOM。
 - Windows 上无法用 `script(1)`：真终端冒烟自动 skip，由 ACS int 模拟 + windows 作业兜底。
+- **本地 CI 矩阵**（`python -m src.python.tools.check_all --ci-matrix`，全量模式默认包含）：
+  ① 无中文字体（`IMG_P_TEST_NO_CJK_FONT=1`）；
+  ② cp1252 控制台 + C locale（`PYTHONIOENCODING=cp1252 LC_ALL=C LANG=C`）——
+  专治"子进程/打印按 cp1252 解码"这类只在 Windows runner 炸的问题。
+  入口冒烟因此改为**本进程内跑**（`runpy` + 重定向），不经子进程管道。
 
 ## 9. 质量报告与产物
 

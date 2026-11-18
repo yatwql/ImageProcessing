@@ -23,14 +23,17 @@ from ._paths import ROOT
 
 POSIX_PATH = re.compile(r'"(/(?:tmp|proc|usr|data|dev)/[^"]*)"')
 SUBprocess_TEXT = re.compile(r"subprocess\.(?:run|Popen|check_output)\(")
-IMPORT_POSIX = re.compile(r"^\s*(?:import (fcntl|pwd|grp|termios|tty)\b|from (fcntl|pwd|grp|termios|tty) import)")
+IMPORT_POSIX = re.compile(
+    r"^\s*(?:import (fcntl|pwd|grp|termios|tty)\b|from (fcntl|pwd|grp|termios|tty) import)"
+)
 SAFE_MARK = "# platform-safe"
-SKIP_MARK = ("skipIf(sys.platform", "skipUnless(sys.platform", 'skipIf(POSIX', "skipUnless(POSIX")
+SKIP_MARK = ("skipIf(sys.platform", "skipUnless(sys.platform", "skipIf(POSIX", "skipUnless(POSIX")
 
 
 def _iter_sources() -> list[Path]:
-    return sorted([*ROOT.joinpath("src/test").rglob("*.py"),
-                   *ROOT.joinpath("src/python").rglob("*.py")])
+    return sorted(
+        [*ROOT.joinpath("src/test").rglob("*.py"), *ROOT.joinpath("src/python").rglob("*.py")]
+    )
 
 
 def _has_platform_guard(lines: list[str]) -> bool:
@@ -49,7 +52,9 @@ def check_file(path: Path) -> list[str]:
             continue
         match = POSIX_PATH.search(line)
         if match and not _has_platform_guard(lines):
-            problems.append(f"{rel}:{lineno} 硬编码 POSIX 路径 {match.group(1)!r}（用 tempfile 或打桩）")
+            problems.append(
+                f"{rel}:{lineno} 硬编码 POSIX 路径 {match.group(1)!r}（用 tempfile 或打桩）"
+            )
         if IMPORT_POSIX.match(line) and not _has_platform_guard(lines):
             problems.append(f"{rel}:{lineno} 直接依赖 POSIX-only 模块（加平台保护或打到 _support）")
 
@@ -57,9 +62,11 @@ def check_file(path: Path) -> list[str]:
     for lineno, line in enumerate(lines, 1):
         if not SUBprocess_TEXT.search(line):
             continue
-        window = " ".join(lines[lineno - 1:lineno + 2])
+        window = " ".join(lines[lineno - 1 : lineno + 2])
         if "text=True" in window and "encoding=" not in window:
-            problems.append(f"{rel}:{lineno} 子进程 text=True 缺 encoding=（Windows 会用 cp1252 解码）")
+            problems.append(
+                f"{rel}:{lineno} 子进程 text=True 缺 encoding=（Windows 会用 cp1252 解码）"
+            )
     return problems
 
 

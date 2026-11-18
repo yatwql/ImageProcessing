@@ -3,7 +3,7 @@
 
     python tools/check_all.py              # 全量（含覆盖率与"无字体"复跑）
     python tools/check_all.py --quick      # 快速：ruff / mypy / guards / perf / 用例
-    python tools/check_all.py --no-font    # 额外跑一遍"机器上没有中文字体"的场景
+    python tools/check_all.py --ci-matrix  # 额外跑"cp1252 控制台 + C locale"（Windows runner 的样子）
     python tools/check_all.py -k mapping   # 其余参数透传给 pytest
 
 顺序是"越快越先"，失败即停：静态检查几十毫秒，用例一分钟。
@@ -42,7 +42,8 @@ def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     quick = "--quick" in args
     no_font = "--no-font" in args
-    extra = [a for a in args if a not in ("--quick", "--no-font")]
+    matrix = "--ci-matrix" in args
+    extra = [a for a in args if a not in ("--quick", "--no-font", "--ci-matrix")]
 
     steps: list[tuple[str, list[str], dict[str, str] | None]] = [
         ("ruff", [PY, "-m", "ruff", "check", "src/"], None),
@@ -94,6 +95,18 @@ def main(argv: list[str] | None = None) -> int:
 
     for name, cmd, env in steps:
         if not run(name, cmd, env=env):
+            return 1
+
+    # CI 环境矩阵：把"只有 runner 上才有"的条件在本机复现一次。
+    # ① 没有中文字体（Windows runner / 精简镜像）
+    # ② 非 UTF-8 控制台 + C locale（Windows cp1252、POSIX 最小镜像）——
+    #    这一档专治"子进程/打印按 cp1252 解码"这类只在 CI 炸的问题
+    if matrix or not quick:
+        if not run(
+            "pytest（CI 矩阵：cp1252 控制台 + C locale）",
+            [PY, "-m", "pytest", "src/test", "-q", "--no-header"],
+            env={"PYTHONIOENCODING": "cp1252", "LC_ALL": "C", "LANG": "C"},
+        ):
             return 1
 
     # "机器上没有中文字体"是 CI 上最容易漏的一档（Windows runner 就是这种环境）

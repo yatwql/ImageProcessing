@@ -403,7 +403,10 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 属性测试：`src/test/core/test_properties.py`（hypothesis）验证 `norm_map` 下标可回溯、
   `cut/pad` 不超预算、`parse_color` 只有两种结果、`unique_path` 不吞扩展名、`plan_jobs` 的 span 精准。
 - 覆盖率门禁：`src/python/tools/check_coverage.py` 校验总量 96%、16 个高风险模块 80~90%、skip ≤15%。
-- 入口冒烟：`src/test/cli/test_entry_smoke.py` 逐个跑 `--version/--help` 与 `launch` 的错误码。
+- 入口冒烟：`src/test/cli/test_entry_smoke.py` 用 `runpy` **在本进程内**跑每个入口
+  （`--version/--help/launch` 的退出码与帮助文本），不走子进程管道——避免 Windows
+  上 cp1252 解码把 stdout 变成空串，从而把"程序坏了"和"测试读不到输出"混为一谈。
+- CI 矩阵本地复现：`check_all --ci-matrix` 跑"cp1252 控制台 + C locale"与"无中文字体"两档。
 - 变异测试（opt-in）：`src/python/tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
 - 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），
   `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` 可在本地模拟"无中文字体"的机器。

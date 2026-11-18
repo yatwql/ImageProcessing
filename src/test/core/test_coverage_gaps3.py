@@ -396,16 +396,21 @@ class FinalGaps3(TuiTestCase):
     """收尾（二）：平台分支、空窗口、右对齐、错误的 cur、ESC 取消等。"""
 
     def test_unlock_windows_branch(self):
-        fake_win = mock.Mock(LK_UNLCK=1)
-        with mock.patch.object(audit, "fcntl", None), \
-                mock.patch.object(audit, "_winlock", return_value=fake_win):
-            audit._unlock(3, locked=True)
+        # 用真实临时文件描述符：git 钩子里 fd 3 是 git 自己的管道，
+        # lseek 会失败，测试会误红（这类"写死 fd"的用例本身就是隐患）
+        with tempfile.TemporaryFile() as handle:
+            fd = handle.fileno()
+            fake_win = mock.Mock(LK_UNLCK=1)
+            with mock.patch.object(audit, "fcntl", None), \
+                    mock.patch.object(audit, "_winlock", return_value=fake_win):
+                audit._unlock(fd, locked=True)
         fake_win.locking.assert_called_once()
 
     def test_unlock_windows_branch_without_msvcrt(self):
-        with mock.patch.object(audit, "fcntl", None), \
+        with tempfile.TemporaryFile() as handle, \
+                mock.patch.object(audit, "fcntl", None), \
                 mock.patch.object(audit, "_winlock", return_value=None):
-            audit._unlock(3, locked=True)      # 直接返回即可
+            audit._unlock(handle.fileno(), locked=True)      # 直接返回即可
 
     def test_image_window_with_zero_rows(self):
         app = self.make_app(count=2)
@@ -531,8 +536,9 @@ class FinalGaps4(TuiTestCase):
         self.assertIn(code, (0, 3), "预演不写盘，两个同名源图应各自算出不重复的目标名")
 
     def test_unlock_swallows_oserror(self):
-        with mock.patch.object(audit.fcntl, "flock", side_effect=OSError("boom")):
-            audit._unlock(3, locked=True)          # 不抛即通过
+        with tempfile.TemporaryFile() as handle, \
+                mock.patch.object(audit.fcntl, "flock", side_effect=OSError("boom")):
+            audit._unlock(handle.fileno(), locked=True)          # 不抛即通过
 
     def test_font_discovery_falls_back_to_directory_walk(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -611,7 +617,8 @@ class FinalGaps5(TuiTestCase):
         self.assertIn("没有成功的替换", err.getvalue())
 
     def test_unlock_without_lock_is_a_noop(self):
-        audit._unlock(3, locked=False)
+        with tempfile.TemporaryFile() as handle:
+            audit._unlock(handle.fileno(), locked=False)
 
     def test_font_face_repr_contains_name_and_path(self):
         if not has_cjk_font():
@@ -675,10 +682,11 @@ class FinalGaps6(TuiTestCase):
         self.assertIn("跳过", err.getvalue())
 
     def test_lock_uses_msvcrt_when_fcntl_is_missing(self):
-        fake_win = mock.Mock(LK_LOCK=1)
-        with mock.patch.object(audit, "fcntl", None), \
-                mock.patch.object(audit, "_winlock", return_value=fake_win):
-            self.assertTrue(audit._lock(3))
+        with tempfile.TemporaryFile() as handle:
+            fake_win = mock.Mock(LK_LOCK=1)
+            with mock.patch.object(audit, "fcntl", None), \
+                    mock.patch.object(audit, "_winlock", return_value=fake_win):
+                self.assertTrue(audit._lock(handle.fileno()))
         fake_win.locking.assert_called_once()
 
     def test_run_helper_returns_empty_when_command_missing(self):

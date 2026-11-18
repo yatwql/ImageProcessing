@@ -20,7 +20,9 @@ class PerfLimits(unittest.TestCase):
     def test_windows_scales_only_disk_step_and_total(self):
         limits, total = check_perf.limits_for(True)
         factor = check_perf.WINDOWS_SCALE["日志追加×300"]
-        self.assertEqual(limits["日志追加×300"], round(check_perf.LIMITS["日志追加×300"] * factor, 2))
+        self.assertEqual(
+            limits["日志追加×300"], round(check_perf.LIMITS["日志追加×300"] * factor, 2)
+        )
         for name in ("soft_iou×50", "erase(2000×1500)", "PNG 读写(2000×1500)"):
             self.assertEqual(limits[name], check_perf.LIMITS[name], f"{name} 不该被放大")
         self.assertGreater(total, check_perf.TOTAL_LIMIT)

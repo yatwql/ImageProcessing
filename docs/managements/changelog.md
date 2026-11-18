@@ -91,6 +91,12 @@
   [`archived_review-findings.0.2.x.md`](../archive/v0.2.x/archived_review-findings.0.2.x.md)、
   [`archived_changelog.0.2.x.md`](../archive/v0.2.x/archived_changelog.0.2.x.md)。
 
+### 已知问题（已在 v0.3-dev 修复，发布说明同步）
+
+`v0.2` 标签对应的 CI 运行里 `windows` 作业为红，根因是 5 处 Windows 专属差异（用例假设本机事实、
+`fcntl`/`os.mkfifo` 在 win32 typeshed 缺失、工具缺 stdio 编码、`check_workflows` 直接 `bash -n`、
+耗时守卫未按平台分档），不影响产物与功能；修复记录见 `review-findings.md` RF-140~RF-153。
+
 ### 已知限制
 
 - 竖排/旋转文字不识别（`PLAN-12` 待办，随 v0.3 排期）；`--area` 里原文未被 OCR 认全时字体匹配会退回默认字体。

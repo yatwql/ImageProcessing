@@ -5,6 +5,55 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-17 — 启动脚本自动准备环境
+
+### 新增
+
+- `src/python/launch.py`：统一启动器。`scripts/*` 先用系统 Python 调它，它探测 `.venv` 与
+  关键依赖（PIL / numpy / cv2，跑测试时还要 pytest），缺则按 `constraints.txt` 自动安装，
+  然后 `os.execv` 到 venv 里的真实入口。
+- `bootstrap.py`：新增 `missing_modules()` / `ensure_dependencies()` / `--check`（只探测不改环境）。
+- `src/test/cli/test_launch_env.py`：12 个用例固定渠道分派、自动安装开关、依赖探测与 `--check`。
+
+### 变更
+
+- 四个启动脚本不再要求"先跑 setup"：`cli` / `tui` / `test` / `log-query` 一律经 `launch`，
+  首次运行自动装依赖并打印「首次运行，正在准备环境…」。
+- `IMG_P_NO_AUTO_SETUP=1` 关闭自动安装：只提示缺什么，不改动环境（CI、离线、想手动控制时用）。
+
+### 验证
+
+- `./scripts/cli.sh --version`、`./scripts/log-query.py` 直接可用（未先跑 setup）；
+  `ruff` 零告警、`mypy` 零错误、`check_guards.py` 10/10、`pytest` 全绿。
+
+## 2026-11-17 — 目录归位：scripts 只留薄壳
+
+### 变更
+
+- `tools/`（新增）：`check_guards.py`（原 `scripts/check-guards.py`）、`check_perf.py`
+  （原 `scripts/check-perf.py`）、`run_tests.py`（从 `scripts/test.sh` 抽出的编排逻辑）。
+- `src/python/cli/log_query.py`（新增）：日志查询实现，`scripts/log-query.py` 变薄壳。
+- `src/python/bootstrap.py`（新增）：环境引导（建 venv、按 constraints 装依赖、写默认配置），
+  只用标准库，可被系统 Python 直接调用。
+- `scripts/{setup,test}.sh`、`scripts/{setup,test}.ps1`：132/149/44/68 行 → 13/29/14/26 行，
+  只负责找解释器与转交。
+- `tools/check_guards.py` 新增第 10 项「scripts 薄壳」：单文件 >40 行即红。
+- `pyproject.toml` 的 mypy 覆盖范围加上 `tools`。
+
+### 验证
+
+- `ruff` 零告警、`mypy` 75 文件零错误、`check_guards.py` 10/10、`run_tests.py` 与两个薄壳
+  入口手工跑通（`./scripts/test.sh --fast -k test_version_display` → 8 passed + 摘要）。
+
+## 2026-11-17 — Windows 脚本乱码修复
+
+### 变更
+
+- `scripts/{cli,setup,test,tui}.ps1` 全部改为 UTF-8 with BOM：PowerShell 5.1 对无 BOM 文件按
+  ANSI 解码，中文提示会显示成「缂哄皯杩愯鐜」这类乱码。
+- `tools/check_guards.py` 新增第 9 项「PS 编码」。
+- 手册补「Windows 注意事项」：先跑 `setup.ps1`、BOM 要求、`windows-curses` 由平台标记安装。
+
 ## 2026-11-17 — 依赖锁定、单图内中断、交互用例补齐
 
 ### 新增
@@ -12,7 +61,7 @@
 - `constraints.txt`：精确固定直接与传递依赖；`setup.sh` / `setup.ps1` / CI 全部改用
   `pip install -c constraints.txt`，升级路径写进文件头注释。
 - `core.replace_image(should_stop=...)`：每处理一块之前询问回调，停手时保留已完成块。
-- `scripts/check-guards.py` 第 8 项：依赖锁（全部 `==` 且覆盖 pyproject 的直接依赖）。
+- `tools/check_guards.py` 第 8 项：依赖锁（全部 `==` 且覆盖 pyproject 的直接依赖）。
 - `src/test/tui/test_key_dispatch.py`：主界面 / 全局映射 / 样式选项三块面板的逐键用例 +
   批量中断；`src/test/core/test_cancel_pipeline.py`：核心层中断语义。
 
@@ -38,7 +87,7 @@
 - TUI：进 curses 前打印同一行；标题栏显示 `文字替换 v0.1`，帮助页首行带版本。
 - 写盘日志：每条记录新增 `app_version` 字段。
 - 8 份文档（README、CLAUDE.md、三份管理文档、手册）开头统一 `> 版本：v0.1`。
-- `scripts/check-guards.py` 新增第 7 项：版本一致性（version.py / pyproject / 文档）。
+- `tools/check_guards.py` 新增第 7 项：版本一致性（version.py / pyproject / 文档）。
 - `src/test/core/test_version_display.py`：8 个用例固定上述链路。
 
 ### 变更
@@ -49,7 +98,7 @@
 ### 验证
 
 - `ruff check src/ scripts/` 零告警；`python -m mypy` 全树 71 文件零错误；
-  `scripts/check-guards.py` 7/7；`pytest src/test -q` 全绿（含新增版本用例）。
+  `tools/check_guards.py` 7/7；`pytest src/test -q` 全绿（含新增版本用例）。
 
 ## 2026-11-10 — 工程化整改（配置/CI/门禁/分层/画质/可观测）
 
@@ -59,7 +108,7 @@
   `requirements.txt` / `requirements-dev.txt` 改为 `-e .` / `-e .[dev]`。
 - `.github/workflows/ci.yml`：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf。
 - `.githooks/pre-commit` + `install-hooks.sh`：提交前 ruff → guards → 全量用例。
-- `scripts/check-guards.py`（编号/分层/文件长度/显式编码/测试目录/空包）、`scripts/check-perf.py`（四步热路径）、
+- `tools/check_guards.py`（编号/分层/文件长度/显式编码/测试目录/空包）、`tools/check_perf.py`（四步热路径）、
   `scripts/log-query.py`（按原图/日期/渠道查写盘记录，支持 `--json`）。
 - `core.audit.read_entries/summarize`（坏行跳过）、`record_write(when=)` 显式时间。
 - `core.edit.inpaint_radius` 与常量 `INPAINT_RADIUS_MIN/MAX/STROKE_FACTOR`（4 / 14 / 0.75）。
@@ -75,8 +124,8 @@
 
 ### 验证
 
-- `ruff check src/ scripts/` 零告警；`python -m mypy` 零错误；`scripts/check-guards.py` 6/6；
-  `scripts/check-perf.py` 合计约 0.6s（上限 6s）；`pytest src/test -q` 全绿。
+- `ruff check src/ scripts/` 零告警；`python -m mypy` 零错误；`tools/check_guards.py` 6/6；
+  `tools/check_perf.py` 合计约 0.6s（上限 6s）；`pytest src/test -q` 全绿。
 
 ## 2026-11-10 — 配置、临时目录与仓库清理
 

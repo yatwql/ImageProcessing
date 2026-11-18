@@ -1,30 +1,23 @@
 #!/usr/bin/env bash
-# 交互界面入口：不给参数时默认读 data/，结果默认写 data/output/
-#   ./scripts/tui.sh
-#   ./scripts/tui.sh data
-#   ./scripts/tui.sh data -m map.json
+# 交互界面入口。逻辑在 src/python；这里只做终端检查与转交。
+# 首次运行会自动准备环境（缺依赖时安装；设 IMG_P_NO_AUTO_SETUP=1 可关掉自动安装）。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PY=".venv/bin/python"
-if [ ! -x "$PY" ]; then
-  echo "缺少运行环境，请先执行 ./setup.sh" >&2
+PY=$(command -v python3 || command -v python) || {
+  echo "找不到 Python，请先安装 Python 3.10+ 并加入 PATH" >&2
   exit 1
-fi
-
+}
 for a in "$@"; do
   case "$a" in
-    -h|--help) exec "$PY" -m src.python.tui --help ;;
+    -h|--help) exec "$PY" -m src.python.launch tui --help ;;
   esac
 done
-
 if [ ! -t 0 ] || [ ! -t 1 ]; then
   echo "tui 需要真终端（交互界面），批处理请用 ./scripts/cli.sh" >&2
   exit 1
 fi
-
 if [ $# -eq 0 ]; then
-  exec "$PY" -m src.python.tui data
+  exec "$PY" -m src.python.launch tui data
 fi
-
-exec "$PY" -m src.python.tui "$@"
+exec "$PY" -m src.python.launch tui "$@"

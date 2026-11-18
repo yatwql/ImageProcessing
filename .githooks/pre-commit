@@ -28,7 +28,7 @@ echo "[pre-commit] ruff"
 "$PY" -m ruff check src/ scripts/ >/dev/null
 
 echo "[pre-commit] guards"
-"$PY" scripts/check-guards.py --ci
+"$PY" tools/check_guards.py --ci
 
 case "$STAGED" in
   *.py*|*pyproject.toml*)

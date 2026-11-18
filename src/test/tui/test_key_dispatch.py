@@ -60,7 +60,7 @@ class MainPanelKeys(TuiTestCase):
         self.assertFalse(self.app.quit)
 
     def test_navigation_keys_move_the_selection(self):
-        first = self.app.sel_row                       # 初始停在第一张图上
+        first = self.app.sel_row  # 初始停在第一张图上
         self.press("j")
         self.assertEqual(self.app.sel_row, first + 1)
         self.press("k")
@@ -71,7 +71,7 @@ class MainPanelKeys(TuiTestCase):
         self.assertEqual(self.app.sel_row, 0, "g 应回到首行（父目录行）")
 
     def test_digit_selects_an_image(self):
-        self.app.img_rows = 10                   # 数字跳图只看当前可见窗口
+        self.app.img_rows = 10  # 数字跳图只看当前可见窗口
         self.press("2")
         self.assertIn("第 2 张", self.app.message)
 
@@ -126,7 +126,7 @@ class MainPanelKeys(TuiTestCase):
     def test_help_panel_opens_and_closes(self):
         self.press("?")
         self.assertEqual(self.app.panel, "help")
-        self.press("x")                                  # 帮助面板任意键返回
+        self.press("x")  # 帮助面板任意键返回
         self.assertEqual(self.app.panel, "main")
 
     @unittest.skipUnless(ocr_available(), "需要可用的 OCR 依赖（onnxruntime）")
@@ -232,7 +232,7 @@ class SettingsPanelKeys(TuiTestCase):
         self.assertEqual(self.app.sel_setting, 0, "已在首行，不能越界")
 
     def test_enter_sets_a_value(self):
-        self.app.sel_setting = 1                      # 字号
+        self.app.sel_setting = 1  # 字号
         self.win.keys.extend(list("28") + ["\n"])
         self.press("\n")
         self.assertEqual(self.app.opts.size, 28)

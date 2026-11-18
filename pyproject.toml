@@ -56,7 +56,7 @@ known-first-party = ["src"]
 # 全绿才允许合入，避免"只有核心层被守"的假安全感。
 [tool.mypy]
 python_version = "3.10"
-files = ["src", "scripts"]
+files = ["src", "scripts", "tools"]
 ignore_missing_imports = true
 disallow_untyped_defs = true
 no_implicit_optional = true

@@ -8,15 +8,17 @@ PNG 文字替换：把图片里指定的一些字换成别的字，其余文字�
 新文字自动沿用原文字的字体、字号、字重、字色、字距与位置，原图永不覆盖。
 
 ```text
-scripts/                 启动脚本（cli/tui/setup/test 的 .sh 与 .ps1）+
-                         工程守护（check-guards.py / check-perf.py / log-query.py）
+scripts/                 只放薄壳启动脚本（.sh/.ps1 + log-query.py 壳；超 40 行守护会拦）
+tools/                   工程工具：check_guards.py / check_perf.py / run_tests.py
 .githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
 .github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf
 pyproject.toml           单一配置源：依赖、可选依赖 dev、ruff、mypy、pytest、coverage
 src/python/              程序代码
   config.py              路径约定（data/ 输入、data/output 输出）
+  bootstrap.py           环境引导（建 venv、装依赖、写配置、--check 探测缺什么）
+  launch.py              统一启动器：缺环境先自动装，再 exec 到真正入口
   core/                  核心层：OCR / 版式分析 / 字体匹配 / 擦除重绘 / 写盘审计
-  cli/                   命令行渠道（参数、批量流程、输出汇总）
+  cli/                   命令行渠道（main=替换流程，log_query=日志查询）
   tui/                   交互渠道：app.py 状态；ui.py 入口；
                          ui_base/ui_draw/ui_input/ui_actions 分层
 src/test/                测试用例
@@ -32,7 +34,10 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 - **一律使用项目虚拟环境解释器**：`.venv/bin/python`。**禁止**裸 `python` / `python3` / `pytest`
   （会命中系统解释器，缺 Pillow / numpy / cv2 / rapidocr，报 `ModuleNotFoundError`）。
-- 首次准备：`./scripts/setup.sh`；开发依赖：`.venv/bin/python -m pip install -e ".[dev]"`。
+- 首次准备：**不用手动跑**——任一启动脚本（`cli.sh` / `tui.sh` / `test.sh`）发现缺 `.venv`
+  或关键依赖时会自动装（`src/python/launch.py` → `bootstrap.py`）；想手动或离线装依赖时
+  `./scripts/setup.sh [--dev]`（= `python -m src.python.bootstrap`），设 `IMG_P_NO_AUTO_SETUP=1`
+  可关掉自动安装。
 - 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳；
   版本组合由 `constraints.txt` 锁定，安装与 CI 都要带 `-c constraints.txt`。
 - 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`），`IMG_P_SKIP_HOOK=1` 临时跳过。
@@ -44,8 +49,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 ```bash
 .venv/bin/ruff check src/ scripts/                                 # 静态检查
 .venv/bin/python -m mypy                                              # 类型检查（守 core）
-.venv/bin/python scripts/check-guards.py                              # 编号/分层/长度/编码/测试目录
-.venv/bin/python scripts/check-perf.py                                # 耗时守卫
+.venv/bin/python tools/check_guards.py                              # 编号/分层/长度/编码/测试目录
+.venv/bin/python tools/check_perf.py                                # 耗时守卫
 .venv/bin/python scripts/log-query.py --src 报告                        # 查写盘记录
 .venv/bin/python -m pytest src/test -q                                # 全部用例
 ./scripts/test.sh                                                     # 全量用例 + 报告
@@ -83,7 +88,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
      匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
   2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程与中断；
   3. **稳定**（跨档）：错误契约、幂等重跑、输出覆盖保护、缓存失效、异常不外溢。
-- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`check-guards.py` 八项全过、
+- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`tools/check_guards.py` 十项全过、
   `check-perf.py` 不超阈值、覆盖率不低于 `pyproject.toml` 的 `fail_under`。
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。
@@ -115,6 +120,9 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 字体池缓存在 `~/.cache/img-p/fonts.json`（按字体文件签名失效）；验证「首次构建」路径要先删缓存。
 - TUI 在手机/窄终端：宽度 < 60 列自动单栏；`Esc` 只返回不退出（退出用 `q`）；
   方向键原始转义序列由 `read_key()` 自己解析。
+- **`scripts/*.ps1` 必须存成 UTF-8 with BOM**：Windows PowerShell 5.1 读无 BOM 的脚本按 ANSI
+  （GBK）解释，文件里的中文提示会变成「缂哄皯杩愯鐜」这类乱码，用户完全看不懂；
+  `check-guards.py` 的「PS 编码」会拦。
 - 纯数字块容易被斜体字体凑上，`analyze` 会估倾斜并在正体时剔除 italic 候选。
 - 输出重名会自动编号，所以「同一个命令跑两次」会产生 `-1`/`-2` 文件，这是预期行为。
 

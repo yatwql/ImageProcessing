@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """工程守护：把 `CLAUDE.md` 里的硬性约束变成可执行检查。
 
-    python scripts/check-guards.py            # 人读
-    python scripts/check-guards.py --ci       # 只输出一行一结论，任一不过即退出码 1
+    python tools/check_guards.py            # 人读
+    python tools/check_guards.py --ci       # 只输出一行一结论，任一不过即退出码 1
 
 覆盖项：
   编号      plan.md 用 `PLAN-x`（连续、唯一），review-findings.md 用 `RF-x`（唯一），无旧前缀
@@ -12,6 +12,8 @@
   用例目录  `src/test` 下不得留只有 `__init__.py` 的空包，且目录要出现在 technical.md
   版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
+  PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
+  scripts   `scripts/` 只放薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from __future__ import annotations
 import ast
 import re
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import tomllib
@@ -51,7 +54,10 @@ def check_plan_ids() -> list[str]:
         if not rid.startswith("PLAN-"):
             bad.append(rid)
             continue
-        nums.append(int(rid.split("-")[1]))
+        try:
+            nums.append(int(rid.split("-")[1]))
+        except (IndexError, ValueError):
+            bad.append(rid)
     if bad:
         return [f"plan.md 出现非 PLAN- 编号：{', '.join(sorted(set(bad))[:5])}"]
     if sorted(nums) != list(range(1, len(nums) + 1)):
@@ -202,7 +208,7 @@ def check_constraints() -> list[str]:
     for spec in data.get("project", {}).get("dependencies", []):
         name = _dep_name(spec)
         if name == "windows-curses" and sys.platform != "win32":
-            continue                      # 平台条件依赖，非 Windows 上装不到也锁不到
+            continue  # 平台条件依赖，非 Windows 上装不到也锁不到
         if name not in pinned:
             problems.append(f"constraints.txt 缺少直接依赖 {name}")
     return problems
@@ -226,7 +232,7 @@ def current_version() -> str:
     text = _read(SRC / "python" / "version.py")
     m = re.search(r'^VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
     if not m:
-        raise ValueError("src/python/version.py 里没有 VERSION = \"...\"")
+        raise ValueError('src/python/version.py 里没有 VERSION = "..."')
     return m.group(1)
 
 
@@ -250,6 +256,40 @@ def check_version_consistency() -> list[str]:
     return problems
 
 
+def check_windows_scripts() -> list[str]:
+    """Windows 脚本必须 UTF-8 with BOM：PowerShell 5.1 读无 BOM 文件按 ANSI 解释，
+    中文提示会变成"缂哄皯杩愯鐜"这类乱码（用户看到的报错完全读不懂）。
+    """
+    problems = []
+    for path in sorted((ROOT / "scripts").glob("*.ps1")):
+        raw = path.read_bytes()
+        if not raw.startswith(b"\xef\xbb\xbf"):
+            problems.append(f"{path.relative_to(ROOT)} 缺少 UTF-8 BOM（PS 5.1 下中文会乱码）")
+    return problems
+
+
+LAUNCHER_MAX_LINES = 40
+
+
+def check_scripts_are_launchers() -> list[str]:
+    """`scripts/` 只放启动脚本：业务逻辑进 `src/python`，工程工具进 `tools/`。
+
+    判断标准是"薄"：单个脚本不超过 40 行。超过说明逻辑堆在这里了，
+    要么挪进 `src/python/<渠道>`，要么挪进 `tools/`。
+    """
+    problems = []
+    for path in sorted((ROOT / "scripts").iterdir()):
+        if not path.is_file() or path.suffix not in (".sh", ".ps1", ".py"):
+            continue
+        n = len(path.read_text(encoding="utf-8").splitlines())
+        if n > LAUNCHER_MAX_LINES:
+            problems.append(
+                f"{path.relative_to(ROOT)} 有 {n} 行（上限 {LAUNCHER_MAX_LINES}）："
+                "scripts/ 只放启动脚本，逻辑请移到 src/python 或 tools/"
+            )
+    return problems
+
+
 CHECKS = [
     ("编号-plan", check_plan_ids),
     ("编号-review", check_rf_ids),
@@ -259,11 +299,14 @@ CHECKS = [
     ("测试目录", check_test_layout),
     ("版本号", check_version_consistency),
     ("依赖锁", check_constraints),
+    ("PS 编码", check_windows_scripts),
+    ("scripts 薄壳", check_scripts_are_launchers),
 ]
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = list(sys.argv[1:] if argv is None else argv)
+def main(argv: Sequence[str] = ()) -> int:
+    # 空序列表示"没传参"，避免 `x is None` 形式的静态规则噪音
+    args = list(argv) if argv else sys.argv[1:]
     quiet = "--ci" in args
     failed = 0
     for name, fn in CHECKS:

@@ -38,14 +38,18 @@ class ReplacementCancel(unittest.TestCase):
         self.rgb = np.full((200, 320, 3), 255, np.uint8)
         self.jobs = [Job((10, 20 + i * 30, 200, 24), "原文", f"新文{i}") for i in range(3)]
         self.opts = Options(quiet=True)
-        self.opts.font = FONT_CJK          # 固定字体：不依赖系统字体池的排序
+        self.opts.font = FONT_CJK  # 固定字体：不依赖系统字体池的排序
         self._orig_analyze = edit.analyze
         edit.analyze = lambda *_a, **_k: dict(fake_info())
         self.addCleanup(lambda: setattr(edit, "analyze", self._orig_analyze))
 
     def run_replace(self, should_stop=None):
         return edit.replace_image(
-            self.rgb, None, self.jobs, self.opts, [],
+            self.rgb,
+            None,
+            self.jobs,
+            self.opts,
+            [],
             should_stop=should_stop,
         )
 
@@ -58,7 +62,7 @@ class ReplacementCancel(unittest.TestCase):
 
         def stop_after_first() -> bool:
             calls["n"] += 1
-            return calls["n"] > 1          # 第一块放行，第二块之前叫停
+            return calls["n"] > 1  # 第一块放行，第二块之前叫停
 
         _out, _alpha, report = self.run_replace(should_stop=stop_after_first)
         self.assertEqual(len(report), 1)

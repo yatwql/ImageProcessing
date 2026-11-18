@@ -76,7 +76,7 @@
 | RF-40 | 工程缺口 | 无 `pyproject.toml`：依赖在两份 requirements、ruff/pytest 参数散在脚本里，`pip install -e .` 不可用 | 建 `pyproject.toml` 作为单一配置源（依赖 + `dev` extra + ruff/mypy/pytest/coverage），requirements 退化为 `-e .` / `-e .[dev]` | 已修 |
 | RF-41 | 工程缺口 | 无 CI：本地全绿靠自觉，格式/类型/文档漂移无人拦 | 新增 `.github/workflows/ci.yml` 五个作业（test/lint/typecheck/guards/perf） | 已修 |
 | RF-42 | 工程缺口 | 无提交前门禁 | `.githooks/pre-commit` + `install-hooks.sh`（`core.hooksPath`，不动 `.git/hooks`） | 已修 |
-| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `scripts/check-guards.py` 六项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
+| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `tools/check_guards.py` 六项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
 | RF-44 | 质量缺口 | 无类型检查、无覆盖率门禁 | `mypy` 守 `core`（28 处历史 error 全部修掉：补注解、`rendered` 可空标注、dtype 标注）；`fail_under = 75` | 已修 |
 | RF-45 | 类型桩冲突 | numpy 2.5 的桩要求 `ndarray.min()/max()` 显式给 axis，`int(arr.min())` 被判成无匹配重载 | 改成内建 `min()/max()`（坐标数组很小，取值方式不影响耗时），不再依赖 `disable_error_code` 兜底 | 已修 |
 | RF-46 | 测试结构 | `src/test/image_processing/**` 与 `src/test/core/**` 两套命名并存，`image_processing/degrade/` 是空包，文档只写了 core/tui/cli | 七个测试子目录并入 `src/test/core/**`，删空包，`technical.md`/`CLAUDE.md` 同步 | 已修 |
@@ -103,8 +103,28 @@
 | RF-57 | 交互缺陷 | 批量取消只在两张图之间生效：单张图里 OCR + 字体匹配最慢的几秒按 Esc 完全没反应 | `replace_image(should_stop=)` 每块之前询问回调，`App.apply_one` 传入 `self.cancel`；取消时返回「已取消」并保留已完成块 | 已修 |
 | RF-58 | 测试覆盖 | `ui_actions.py` 55%、`ui.py` 64%、`app.py` 78%：交互路径最可能坏却测最少 | 新增 `test_key_dispatch.py`（三块面板逐键）+ `test_cancel_pipeline.py`（核心中断）+ CLI 契约用例；总覆盖率 80% → 84% | 已修 |
 
+## 2026-11-17 Windows 脚本乱码
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-59 | 平台缺陷 | `.ps1` 存成 UTF-8 无 BOM，Windows PowerShell 5.1 按 ANSI(GBK) 解析，中文提示变成「缂哄皯杩愯鐜」这类乱码，用户看不懂报错 | 四个脚本一律改 UTF-8 with BOM；`check-guards.py` 新增「PS 编码」（第 9 项）拦截回退；手册补 Windows 注意事项 | 已修 |
+
+## 2026-11-17 目录归位
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-60 | 结构偏离 | `scripts/` 写着"只放启动脚本"，却堆了 515 行程序代码（check-guards 309、check-perf 124、log-query 82），且 setup/test 两端各有一份 130+ 行的编排脚本 | 工程工具移到 `tools/`（check_guards.py / check_perf.py / run_tests.py），日志查询实现进 `src/python/cli/log_query.py`，环境引导进 `src/python/bootstrap.py`；四个 .sh/.ps1 全部变薄壳（13~29 行） | 已修 |
+| RF-61 | 守护缺口 | "scripts 只放启动脚本"没有检查，所以能一路堆到 515 行 | `check_guards.py` 新增第 10 项「scripts 薄壳」（单文件 ≤40 行），超出即红 | 已修 |
+
+## 2026-11-17 首次运行不再需要手动 setup
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-62 | 上手成本 | 直接跑 `tui.ps1` 只会得到「缺少运行环境，请先执行 setup.ps1」（还因编码问题显示成乱码），用户必须读懂并照着做一遍 | 新增 `src/python/launch.py`：所有启动脚本先经它探测 `.venv` 与关键依赖，缺则自动建 venv + 按 constraints 装依赖，再 `execv` 到真实入口；`IMG_P_NO_AUTO_SETUP=1` 保留手动/离线路径 | 已修 |
+| RF-63 | 静默风险 | 自动安装若无声进行，用户会以为程序卡住 | 安装前固定提示「首次运行，正在准备环境（装依赖，可能需要一两分钟）…」；`--check` 只探测不改环境 | 已修 |
+
 ## 已验证项
 
-- `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`scripts/check-guards.py`：6/6 通过。
+- `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。
 - `pytest src/test -q`：全绿（用例数随迭代增长）。
 - 冗余/无效用例复查：全用例均含断言；无重复用例名；无法满足的断言仅 RF-15 一处，已改正。

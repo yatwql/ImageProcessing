@@ -30,25 +30,34 @@ scripts/tui.sh ──► src/python/tui ──┘
 ## 1.1 目录结构
 
 ```text
-scripts/                     启动脚本 + 工程守护，不放业务代码
+scripts/                     只放薄壳启动脚本（逻辑在 src/python 或 tools/，守护会拦超 40 行）
   cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
   tui.sh / tui.ps1           交互入口      → python -m src.python.tui
-  setup.sh / setup.ps1       建 .venv 并安装依赖（ps1 支持 -Dev 装测试依赖）
-  test.sh / test.ps1         全量用例 + 报告（ps1 支持 -Fast）
-  check-guards.py            工程守护：编号/分层/文件长度/显式编码/测试目录
-  check-perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
-  log-query.py               日志查询：按原图/日期/渠道过滤并汇总
+  setup.sh / setup.ps1       环境引导      → python -m src.python.bootstrap（ps1 支持 -Dev）
+  test.sh / test.ps1         测试 + 报告   → tools/run_tests.py（ps1 支持 -Fast）
+  log-query.py               日志查询      → python -m src.python.cli.log_query
+tools/                       工程工具（不进运行时包）
+  check_guards.py            工程守护（10 项）
+  check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
+  run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
   pre-commit                 提交前：ruff + guards + 全量用例
   install-hooks.sh           启用 / --off 关闭
 .github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf
 pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
 constraints.txt              锁定的依赖组合（pip -c 使用；升级须跑全量用例）
+
+启动链路（cli.sh / tui.ps1 等都一样）：
+  系统 python -m src.python.launch <渠道> → 探测 .venv 与关键依赖（PIL/numpy/cv2[/pytest]）
+  → 缺则自动建 venv 并按 constraints 装依赖 → os.execv 到 venv python 的真实入口。
+  `IMG_P_NO_AUTO_SETUP=1` 关闭自动安装（CI/离线/想手动控制时用），只提示不改环境。
 src/
   python/                    程序代码
     config.py                路径约定 + /data/config/img-p.json 配置读取
+    bootstrap.py             环境引导（建 venv、按 constraints 装依赖、写默认配置、--check 探测）
+    launch.py                统一启动器：缺环境先自动装，再 exec 到真正的入口
     core/                    核心层（CLI 与 TUI 共用）
-    cli/                     命令行渠道
+    cli/                     命令行渠道（main.py=替换流程，log_query.py=日志查询）
     tui/                     交互渠道
       app.py                 会话状态与动作（不碰 curses）
       ui.py                  入口：启动参数、主循环、窗口初始化（门面）
@@ -79,6 +88,8 @@ src/
 | `src/python/core/image.py` | 读写、元数据与目标占名 | `load_image` `load_meta` `save_image` `reserve_path` `unique_path` `same_file` `IMG_EXTS` |
 | `src/python/core/options.py` | 运行选项、字色解析、警告出口 | `Options` `parse_color` `warn` |
 | `src/python/cli/main.py` | 参数、两遍流程、批量汇总 | `main` `build_parser` `load_mapping` |
+| `src/python/cli/log_query.py` | 日志查询渠道（过滤 + 汇总 + 排版） | `main` `build_parser` |
+| `src/python/bootstrap.py` | 环境引导（只用标准库） | `main` `ensure_venv` `write_config` |
 | `src/python/tui/app.py` | 会话状态、动作、缓存 | `App` `Block` `ImageItem` |
 | `src/python/tui/ui.py` | 入口：启动参数、主循环、窗口初始化 | `loop` `main` `parse_args` |
 | `src/python/tui/ui_base.py` | 文案、宽字符处理、颜色与落字 | `USAGE` `HELP` `dwidth` `cut` `pad` `init_colors` `attr` `put` |
@@ -311,7 +322,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 已做的优化：`soft_iou` 的模糊从“每个平移位置一次”提到“每张掩码一次”（字体匹配 0.78s → 0.50s/块）；
 字体池落盘缓存；`fit_font` 先按宽度比例剪枝再加权打分。
 
-性能门禁（`scripts/check-perf.py`，CI 的 `perf` 作业）在合成数据上钉住四步热路径，
+性能门禁（`tools/check_perf.py`，CI 的 `perf` 作业）在合成数据上钉住四步热路径，
 阈值 = 本机实测值 × 5 以上（只挡数量级退化，不追求机器间可比）：
 
 | 项目 | 上限 |
@@ -331,8 +342,8 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 
 - 门禁（与 CI 同源，`./scripts/test.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
-  渠道/用例/脚本放宽）、`python scripts/check-guards.py`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/依赖锁，共 8 项）、`python scripts/check-perf.py`（耗时守卫）。
+  渠道/用例/脚本放宽）、`python tools/check_guards.py`（编号/分层/文件长度/显式编码/
+  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳，共 10 项）、`python tools/check_perf.py`（耗时守卫）。
   覆盖率阈值 `fail_under = 75`（实测约 84%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。
@@ -363,8 +374,9 @@ sh .githooks/install-hooks.sh                                 # 启用提交前�
 ./scripts/test.sh                                             # 全量用例 + 测试报告
 .venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
 .venv/bin/python -m mypy                                      # 类型检查，守 core
-.venv/bin/python scripts/check-guards.py                      # 工程守护（8 项，含版本/依赖锁）
-.venv/bin/python scripts/check-perf.py                        # 耗时守卫
+.venv/bin/python tools/check_guards.py                      # 工程守护（8 项，含版本/依赖锁）
+.venv/bin/python tools/check_perf.py                        # 耗时守卫
+.venv/bin/python tools/run_tests.py --fast                    # 测试编排（scripts/test.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数
 ./scripts/cli.sh data/demo --list                              # OCR 是否正常（示例图）
 ./scripts/cli.sh data/demo --map "2023=2024" --dry-run          # 批量预演

@@ -72,6 +72,15 @@ jpg 图片上的压缩噪点对识别影响不大；如果是压缩很狠的图�
 
 四张图的正文都是「本页内容保持不变，排版一致。」，用来检查替换时其它行是否一个像素都没动。
 
+### Windows 注意事项
+
+- 首次使用**直接跑** `.\scripts\cli.ps1 data --list` 即可：发现没有 `.venv` 或依赖缺失会自动安装
+  （提示「首次运行，正在准备环境…」，约 1~2 分钟）；想提前装或离线装用 `.\scripts\setup.ps1 -Dev`。
+  设 `IMG_P_NO_AUTO_SETUP=1` 可关掉自动安装，只提示不改环境。
+- 脚本文件是 UTF-8 with BOM：Windows PowerShell 5.1 对无 BOM 文件按 ANSI 解码，
+  中文提示会变成乱码。若你改过脚本，请保持 BOM（或用 PowerShell 7）。
+- 交互界面依赖 `windows-curses`（由 `pyproject.toml` 的平台标记自动安装）。
+
 ## 3. 三分钟上手（命令行）
 
 ```bash

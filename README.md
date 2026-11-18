@@ -11,8 +11,8 @@
 ```
 
 ```bash
-./scripts/setup.sh                                    # 装环境（一次，等价 pip install -e .）
-./scripts/cli.sh data/demo --list                     # 看示例图里有哪些文字
+./scripts/cli.sh data/demo --list                     # 看示例图里有哪些文字（首次会自动装环境）
+./scripts/setup.sh                                    # 想提前/手动装环境时用（--dev 连测试依赖）
 ./scripts/cli.sh data/demo --map "2023=2024"          # 批量替换 → data/output/
 ./scripts/tui.sh                                      # 或者用交互界面挑着改
 ```
@@ -38,8 +38,8 @@ Windows（PowerShell）用同名 `.ps1`：
 sh .githooks/install-hooks.sh                         # 启用提交前门禁（一次）
 .venv/bin/ruff check src/ scripts/                    # 静态检查
 .venv/bin/python -m mypy                              # 类型检查（守 core）
-.venv/bin/python scripts/check-guards.py              # 编号/分层/长度/编码/测试目录/版本/依赖锁
-.venv/bin/python scripts/check-perf.py                # 耗时守卫
+.venv/bin/python tools/check_guards.py              # 编号/分层/长度/编码/测试目录/版本/依赖锁
+.venv/bin/python tools/check_perf.py                # 耗时守卫
 .venv/bin/python -m pytest src/test -q                # 全量用例（覆盖率阈值 75%）
 ```
 
@@ -60,7 +60,8 @@ GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lin
 ## 目录
 
 ```text
-scripts/    cli/tui/setup/test 启动脚本（.sh + .ps1）+ check-guards/check-perf/log-query
+scripts/    薄壳启动脚本（cli/tui/setup/test 的 .sh + .ps1、log-query.py）
+tools/      工程工具（check_guards / check_perf / run_tests）
 .githooks/  pre-commit 钩子（ruff + guards + 用例）与 install-hooks.sh
 .github/    CI 流水线（test / lint / typecheck / guards / perf）
 pyproject.toml  依赖与工具配置的唯一来源（ruff / mypy / pytest / coverage）

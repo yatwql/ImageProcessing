@@ -61,10 +61,10 @@
 | PLAN-27 | 配置单一来源 | `pyproject.toml` 承担依赖、可选依赖 `dev`、ruff、mypy、pytest、coverage；`requirements*.txt` 退化为 `-e .` 兼容壳；`pip install -e .` 可用 | 完成 |
 | PLAN-28 | CI 流水线 | `.github/workflows/ci.yml`：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf 五个作业，测试与覆盖率报告按 Python 版本上传 | 完成 |
 | PLAN-29 | 提交前钩子 | `.githooks/pre-commit` + `install-hooks.sh`：ruff → guards → 全量用例；`IMG_P_SKIP_HOOK=1` 可跳过 | 完成 |
-| PLAN-30 | 工程守护脚本 | `scripts/check-guards.py`：编号（PLAN-/RF-）、分层（core 禁 argparse/curses/sys.exit）、单文件 ≤1000 行、文本 I/O 显式 encoding、测试目录与文档一致、无空测试包 | 完成 |
+| PLAN-30 | 工程守护脚本 | `tools/check_guards.py`：编号（PLAN-/RF-）、分层（core 禁 argparse/curses/sys.exit）、单文件 ≤1000 行、文本 I/O 显式 encoding、测试目录与文档一致、无空测试包 | 完成 |
 | PLAN-31 | 类型检查 | `mypy` 守 `src/python/core`（`disallow_untyped_defs`），渠道层放宽；`python -m mypy` 零错误 | 完成 |
 | PLAN-32 | 覆盖率门禁 | `[tool.coverage.report] fail_under = 75`，CI 跑 `--cov` | 完成 |
-| PLAN-33 | 性能门禁 | `scripts/check-perf.py` 钉住 soft_iou / erase / PNG 读写 / 日志追加四步，合计 ≤6s | 完成 |
+| PLAN-33 | 性能门禁 | `tools/check_perf.py` 钉住 soft_iou / erase / PNG 读写 / 日志追加四步，合计 ≤6s | 完成 |
 | PLAN-34 | 测试目录收敛 | `src/test/image_processing/**` 并入 `src/test/core/**`，删除空包 `degrade/`；文档结构同步 | 完成 |
 | PLAN-35 | TUI 分层 | `ui.py` 856 行拆成 `ui_base` / `ui_draw` / `ui_input` / `ui_actions` + 门面 `ui.py`（每个 <300 行） | 完成 |
 | PLAN-36 | 自适应擦除半径 | `edit.inpaint_radius` 按笔画宽度定半径（4~14），粗笔画不再留糊边 | 完成 |
@@ -80,3 +80,8 @@
 | PLAN-46 | 单图内可中断 | `replace_image(should_stop=)` 每块之前询问，TUI 传入 `self.cancel`；`apply_one` 取消时返回「已取消」 | 完成 |
 | PLAN-47 | 交互用例补齐 | 新增 `test_key_dispatch.py`（主界面/映射/样式三块面板 + 批量中断）与 `test_cancel_pipeline.py`（核心中断），覆盖率 80% → 84%，`ui_actions.py` 55% → 88%、`ui.py` 64% → 82% | 完成 |
 | PLAN-48 | 契约用例补强 | CLI `--version`、版本横幅只走 stderr、坏图跳过不拖垮整批、日志记录 `app_version` | 完成 |
+| PLAN-49 | Windows 脚本编码 | `scripts/*.ps1` 统一改为 UTF-8 with BOM，修掉 PS 5.1 下「缺少运行环境」等中文提示变乱码的问题；守护新增第 9 项「PS 编码」 | 完成 |
+| PLAN-50 | 目录归位 | `scripts/` 只留薄壳：`check-guards.py`/`check-perf.py` 移到 `tools/`（check_guards.py / check_perf.py），日志查询逻辑进 `src/python/cli/log_query.py`，`scripts/log-query.py` 变壳；`setup`/`test` 逻辑进 `src/python/bootstrap.py` 与 `tools/run_tests.py`，两端 .sh/.ps1 从 44~149 行降到 13~29 行 | 完成 |
+| PLAN-51 | 守护 | `check_guards.py` 新增「scripts 薄壳」（单文件 ≤40 行），防逻辑再堆回 `scripts/` | 完成 |
+| PLAN-52 | 自动准备环境 | 新增 `src/python/launch.py`：启动脚本先经它探测 `.venv` 与关键依赖，缺则按 `constraints.txt` 自动安装，再 exec 到真实入口；`IMG_P_NO_AUTO_SETUP=1` 可关闭 | 完成 |
+| PLAN-53 | 用具覆盖启动链路 | 新增 `src/test/cli/test_launch_env.py`（12 用例）：渠道分派、参数校验、自动安装开关、缺依赖探测、`--check` 不改环境 | 完成 |

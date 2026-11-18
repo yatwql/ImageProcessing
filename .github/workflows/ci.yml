@@ -4,13 +4,13 @@
 #   lint       ruff check（阻塞）、ruff format 漂移（非阻塞，只报告）
 #   typecheck  mypy 全树（阻塞）
 #   guards     编号 / 分层 / 文件长度 / 显式编码 / 测试目录 / 版本 / 依赖锁
-#   perf       渲染与擦除的耗时守卫（阈值见 scripts/check-perf.py）
+#   perf       渲染与擦除的耗时守卫（阈值见 tools/check_perf.py）
 #
 # 本地等价命令：
 #   .venv/bin/ruff check src/ scripts/
 #   .venv/bin/python -m mypy
-#   .venv/bin/python scripts/check-guards.py
-#   .venv/bin/python scripts/check-perf.py
+#   .venv/bin/python tools/check_guards.py
+#   .venv/bin/python tools/check_perf.py
 #   .venv/bin/python -m pytest src/test -q
 
 name: CI
@@ -133,7 +133,7 @@ jobs:
           python -m pip install --retries 5 --timeout 60 \
             -c constraints.txt -e ".[dev]"
       - name: 工程守护
-        run: python scripts/check-guards.py
+        run: python tools/check_guards.py
 
   perf:
     runs-on: ubuntu-latest
@@ -149,4 +149,4 @@ jobs:
           python -m pip install --retries 5 --timeout 60 \
             -c constraints.txt -e ".[dev]"
       - name: 渲染/擦除耗时守卫
-        run: python scripts/check-perf.py
+        run: python tools/check_perf.py

@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
-# 命令行入口（单图 / 目录批量）：透传参数给 src.python.cli
-#   ./scripts/cli.sh data --list
-#   ./scripts/cli.sh data --map "旧=新" --map-file 映射.json
-#   ./scripts/cli.sh data/某图.png -o 输出.png --map "2023=2024"
+# 命令行入口（单图 / 目录批量）。逻辑在 src/python；这里只找系统 Python 转交。
+# 首次运行会自动准备环境（缺依赖时安装；设 IMG_P_NO_AUTO_SETUP=1 可关掉自动安装）。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PY=".venv/bin/python"
-if [ ! -x "$PY" ]; then
-  echo "缺少运行环境，请先执行 ./setup.sh" >&2
+PY=$(command -v python3 || command -v python) || {
+  echo "找不到 Python，请先安装 Python 3.10+ 并加入 PATH" >&2
   exit 1
-fi
-
+}
 if [ $# -eq 0 ]; then
-  exec "$PY" -m src.python.cli --help
+  exec "$PY" -m src.python.launch cli --help
 fi
-
-exec "$PY" -m src.python.cli "$@"
+exec "$PY" -m src.python.launch cli "$@"

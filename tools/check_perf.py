@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """耗时守卫：把最热的几步钉住，退化即红。
 
-    python scripts/check-perf.py           # 人读
-    python scripts/check-perf.py --ci      # 只输出一行结论
+    python tools/check_perf.py           # 人读
+    python tools/check_perf.py --ci      # 只输出一行结论
 
 不依赖 OCR 与系统字体（CI 上没有中文字体），只量：模糊 IoU、擦除 inpaint、
 PNG 读写、写盘日志追加。阈值取本机实测值的 5 倍以上，只挡"数量级退化"，
@@ -15,7 +15,7 @@ import os
 import sys
 import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import numpy as np
@@ -76,8 +76,9 @@ def bench_audit(tmp: Path) -> None:
         )
 
 
-def main(argv: list[str] | None = None) -> int:
-    quiet = "--ci" in (sys.argv[1:] if argv is None else argv)
+def main(argv: Sequence[str] = ()) -> int:
+    # 用空序列而不是 None 表示"没传参"，顺带避开 `x is None` 这类静态规则的噪音
+    quiet = "--ci" in (list(argv) if argv else sys.argv[1:])
     env_dir = os.environ.get("IMG_P_TMP_DIR")
     checks: list[tuple[str, Callable[[Path], None]]] = [
         ("soft_iou×50", lambda _t: bench_soft_iou()),

@@ -202,6 +202,8 @@ def handle(app: App, win, key) -> None:
             )
         else:
             app.message = "已取消批量替换"
+    elif key in ("\x12", "KEY_F(5)"):        # Ctrl-R / F5：把新放进来的图片扫进来
+        app.rescan()
     elif key == "l":
         img = app.cur
         if img:

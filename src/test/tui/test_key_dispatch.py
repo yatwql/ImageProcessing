@@ -275,5 +275,48 @@ class BatchInterrupt(TuiTestCase):
         self.assertEqual(msg, "已取消")
 
 
+class RescanDirectory(TuiTestCase):
+    """先开界面、再往目录里放图片：Ctrl-R 重新扫描就能看到，不必退出重开。"""
+
+    def test_rescan_picks_up_images_copied_after_start(self):
+        from PIL import Image
+
+        images_dir = os.path.join(self.tmp.name, "late")
+        os.makedirs(images_dir)
+        app = self.make_app(count=0)
+        app2 = type(app)([images_dir])
+        app2.out_dir = os.path.join(self.tmp.name, "out")
+        self.assertEqual(app2.images, [], "空目录启动时应没有图片")
+
+        Image.new("RGB", (120, 80), (255, 255, 255)).save(
+            os.path.join(images_dir, "later.png"))
+        message = app2.rescan()
+
+        self.assertEqual(len(app2.images), 1)
+        self.assertIn("1 张图片", message)
+        self.assertEqual(app2.sel_row, app2.first_image_row())
+
+    def test_rescan_on_empty_directory_keeps_a_usable_hint(self):
+        images_dir = os.path.join(self.tmp.name, "still-empty")
+        os.makedirs(images_dir)
+        app = self.make_app(count=0)
+        empty = type(app)([images_dir])
+        message = empty.rescan()
+        self.assertEqual(empty.images, [])
+        self.assertIn("Ctrl-R", message)
+
+    def test_ctrl_r_triggers_rescan(self):
+        from PIL import Image
+
+        app = self.make_app(count=1)
+        assert app.dir is not None
+        Image.new("RGB", (120, 80), (255, 255, 255)).save(
+            os.path.join(app.dir, "added.png"))
+        win = FakeWin([], rows=28, cols=100)
+        ui.handle(app, win, "\x12")
+        self.assertEqual(len(app.images), 2)
+        self.assertIn("重新扫描", app.message)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -160,8 +160,11 @@ def main(argv: list[str] | None = None) -> int:
         print(str(e), file=sys.stderr)
         return 2
     if not app.images:
-        print(f"{inputs[0]} 里没有找到图片（支持 png/jpg/bmp/webp/tif）", file=sys.stderr)
-        return 2
+        # 空目录也允许进界面：先把图复制进来，再按 Ctrl-R 重新扫描即可
+        app.message = (
+            f"{inputs[0]} 里还没有图片（支持 png/jpg/bmp/webp/tif）"
+            "：放好图片后按 Ctrl-R 重新扫描"
+        )
     try:
         curses.wrapper(loop, app)
     except KeyboardInterrupt:

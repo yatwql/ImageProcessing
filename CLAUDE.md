@@ -118,6 +118,10 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - `--area` 手工框里的原文若未被 OCR 认全，字体匹配会不准 → 会打印提示并退回默认字体，
   这时用 `--font` 或改用 `--map` 走整行匹配。
 - 字体池缓存在 `~/.cache/img-p/fonts.json`（按字体文件签名失效）；验证「首次构建」路径要先删缓存。
+- TUI 允许空目录启动：目录里没有图片时照样进界面，放好图片按 `Ctrl-R`（或 `F5`）重新扫描；
+  这个键也是"先开界面、再复制文件进去"的唯一入口。
+- 配置目录默认值分平台：POSIX 用 `/data/config`，Windows 用仓库内 `data/config`
+  （Windows 没有 `/data`）；`IMG_P_CONFIG_DIR` 给相对路径时按仓库根解析。
 - TUI 在手机/窄终端：宽度 < 60 列自动单栏；`Esc` 只返回不退出（退出用 `q`）；
   方向键原始转义序列由 `read_key()` 自己解析。
 - **`scripts/*.ps1` 必须存成 UTF-8 with BOM**：Windows PowerShell 5.1 读无 BOM 的脚本按 ANSI

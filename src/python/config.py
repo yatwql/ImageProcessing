@@ -14,7 +14,10 @@ DATA_DIR = os.path.join(ROOT, "data")
 DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "output")
 LOG_DIR = os.path.join(ROOT, "logs")
 
-CONFIG_DIR = "/data/config"
+# 配置目录：Linux/macOS 用 /data/config；Windows 没有 /data，用仓库内 data/config
+CONFIG_DIR = (
+    os.path.join(ROOT, "data", "config") if sys.platform == "win32" else "/data/config"
+)
 CONFIG_NAME = "img-p.json"
 
 # 配置文件里允许的键（其余忽略）

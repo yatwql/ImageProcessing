@@ -197,6 +197,12 @@ TUI 的 `core.jobs_from_blocks` 同一套规则：块级 `override` 优先（`fi
 
 ## 6. 两个渠道的实现要点
 
+### 6.0.1 目录扫描与重新扫描
+
+TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界面，消息行提示放图片后按 `Ctrl-R`。
+`App.rescan()` 按当前目录（或原始输入）重新收集图片，尽量保住原来的选中项，并给出
+「重新扫描完成：N 张图片」的反馈——这是"先开界面、再拖文件进来"的唯一支持路径。
+
 ### 6.0 配置文件（`src/python/config.py`）
 
 - 位置：`/data/config/img-p.json`（`IMG_P_CONFIG` 可换文件名）；`scripts/setup.sh` 首次会写一份默认值。

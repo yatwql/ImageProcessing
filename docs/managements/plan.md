@@ -85,3 +85,5 @@
 | PLAN-51 | 守护 | `check_guards.py` 新增「scripts 薄壳」（单文件 ≤40 行），防逻辑再堆回 `scripts/` | 完成 |
 | PLAN-52 | 自动准备环境 | 新增 `src/python/launch.py`：启动脚本先经它探测 `.venv` 与关键依赖，缺则按 `constraints.txt` 自动安装，再 exec 到真实入口；`IMG_P_NO_AUTO_SETUP=1` 可关闭 | 完成 |
 | PLAN-53 | 用具覆盖启动链路 | 新增 `src/test/cli/test_launch_env.py`（12 用例）：渠道分派、参数校验、自动安装开关、缺依赖探测、`--check` 不改环境 | 完成 |
+| PLAN-54 | 空目录可启动 | TUI 不再因"目录里没有图片"退出：照样进界面并提示放图片后按 `Ctrl-R`；新增 `App.rescan()`（保留选中项）与 `Ctrl-R`/`F5` 绑定 | 完成 |
+| PLAN-55 | 配置目录分平台 | `bootstrap`/`config` 的默认配置目录按平台取（Windows 用仓库 `data/config`），`IMG_P_CONFIG_DIR` 相对路径按仓库根解析，不再抛"需要绝对路径" | 完成 |

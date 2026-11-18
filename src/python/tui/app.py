@@ -79,6 +79,7 @@ class App:
         map_file: str | None = None,
         opts: Options | None = None,
     ):
+        self.inputs: list[str] = list(inputs)      # 重新扫描时按原输入重来
         paths: list[str] = []
         for p in inputs:
             paths += collect_images(p)
@@ -181,6 +182,41 @@ class App:
         self.img_start = 0
         self.message = f"{path}：{len(self.images)} 张图片"
         return True
+
+    def rescan(self) -> str:
+        """重新扫描当前目录/输入，把新复制进来的图片纳入列表（保留尽量多的选中状态）。
+
+        交互场景：先开界面、再往目录里拖图片，按 Ctrl-R 就能看到，
+        不必退出重开。返回给消息行的一句话。
+        """
+        current = self.cur.name if self.cur is not None else None
+        if self.dir:
+            if not os.path.isdir(self.dir):
+                self.message = f"目录已不存在: {self.dir}"
+                return self.message
+            self.images, self.rows = self._scan_rows(self.dir)
+        else:
+            paths: list[str] = []
+            for item in self.inputs:
+                paths += collect_images(item)
+            self.images = [ImageItem(p) for p in paths]
+            self.rows = [("img", p) for p in paths]
+        if current:
+            for index, (_kind, path) in enumerate(self.rows):
+                if os.path.basename(path) == current:
+                    self.sel_row = index
+                    break
+            else:
+                self.sel_row = self.first_image_row()
+        else:
+            self.sel_row = self.first_image_row()
+        self.sel_blk = 0
+        self.img_start = 0
+        if not self.images:
+            self.message = "重新扫描完成：目录里还没有图片（放好图片再按 Ctrl-R）"
+        else:
+            self.message = f"重新扫描完成：{len(self.images)} 张图片"
+        return self.message
 
     def open_dir(self, path: str) -> bool:
         """切到另一个目录：重建左栏（父目录/子目录/图片）。"""

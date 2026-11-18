@@ -20,12 +20,21 @@ import venv
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+def default_conf_dir() -> Path:
+    """配置目录默认值：Linux/macOS 用 /data/config；Windows 没有 /data，用仓库内 data/config。"""
+    if sys.platform == "win32":
+        return ROOT / "data" / "config"
+    return Path("/data/config")
+
+
 def _conf_dir() -> Path:
-    """配置目录：默认 /data/config；IMG_P_CONFIG_DIR 覆盖时必须给绝对路径。"""
-    raw = os.environ.get("IMG_P_CONFIG_DIR") or "/data/config"
+    """配置目录：IMG_P_CONFIG_DIR 覆盖（相对路径按仓库根解析），否则用平台默认。"""
+    raw = os.environ.get("IMG_P_CONFIG_DIR")
+    if not raw:
+        return default_conf_dir()
     path = Path(raw).expanduser()
     if not path.is_absolute():
-        raise SystemExit(f"IMG_P_CONFIG_DIR 需要绝对路径，收到 {raw!r}")
+        path = ROOT / path                      # 相对路径视为相对仓库根，不再直接报错
     return path.resolve()
 
 

@@ -76,9 +76,10 @@ def draw_wide(win, app: App, h: int, w: int, body_h: int) -> None:
     put(win, 1, 0, f" ① 图片 {pos_img}", left_w - 1, attr("title"))
     nblk = len(app.blocks())
     pos_blk = f"{app.sel_blk + 1}/{nblk}" if nblk else "0/0"
+    empty_hint = " 目录里还没有图片：放好图片后按 Ctrl-R 重新扫描" if not app.images else ""
     hint = ("Enter 进右侧" if app.focus == "files"
             else f"{pos_blk}　Enter 整行换　i 只换几个字")
-    put(win, 1, left_w + 1, f" ② 识别到的文字 {hint}", right_w,
+    put(win, 1, left_w + 1, f" ② 识别到的文字 {empty_hint or hint}", right_w,
         attr("title", curses.A_BOLD if app.focus != "files" else 0))
 
     app.img_rows = body_h

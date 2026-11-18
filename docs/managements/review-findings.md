@@ -123,6 +123,13 @@
 | RF-62 | 上手成本 | 直接跑 `tui.ps1` 只会得到「缺少运行环境，请先执行 setup.ps1」（还因编码问题显示成乱码），用户必须读懂并照着做一遍 | 新增 `src/python/launch.py`：所有启动脚本先经它探测 `.venv` 与关键依赖，缺则自动建 venv + 按 constraints 装依赖，再 `execv` 到真实入口；`IMG_P_NO_AUTO_SETUP=1` 保留手动/离线路径 | 已修 |
 | RF-63 | 静默风险 | 自动安装若无声进行，用户会以为程序卡住 | 安装前固定提示「首次运行，正在准备环境（装依赖，可能需要一两分钟）…」；`--check` 只探测不改环境 | 已修 |
 
+## 2026-11-17 空目录启动与配置目录分平台
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-64 | 交互限制 | 目录里没有图片时 TUI 直接退出（`return 2`），用户想"先开界面再把图片拖进来"完全做不到 | 空目录照样进界面，消息行与左栏提示「放好图片后按 Ctrl-R 重新扫描」；新增 `App.rescan()`（尽量保留选中项）与 `Ctrl-R`/`F5` 绑定；补 3 个用例 | 已修 |
+| RF-65 | 跨平台缺陷 | Windows 上默认配置目录写死 `/data/config`，`Path.is_absolute()` 为假 → 启动即 `IMG_P_CONFIG_DIR 需要绝对路径，收到 '/data/config'` | `bootstrap`/`config` 的默认目录按平台取（Windows → 仓库内 `data/config`）；环境变量给相对路径时按仓库根解析而不是报错 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

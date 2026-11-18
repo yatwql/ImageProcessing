@@ -27,7 +27,7 @@ MODULE_MIN = {
     "tui/app.py": 0.80,
 }
 TOTAL_MIN = 0.75
-SKIP_MAX_RATIO = 0.15          # 正常模式（有中文字体）下，跳过用例不该超过 15%
+SKIP_MAX_RATIO = 0.15  # 正常模式（有中文字体）下，跳过用例不该超过 15%
 
 
 def file_rates(coverage_xml: Path) -> dict[str, float]:
@@ -74,7 +74,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     rate = total_rate(coverage_xml)
-    print(f"[{'ok' if rate >= TOTAL_MIN else 'FAIL'}] 总行覆盖率 {rate:.1%}（下限 {TOTAL_MIN:.0%}）")
+    print(
+        f"[{'ok' if rate >= TOTAL_MIN else 'FAIL'}] 总行覆盖率 {rate:.1%}（下限 {TOTAL_MIN:.0%}）"
+    )
     if rate < TOTAL_MIN:
         problems.append(f"总覆盖率 {rate:.1%} 低于 {TOTAL_MIN:.0%}")
 
@@ -82,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     for module, floor in sorted(MODULE_MIN.items()):
         actual = rates.get(module)
         if actual is None:
-            continue                       # 该模块没被采集到（例如平台条件导入）
+            continue  # 该模块没被采集到（例如平台条件导入）
         verdict = "ok" if actual >= floor else "FAIL"
         print(f"[{verdict:4}] {module}: {actual:.1%}（下限 {floor:.0%}）")
         if actual < floor:

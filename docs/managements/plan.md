@@ -117,3 +117,6 @@
 | PLAN-83 | 变异测试 | `tools/mutation_check.py`（opt-in，mutmut），默认试点 `core/match.py` | 完成 |
 | PLAN-84 | 依赖审计与入口冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（含 shell 薄壳语法检查） | 完成 |
 | PLAN-85 | 文档全面校准（本轮） | 8 份文档对齐当前实现：统计数字（116 个代码/文档文件 14,097 行、含示例图 122 个跟踪文件、436 个 test 函数）、CI 七个作业、用例对照表新增属性/快照/入口冒烟、NFR-12/13（门禁分层与可复现失败）、README 钩子说明 | 完成 |
+| PLAN-86 | 覆盖率文档 | 新增 `docs/managements/test-coverage.md` + `tools/coverage_report.py`（`--write` 生成）：总览、模块覆盖率（带门槛）、包级汇总、场景/单元分组、薄弱点 | 完成 |
+| PLAN-87 | 测试计划 | 新增 `docs/managements/testplan.md`：质量目标 QG-1..9、门禁分层 P0/P1/P2、测试分层 13 类、用例编写标准、覆盖率/性能/跨平台标准、缺陷分级、合并前清单 | 完成 |
+| PLAN-88 | 日志查询命令覆盖 | `cli/log_query.py` 覆盖率 0% → 92%：新增 8 例（过滤/`--json`/坏日期/无匹配/`--help`），并修正"指定日期无日志文件"应返回空而不是报错 | 完成 |

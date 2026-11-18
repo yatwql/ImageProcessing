@@ -63,7 +63,12 @@ def main(argv: list[str] | None = None) -> int:
             (
                 "pytest + 覆盖率",
                 [
-                    PY, "-m", "pytest", "src/test", "-q", "--cov",
+                    PY,
+                    "-m",
+                    "pytest",
+                    "src/test",
+                    "-q",
+                    "--cov",
                     f"--cov-report=xml:{reports / 'coverage.xml'}",
                     f"--junitxml={reports / 'junit.xml'}",
                     *extra,
@@ -74,8 +79,12 @@ def main(argv: list[str] | None = None) -> int:
         steps.append(
             (
                 "覆盖率门禁（总量 / 分模块 / skip 比例）",
-                [PY, "tools/check_coverage.py",
-                 str(reports / "coverage.xml"), str(reports / "junit.xml")],
+                [
+                    PY,
+                    "tools/check_coverage.py",
+                    str(reports / "coverage.xml"),
+                    str(reports / "junit.xml"),
+                ],
                 None,
             )
         )

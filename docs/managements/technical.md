@@ -419,6 +419,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `core/format/test_image_read_write.py` | FR-6 输出格式表、元数据、质量、覆盖保护 |
 | `core/background/test_background_types.py` | FR-2 纯色 / 渐变 / 照片底图擦除 |
 | `core/pipeline/test_replace_pipeline.py` | FR-2 端到端 + memo 幂等 |
+| `cli/test_log_query_cli.py` | 日志查询命令：过滤、`--json`、坏日期、无匹配 |
 | `core/test_properties.py` | 属性测试：norm_map 下标、cut/pad 预算、颜色、unique_path、plan_jobs span |
 | `core/test_feature_edges.py` | 功能边界：映射规则/颜色解析/任务构造/日志轮转/格式表 |
 | `core/test_platform_stability.py` | 跨平台默认值（配置目录/解释器路径）、异常契约、规模与幂等 |

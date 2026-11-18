@@ -16,8 +16,9 @@ PY = sys.executable
 
 
 def run(*args: str, timeout: int = 90) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([PY, *args], cwd=str(ROOT), capture_output=True, text=True,
-                          timeout=timeout, check=False)
+    return subprocess.run(
+        [PY, *args], cwd=str(ROOT), capture_output=True, text=True, timeout=timeout, check=False
+    )
 
 
 class EntryPoints(unittest.TestCase):
@@ -67,15 +68,21 @@ class ScriptLaunchers(unittest.TestCase):
     def test_shell_scripts_pass_syntax_check(self):
         for path in sorted((ROOT / "scripts").glob("*.sh")):
             with self.subTest(script=path.name):
-                proc = subprocess.run(["bash", "-n", str(path)], capture_output=True, text=True,
-                                      check=False)
+                proc = subprocess.run(
+                    ["bash", "-n", str(path)], capture_output=True, text=True, check=False
+                )
                 self.assertEqual(proc.returncode, 0, proc.stderr)
 
     @unittest.skipUnless(sys.platform != "win32", "POSIX shell 才有 --help 行为")
     def test_cli_shell_help(self):
-        proc = subprocess.run(["bash", str(ROOT / "scripts" / "cli.sh"), "--help"],
-                              cwd=str(ROOT), capture_output=True, text=True, timeout=120,
-                              check=False)
+        proc = subprocess.run(
+            ["bash", str(ROOT / "scripts" / "cli.sh"), "--help"],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
 

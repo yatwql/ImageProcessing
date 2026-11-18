@@ -261,6 +261,8 @@ def read_entries(log_dir: str, day: dt.date | None = None, src: str | None = Non
                     if channel and entry.get("channel") != channel:
                         continue
                     entries.append(entry)
+        except FileNotFoundError:
+            continue                      # 那天没有日志：当成"没有记录"，不是错误
         except OSError as e:
             raise CoreError(f"无法读取日志 {path}: {e}") from e
     return entries

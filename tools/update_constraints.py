@@ -18,13 +18,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONSTRAINTS = ROOT / "constraints.txt"
-MARKED = re.compile(r';\s*sys_platform|;\s*python_version')
+MARKED = re.compile(r";\s*sys_platform|;\s*python_version")
 PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)")
 SKIP = {"img-p", "retype", "pip", "setuptools", "wheel"}
 
 
 def frozen() -> dict[str, str]:
-    out = subprocess.run([sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True).stdout
+    out = subprocess.run(
+        [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True
+    ).stdout
     pins: dict[str, str] = {}
     for line in out.splitlines():
         m = PIN.match(line.strip())
@@ -34,8 +36,11 @@ def frozen() -> dict[str, str]:
 
 
 def outdated() -> list[str]:
-    out = subprocess.run([sys.executable, "-m", "pip", "list", "--outdated", "--format=freeze"],
-                         capture_output=True, text=True)
+    out = subprocess.run(
+        [sys.executable, "-m", "pip", "list", "--outdated", "--format=freeze"],
+        capture_output=True,
+        text=True,
+    )
     return [ln for ln in out.stdout.splitlines() if ln.strip()]
 
 
@@ -49,7 +54,9 @@ def main(argv: list[str] | None = None) -> int:
             print("可升级：")
             for line in lines:
                 print("  " + line)
-            print("\n升级步骤：装新版本 → python tools/update_constraints.py --write → tools/check_all.py")
+            print(
+                "\n升级步骤：装新版本 → python tools/update_constraints.py --write → tools/check_all.py"
+            )
         else:
             print("没有可升级的包")
         return 0

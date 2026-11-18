@@ -5,6 +5,30 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 测试计划与覆盖率报告
+
+### 新增
+
+- `docs/managements/testplan.md`：质量控制与测试标准——QG-1..9 可量化质量目标、P0/P1/P2 门禁分层、
+  13 类测试的职责与位置、用例编写十条规范、覆盖率/性能/跨平台标准、缺陷分级（P0/P1/P2）、
+  质量产物清单、合并前检查清单。
+- `docs/managements/test-coverage.md`：覆盖率与分组统计（总览、模块覆盖率带门槛、包级汇总、
+  场景测试分组、单元测试分组、薄弱点 top10），由 `tools/coverage_report.py --write` 生成。
+- `tools/coverage_report.py`：读 `reports/{coverage,junit}.xml` 输出上述报告；
+  `--write` 落盘，不带参数只打印。
+- `src/test/cli/test_log_query_cli.py`：8 例覆盖日志查询命令（过滤/`--json`/坏日期/无匹配/`--help`）。
+
+### 修复
+
+- `audit.read_entries`：`--date` 指定某天而当天没有日志文件时，原来抛 `CoreError`（退出码 2），
+  现在当作"没有记录"返回空列表。
+- `cli/log_query.py` 覆盖率 0% → 92%（此前只有 core 层回读用例）。
+
+### 变更
+
+- `check_guards.py` 的版本一致性检查把 `testplan.md`、`test-coverage.md` 纳入。
+- `technical.md`/`CLAUDE.md`/`README.md` 指向两份新文档；用例对照表补日志查询命令一行。
+
 ## 2026-11-18 — 文档全面校准（质量加固之后）
 
 ### 变更

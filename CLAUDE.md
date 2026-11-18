@@ -124,6 +124,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 ## 文档纪律
 
+- 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`
+  （后者由 `.venv/bin/python tools/coverage_report.py --write` 生成，别手改数字）。
 - 三份文档随实现同步：
 - `docs/managements/plan.md` 的任务编号一律 `PLAN-x`，`docs/managements/review-findings.md`
   的任务/缺陷编号一律 `RF-x`；两者连续编号、不复用，新增任务只在对应文件里追加。

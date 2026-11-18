@@ -113,7 +113,9 @@ class ScreenSnapshots(TuiTestCase):
 
         for key, want in expected.items():
             with self.subTest(screen=key):
-                self.assertEqual(current[key], want, f"{key} 的界面变了（确认是有意改动后更新快照）")
+                self.assertEqual(
+                    current[key], want, f"{key} 的界面变了（确认是有意改动后更新快照）"
+                )
 
 
 @unittest.skipUnless(has_cjk_font(), "快照里的中文需要真实 CJK 字体")

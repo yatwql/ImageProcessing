@@ -67,6 +67,10 @@ class LogQuery(unittest.TestCase):
         entries = audit.read_entries(self.dir)
         self.assertEqual(len(entries), 1)
 
+    def test_missing_day_file_returns_empty_list(self):
+        """指定的那天没有日志文件，应当返回空列表，而不是抛 CoreError。"""
+        self.assertEqual(audit.read_entries(self.dir, day=dt.date(2020, 1, 1)), [])
+
     def test_missing_directory_returns_empty_list(self):
         empty = os.path.join(self.dir, "no-such-day")
         self.assertEqual(audit.read_entries(empty), [])

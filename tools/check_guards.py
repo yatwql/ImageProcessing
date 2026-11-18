@@ -228,6 +228,8 @@ VERSION_DOCS = [
     "docs/managements/plan.md",
     "docs/managements/changelog.md",
     "docs/managements/review-findings.md",
+    "docs/managements/testplan.md",
+    "docs/managements/test-coverage.md",
     "docs/manuals/how-to-use.md",
 ]
 

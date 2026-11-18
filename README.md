@@ -56,6 +56,8 @@ GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lin
 | [需求文档](docs/managements/requirements.md) | 范围、功能/非功能需求、验收标准 |
 | [技术设计](docs/managements/technical.md) | 架构分层、目录结构、算法与阈值、扩展点 |
 | [计划任务](docs/managements/plan.md) | 当前目标、功能提升项与待排期任务 |
+| [测试计划](docs/managements/testplan.md) | 质量控制体系与测试标准（门禁分层、用例规范、阈值） |
+| [覆盖率与分组](docs/managements/test-coverage.md) | 覆盖率报告、场景/单元测试分组统计 |
 | [目录结构](docs/managements/folders.md) | 整仓目录树与每个文件的职责 |
 | [自检记录](docs/managements/review-findings.md) | 缺陷、技术债与验证记录 |
 | [变更记录](docs/managements/changelog.md) | 按时间倒序的代码/用例/文档变更 |

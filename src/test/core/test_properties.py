@@ -23,8 +23,9 @@ from src.python.core.image import unique_path
 from src.python.core.options import parse_color
 from src.python.tui.ui_base import cut, dwidth, pad
 
-SETTINGS = settings(max_examples=120, deadline=None,
-                    suppress_health_check=[HealthCheck.function_scoped_fixture])
+SETTINGS = settings(
+    max_examples=120, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture]
+)
 
 
 class NormMapProperties(unittest.TestCase):

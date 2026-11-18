@@ -8,17 +8,17 @@ from __future__ import annotations
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from src.python.core import analyze, build_font_pool, fit_font
-from src.test._support import FONT_CJK, has_cjk_font
+from src.test._support import cjk_font, has_cjk_font
 
 
 def draw_report() -> np.ndarray:
     """一张白底两行中文的合成图（标题行 + 正文行）。"""
     img = Image.new("RGB", (600, 200), (255, 255, 255))
     d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT_CJK, 36, index=2)     # SC
+    font = cjk_font(36)     # SC
     d.text((40, 80), "年度报告2023", font=font, fill=(30, 30, 30))
     d.text((40, 140), "其余文字保持不变", font=font, fill=(30, 30, 30))
     return np.array(img)

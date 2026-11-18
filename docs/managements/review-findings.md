@@ -186,6 +186,14 @@
 | --- | --- | --- | --- | --- |
 | RF-86 | 文档缺口 | 目录结构只有 `technical.md` 的主干摘要，没有"每个文件是干什么的"清单；新人（和 AI）找入口只能靠猜，文件移动后也无人察觉 | 新增 `docs/managements/folders.md`（对齐 investor-review 的写法）：项目统计表 + 逐行注释的目录树 + 排除项 + 维护规则；守护新增「目录树文档」（第 12 项），直接解析树里的层级还原完整路径，任何源文件/文档缺失即红 | 已修 |
 
+## 2026-11-18 Windows 用例批量失败（字体）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-87 | 测试缺陷（Windows） | 用例硬编码 `ImageFont.truetype(FONT_CJK, size, index=2)`：假设了 Noto 的 ttc 布局。Windows 的 `msyh.ttc` 没有 index 2 → `OSError: invalid argument`，31 个用例连带失败 | `_support` 新增 `cjk_font()` / `cjk_font_spec()`：逐候选字体、逐 index（0..9）试，找不到就 `SkipTest`；所有用例与 `make_text_image` 统一改走它 | 已修 |
+| RF-88 | 本地不可复现 | 上述失败只在 Windows runner 出现，本地（有 Noto）永远绿，导致"推上去才发现" | 新增 `IMG_P_TEST_NO_CJK_FONT=1`：本地强制模拟无字体环境，`pytest src/test -q` 应 0 失败（字体用例全 skip）；守护新增第 13 项「测试字体」禁止再硬编码 index | 已修 |
+| RF-89 | 平台假设 | `test_posix_falls_back_to_common_font_dirs` 在 Windows 上断言 `/usr/share/fonts` | 加 `skipUnless(os.name == "posix")` | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

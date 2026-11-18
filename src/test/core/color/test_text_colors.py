@@ -10,16 +10,16 @@ from __future__ import annotations
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from src.python.core import Options, analyze, build_font_pool, plan_jobs, replace_image
-from src.test._support import FONT_CJK, has_cjk_font
+from src.test._support import cjk_font, has_cjk_font
 
 
 def image_with(color, bg=(255, 255, 255), text: str = "年度报告2023"):
     img = Image.new("RGB", (420, 150), bg)
     d = ImageDraw.Draw(img)
-    d.text((30, 45), text, font=ImageFont.truetype(FONT_CJK, 36, index=2), fill=color)
+    d.text((30, 45), text, font=cjk_font(36), fill=color)
     return np.array(img)
 
 

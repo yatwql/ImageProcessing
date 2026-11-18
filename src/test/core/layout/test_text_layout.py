@@ -10,7 +10,7 @@ from __future__ import annotations
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from src.python.core import (
     Options,
@@ -20,13 +20,13 @@ from src.python.core import (
     plan_jobs,
     replace_image,
 )
-from src.test._support import FONT_CJK, FONT_CJK_REG, has_cjk_font
+from src.test._support import cjk_font, has_cjk_font
 
 
 def letter_spaced_title(chars: str = "重点提要", step: int = 52, size: int = 40):
     img = Image.new("RGB", (460, 140), (255, 255, 255))
     d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT_CJK_REG, size, index=2)
+    font = cjk_font(size, regular=True)
     x = 40
     for ch in chars:
         d.text((x, 50), ch, font=font, fill=(120, 120, 120))
@@ -37,7 +37,7 @@ def letter_spaced_title(chars: str = "重点提要", step: int = 52, size: int =
 def two_line_paragraph():
     img = Image.new("RGB", (520, 200), (255, 255, 255))
     d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT_CJK_REG, 28, index=2)
+    font = cjk_font(28, regular=True)
     d.text((40, 40), "第一行 保持不动的文字", font=font, fill=(40, 40, 40))
     d.text((40, 100), "第二行 2023 也要换", font=font, fill=(40, 40, 40))
     return np.array(img)
@@ -46,7 +46,7 @@ def two_line_paragraph():
 def centered_banner():
     img = Image.new("RGB", (600, 140), (25, 55, 110))
     d = ImageDraw.Draw(img)
-    d.text((300, 70), "年度峰会 2023", font=ImageFont.truetype(FONT_CJK, 40, index=2),
+    d.text((300, 70), "年度峰会 2023", font=cjk_font(40),
            fill=(255, 255, 255), anchor="mm")
     return np.array(img)
 

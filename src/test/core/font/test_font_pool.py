@@ -19,6 +19,7 @@ from src.test._support import FONT_CJK, has_cjk_font
 class FontDiscoveryPaths(unittest.TestCase):
     """没有 fontconfig 时（含 Windows）也要能定位到系统字体目录。"""
 
+    @unittest.skipUnless(os.name == "posix", "POSIX 字体目录专属")
     def test_posix_falls_back_to_common_font_dirs(self):
         self.assertIn("/usr/share/fonts", fonts.font_dirs())
 
@@ -113,6 +114,41 @@ class FontPoolBuilding(unittest.TestCase):
 
         self.assertTrue(_is_italic(FontFace("/no/DejaVuSans-Oblique.ttf", 0)))
         self.assertFalse(_is_italic(FontFace("/no/NotoSansCJK-Bold.ttc", 0)))
+
+
+class FontProbe(unittest.TestCase):
+    """字体探测：Windows / 精简镜像上没有 Noto、或 ttc 里没有 index=2 时不能红。
+
+    以前用例硬编码 `ImageFont.truetype(FONT_CJK, size, index=2)`，
+    Windows runner 上就是 `OSError: invalid argument` → 31 个用例连带失败。
+    现在统一走 `_support.cjk_font()`：逐个候选字体、逐个 index 试，找不到就 SkipTest。
+    """
+
+    def test_garbage_paths_yield_none(self):
+        from src.test import _support
+
+        self.assertIsNone(_support._usable_font(["/no/such/font.ttf", "/data/tmp/x.ttc"]))
+
+    def test_real_font_is_found_with_a_working_index(self):
+        from src.test import _support
+
+        path, index = _support.cjk_font_spec()
+        self.assertTrue(path)
+        self.assertGreaterEqual(index, 0)
+        _support.cjk_font(20)              # 真能加载
+
+    def test_force_no_font_raises_skip(self):
+        from src.test import _support
+
+        with mock.patch.object(_support, "FORCE_NO_FONT", True):
+            with self.assertRaises(unittest.SkipTest):
+                _support.cjk_font_spec()
+
+    def test_has_cjk_font_is_false_when_forced_off(self):
+        from src.test import _support
+
+        with mock.patch.object(_support, "FORCE_NO_FONT", True):
+            self.assertFalse(_support.has_cjk_font())
 
 
 if __name__ == "__main__":

@@ -371,7 +371,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
   渠道/用例/脚本放宽）、`python tools/check_guards.py`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 12 项）、`python tools/check_perf.py`（耗时守卫）。
+  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 13 项）、`python tools/check_perf.py`（耗时守卫）。
   覆盖率阈值 `fail_under = 75`（实测约 84%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。
@@ -383,6 +383,8 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 自动测试：`src/test/` 按 `core/`（含 `primitives/` `layout/` `font/` `color/` `format/` `background/` `pipeline/`）、`cli/`、`tui/` 分目录，用例数随迭代变化（`unittest` 写、`pytest` 与 `unittest` 都能跑），覆盖匹配规则、
   块级任务、渲染与字距、图片读写格式表、合成图端到端（其它区域像素不变、memo 两次结果一致）、输出覆盖保护（`same_file` 与
   CLI 拒绝覆盖）、写盘日志（字段/追加/预演不记/日志失败不毁结果）、TUI 按键归一（转义序列/方向键/数字跳图/单 Esc 不退出）。
+- 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），
+  `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` 可在本地模拟"无中文字体"的机器。
 - 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-cov、pytest-html、ruff、mypy）；
   `requirements.txt` = `-e .`、`requirements-dev.txt` = `-e .[dev]`，只为兼容既有脚本。
 

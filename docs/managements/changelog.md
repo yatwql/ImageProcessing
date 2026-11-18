@@ -5,6 +5,23 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 修 Windows 用例批量失败（字体探测）
+
+### 修复
+
+- 用例硬编码 `ImageFont.truetype(FONT_CJK, size, index=2)` 假设了 Noto 的 ttc 布局；
+  Windows 的 `msyh.ttc` 无 index 2 → `OSError: invalid argument`，31 个用例失败。
+- `_support` 新增 `cjk_font_spec()` / `cjk_font()`：逐候选字体、逐 index（0..9）探测可加载的
+  组合并缓存；找不到就 `SkipTest`。`make_text_image()` 与所有遗留硬编码一并改走它。
+- `test_posix_falls_back_to_common_font_dirs` 加 POSIX 条件。
+
+### 可复现性
+
+- 新增 `IMG_P_TEST_NO_CJK_FONT=1`：本地模拟"机器上没有中文字体"，
+  `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` → 230 passed / 104 skipped / 0 failed。
+- `tools/check_guards.py` 新增第 13 项「测试字体」：AST 扫描用例里的
+  `ImageFont.truetype(FONT_CJK…)` 调用，出现即红（文档串里的示例不会误报）。
+
 ## 2026-11-18 — 目录树文档 folders.md
 
 ### 新增

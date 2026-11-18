@@ -13,6 +13,7 @@
   版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
   名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
   目录树    `docs/managements/folders.md` 必须覆盖所有源文件与文档（新增文件要同步）
+  测试字体  用例不得硬编码 `ImageFont.truetype(FONT_CJK…, index=…)`，必须走 `cjk_font()`
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
   scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
@@ -282,6 +283,45 @@ def tree_paths(text: str) -> set[str]:
     return paths
 
 
+def _hardcoded_font_lines(text: str) -> list[int]:
+    """找出 `ImageFont.truetype(FONT_CJK…, …)` 这类调用（走 AST，不会误报文档串里的示例）。"""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    lines: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        fn = node.func
+        if not (isinstance(fn, ast.Attribute) and fn.attr == "truetype"):
+            continue
+        if not node.args or not isinstance(node.args[0], ast.Name):
+            continue
+        if node.args[0].id in ("FONT_CJK", "FONT_CJK_REG"):
+            lines.append(node.lineno)
+    return lines
+
+
+def check_test_font_usage() -> list[str]:
+    """用例里的字体必须走 `_support.cjk_font()`。
+
+    硬编码 `ImageFont.truetype(FONT_CJK, size, index=2)` 假设了 Noto 的 ttc 布局：
+    在 Windows（msyh.ttc）或精简镜像上会 `OSError: invalid argument`，整套用例连带失败。
+    `cjk_font()` 会逐个候选字体、逐个 index 试，找不到就 SkipTest。
+    """
+    problems = []
+    for path in sorted((SRC / "test").rglob("*.py")):
+        if path.name == "_support.py":
+            continue
+        for lineno in _hardcoded_font_lines(_read(path)):
+            problems.append(
+                f"{path.relative_to(ROOT)}:{lineno} 硬编码字体 index，"
+                "请改用 _support.cjk_font(size)"
+            )
+    return problems
+
+
 def check_folders_doc() -> list[str]:
     """目录树文档必须覆盖所有源文件/文档：新增或移动文件时忘了同步，这里会红。
 
@@ -400,6 +440,7 @@ CHECKS = [
     ("版本号", check_version_consistency),
     ("名称", check_name_consistency),
     ("目录树文档", check_folders_doc),
+    ("测试字体", check_test_font_usage),
     ("依赖锁", check_constraints),
     ("PS 编码", check_windows_scripts),
     ("scripts 薄壳", check_scripts_are_launchers),

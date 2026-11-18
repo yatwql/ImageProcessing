@@ -61,13 +61,53 @@ def ocr_available() -> bool:
     return True
 
 
+FORCE_NO_FONT = os.environ.get("IMG_P_TEST_NO_CJK_FONT") == "1"
+_FONT_CACHE: dict[tuple[str, bool], tuple[str, int] | None] = {}
+
+
+def _usable_font(paths: Sequence[str]) -> tuple[str, int] | None:
+    """在候选字体里找一个真的能加载的 (path, ttc index)。
+
+    Windows / 精简 Linux 镜像上，字体文件可能不存在，或 ttc 里没有我们假设的 index
+    （`index=2` 在 msyh.ttc 上就是 `OSError: invalid argument`）——逐个 index 试过去。
+    """
+    for path in paths:
+        for index in range(10):
+            try:
+                ImageFont.truetype(path, 12, index=index)
+            except OSError:
+                continue
+            return path, index
+    return None
+
+
+def cjk_font_spec(regular: bool = False) -> tuple[str, int]:
+    """可用的 CJK 字体 (path, index)；当前环境没有就 SkipTest（而不是让整套用例红）。"""
+    if FORCE_NO_FONT:
+        raise unittest.SkipTest("IMG_P_TEST_NO_CJK_FONT=1（模拟无 CJK 字体的环境）")
+    key = (FONT_CJK_REG if regular else FONT_CJK, regular)
+    if key not in _FONT_CACHE:
+        paths = (FONT_CJK_REG, FONT_CJK) if regular else (FONT_CJK, FONT_CJK_REG)
+        _FONT_CACHE[key] = _usable_font(paths)
+    spec = _FONT_CACHE[key]
+    if spec is None:
+        raise unittest.SkipTest("当前环境没有可用的 CJK 字体（装 fonts-noto-cjk 或换平台）")
+    return spec
+
+
+def cjk_font(size: int, *, regular: bool = False) -> ImageFont.FreeTypeFont:
+    path, index = cjk_font_spec(regular)
+    return ImageFont.truetype(path, size, index=index)
+
+
 def has_cjk_font() -> bool:
-    """字体不只是存在，还要真的能打开（CI 上常见"路径存在但字体损坏/是符号链接"）。"""
-    for path in (FONT_CJK, FONT_CJK_REG):
-        try:
-            ImageFont.truetype(path, 12)
-        except OSError:
-            return False
+    """是否有可用的 CJK 字体（就地试加载，索引也试过）。"""
+    if FORCE_NO_FONT:
+        return False
+    try:
+        cjk_font_spec()
+    except unittest.SkipTest:
+        return False
     return True
 
 
@@ -216,7 +256,11 @@ def make_text_image(
     index: int = 0,
 ) -> tuple[np.ndarray, list[tuple[str, Rect]]]:
     """按行画一张白底图，返回 (rgb ndarray, [(文字, (x, y, w, h))])。"""
-    font = ImageFont.truetype(font_path or FONT_CJK, size, index=index)
+    if font_path is None:
+        path, idx = cjk_font_spec()
+        font = ImageFont.truetype(path, size, index=idx)
+    else:
+        font = ImageFont.truetype(font_path, size, index=index)
     width = margin * 2 + max(1, max(len(s) for s in lines)) * size
     height = margin * 2 + line_gap * len(lines)
     img = Image.new("RGB", (width, height), bg)

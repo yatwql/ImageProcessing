@@ -102,3 +102,4 @@
 | PLAN-68 | scripts 只留 .sh/.ps1 | 删 `scripts/log-query.py`，新增 `log-query.sh` / `log-query.ps1`；守护「scripts 薄壳」收紧为只允许 .sh/.ps1 | 完成 |
 | PLAN-69 | 更名 runTest | `scripts/test.{sh,ps1}` → `scripts/runTest.{sh,ps1}`，全仓库引用与文档同步；CI windows 安装步骤改 `shell: bash`（修 `Directory '\'`） | 完成 |
 | PLAN-70 | 目录树文档 | 新增 `docs/managements/folders.md`：项目统计表 + 逐行注释的目录树（110 条）+ 排除项 + 维护规则；守护新增「目录树文档」，解析树层级还原路径逐个核对 | 完成 |
+| PLAN-71 | 字体探测与本地复现 | `_support.cjk_font()/cjk_font_spec()` 逐候选字体 + 逐 ttc index 探测，找不到即 SkipTest；`IMG_P_TEST_NO_CJK_FONT=1` 本地模拟无字体环境；`make_text_image` 也改走它；守护新增第 13 项「测试字体」禁止硬编码 index | 完成 |

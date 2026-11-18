@@ -10,17 +10,17 @@ from __future__ import annotations
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from src.python.core import analyze
 from src.python.core.edit import erase
-from src.test._support import FONT_CJK, has_cjk_font
+from src.test._support import cjk_font, has_cjk_font
 
 
 def draw_on(background: np.ndarray, text: str = "年度报告2023") -> tuple[np.ndarray, tuple]:
     img = Image.fromarray(background.copy())
     d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT_CJK, 36, index=2)
+    font = cjk_font(36)
     d.text((40, 40), text, font=font, fill=(30, 30, 30))
     return np.array(img), (36, 36, 320, 52)
 
@@ -68,7 +68,7 @@ class SolidBackground(unittest.TestCase):
         d = ImageDraw.Draw(img)
         d.rectangle([0, 0, 400, 160], fill=(20, 40, 80))
         d.text((40, 40), "年度报告2023",
-               font=ImageFont.truetype(FONT_CJK, 36, index=2), fill=(250, 250, 250))
+               font=cjk_font(36), fill=(250, 250, 250))
         info = analyze(np.array(img), rect)
         if info is None:
             raise AssertionError("analyze 返回 None")

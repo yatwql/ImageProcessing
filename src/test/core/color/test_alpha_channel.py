@@ -9,18 +9,18 @@ import os
 import tempfile
 import unittest
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from src.python.core import Options, analyze, build_font_pool, plan_jobs, replace_image
 from src.python.core.image import load_image, save_image
-from src.test._support import FONT_CJK, has_cjk_font
+from src.test._support import cjk_font, has_cjk_font
 
 
 def transparent_text_image():
     """透明底 + 半透明白字：最容易暴露 alpha 未修复的问题。"""
     img = Image.new("RGBA", (360, 140), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.text((30, 40), "年度报告2023", font=ImageFont.truetype(FONT_CJK, 36, index=2),
+    d.text((30, 40), "年度报告2023", font=cjk_font(36),
            fill=(255, 255, 255, 255))
     return img
 

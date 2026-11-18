@@ -94,7 +94,12 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。
 - **修复缺陷必须补回归用例**（直接断言缺陷场景）；**新增功能必须带用例**；全部用例须保持全绿。
-- `pytest` 与 `unittest` 都能跑；依赖 Noto CJK 字体的用例用 `skipUnless` 保护。
+- `pytest` 与 `unittest` 都能跑；依赖 CJK 字体的用例**必须**走 `_support.cjk_font(size)`：
+  它会逐个候选字体、逐个 ttc index 试，找不到就 `SkipTest`。禁止写
+  `ImageFont.truetype(FONT_CJK, size, index=2)`（守护第 13 项会拦）——
+  Windows 的 `msyh.ttc` 没有 index 2，硬编码就是 `OSError: invalid argument`。
+- 想在本机复现"没有中文字体"的 CI 场景：`IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q`
+  （应全绿，字体相关用例自动 skip）。
 - 像素/浮点比较用容差（`assertAlmostEqual(delta=…)`、`assertLess`），不要 `==` 比两张图。
 - 测试**不得**写项目里的 `data/`、`data/output/`；临时文件一律 `tempfile.TemporaryDirectory()`。
 - 需要 OCR 的用例用 `_support.patch_ocr()` 打桩，别在测试里加载 RapidOCR；

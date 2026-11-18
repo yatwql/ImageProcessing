@@ -10,17 +10,17 @@ import tempfile
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from src.python.cli.main import main as cli_main
 from src.python.core import Job, Options, build_font_pool, plan_jobs, replace_image
-from src.test._support import FONT_CJK, has_cjk_font, regions
+from src.test._support import cjk_font, has_cjk_font, regions
 
 
 def draw_two_lines() -> np.ndarray:
     img = Image.new("RGB", (600, 200), (255, 255, 255))
     d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT_CJK, 36, index=2)
+    font = cjk_font(36)
     d.text((40, 80), "年度报告2023", font=font, fill=(30, 30, 30))
     d.text((40, 140), "其余文字保持不变", font=font, fill=(30, 30, 30))
     return np.array(img)
@@ -61,7 +61,7 @@ class OverwriteGuard(unittest.TestCase):
             path = os.path.join(tmp, "x.png")
             im = Image.new("RGB", (300, 100), (255, 255, 255))
             d = ImageDraw.Draw(im)
-            d.text((20, 30), "2023", font=ImageFont.truetype(FONT_CJK, 34, index=2),
+            d.text((20, 30), "2023", font=cjk_font(34),
                    fill=(20, 20, 20))
             im.save(path)
             with open(path, "rb") as f:

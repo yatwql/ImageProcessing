@@ -167,7 +167,7 @@ class NonAsciiDigits(TuiTestCase):
         app = self.make_app(count=2)
         win = FakeWin([], rows=28, cols=100)
         before = app.sel_row
-        ui.handle(app, win, "²")              # 上标：isdigit() 为真，int() 会炸
+        ui.handle(app, win, "²")  # 上标：isdigit() 为真，int() 会炸
         self.assertEqual(app.sel_row, before, "非 ASCII 数字键应当被忽略")
 
     def test_ascii_digits_still_jump(self):
@@ -182,7 +182,7 @@ class NonBlockingInput(TuiTestCase):
     """主循环必须用超时轮询收键：Windows 首次 OCR 很慢，死等就会"按 q 没反应"。"""
 
     def test_read_key_returns_empty_on_timeout(self):
-        win = FakeWin([None], rows=10, cols=40)      # 队列里是 None ＝ 这一轮没有输入
+        win = FakeWin([None], rows=10, cols=40)  # 队列里是 None ＝ 这一轮没有输入
         self.assertEqual(ui.read_key(win, timeout_ms=10), "")
         self.assertEqual(win.timeout_ms, -1, "读完要把窗口恢复成阻塞模式")
 
@@ -200,7 +200,7 @@ class NonBlockingInput(TuiTestCase):
 
     def test_quit_works_while_ocr_is_still_loading(self):
         app = self.make_app(count=1)
-        app.loading = True                            # 模拟后台识别还没结束
+        app.loading = True  # 模拟后台识别还没结束
         win = FakeWin(["q"], rows=26, cols=100)
         with contextlib.suppress(KeyboardInterrupt):
             ui.loop(win, app)
@@ -232,10 +232,11 @@ class BackgroundLoading(TuiTestCase):
 
         with mock.patch.object(app, "ensure_blocks", side_effect=lambda: release.wait(2)) as spy:
             app.start_loading()
-            app.start_loading()          # 仍在加载中
+            app.start_loading()  # 仍在加载中
             release.set()
             self.assertTrue(app.loaded_event.wait(timeout=2), "后台线程应结束")
         self.assertEqual(spy.call_count, 1)
+
 
 class MapPanelKeys(TuiTestCase):
     def setUp(self):
@@ -373,8 +374,7 @@ class RescanDirectory(TuiTestCase):
         app2.out_dir = os.path.join(self.tmp.name, "out")
         self.assertEqual(app2.images, [], "空目录启动时应没有图片")
 
-        Image.new("RGB", (120, 80), (255, 255, 255)).save(
-            os.path.join(images_dir, "later.png"))
+        Image.new("RGB", (120, 80), (255, 255, 255)).save(os.path.join(images_dir, "later.png"))
         message = app2.rescan()
 
         self.assertEqual(len(app2.images), 1)
@@ -395,8 +395,7 @@ class RescanDirectory(TuiTestCase):
 
         app = self.make_app(count=1)
         assert app.dir is not None
-        Image.new("RGB", (120, 80), (255, 255, 255)).save(
-            os.path.join(app.dir, "added.png"))
+        Image.new("RGB", (120, 80), (255, 255, 255)).save(os.path.join(app.dir, "added.png"))
         win = FakeWin([], rows=28, cols=100)
         ui.handle(app, win, "\x12")
         self.assertEqual(len(app.images), 2)

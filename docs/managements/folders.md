@@ -32,7 +32,7 @@
 ImageProcessing/
 ├── .githooks/                                # git 钩子（core.hooksPath 指向这里）
 │   ├── install-hooks.sh                      # 启用/关闭仓库钩子
-│   └── pre-commit                            # 提交前门禁：ruff → guards → 全量用例
+│   └── pre-commit                            # 提交前门禁：check_all --quick
 ├── .github/
 │   └── workflows/                            # CI 流水线
 │       └── ci.yml                            # CI：test×3 / lint / typecheck / guards / perf / windows
@@ -45,6 +45,7 @@ ImageProcessing/
 ├── docs/                                     # 文档
 │   ├── managements/                          # 管理文档
 │   │   ├── changelog.md                      # 管理文档
+│   │   ├── folders.md                        # 管理文档
 │   │   ├── plan.md                           # 管理文档
 │   │   ├── requirements.md                   # 管理文档
 │   │   ├── review-findings.md                # 管理文档
@@ -135,15 +136,18 @@ ImageProcessing/
 │   │   │   ├── test_cancel_pipeline.py       # 替换过程中的中断：`replace_image(should_stop=...)` 要在块与块之间能停手
 │   │   │   ├── test_config_file.py           # 配置文件（<配置目录>/retype.json，兼容旧 img-p.json）：读取、容错与优先级
 │   │   │   ├── test_error_contract.py        # 错误契约测试：核心层用 CoreError 报可预期失败，不直接退出进程
+│   │   │   ├── test_feature_edges.py         # 功能边界：映射规则、颜色解析、任务构造、日志轮转等容易漏的输入
 │   │   │   ├── test_log_query.py             # 日志查询：按日期/原图/渠道过滤，并汇总替换次数
 │   │   │   ├── test_mapping_rules.py         # 映射规则测试：映射表与文字块如何变成替换任务（Job）
 │   │   │   ├── test_ocr_contract.py          # OCR 封装测试：结果结构、区域裁剪、引擎缺失时的错误契约
+│   │   │   ├── test_platform_stability.py    # 跨平台兼容与稳定性：路径/配置/环境变量、异常契约、幂等与规模
 │   │   │   ├── test_version_display.py       # 版本号：唯一来源、界面可见、每次运行都报、写盘日志记录、文档开头一致
 │   │   │   └── test_write_audit_log.py       # 写盘日志：真实保存图片后必须留下一条可追溯的记录
 │   │   ├── tui/                              # 交互用例
 │   │   │   ├── __init__.py                   # tui 场景测试
 │   │   │   ├── test_apply_and_batch.py       # TUI 执行流程测试：替换当前图、批量确认、重名与覆盖保护
 │   │   │   ├── test_directory_browsing.py    # TUI 目录浏览：左栏同时列出「上级目录 / 子目录 / 图片」，可进入、可回上级
+│   │   │   ├── test_interaction_edges.py     # 交互边界：样式/映射面板的非法输入、目录浏览的边界、批量与取消的组合
 │   │   │   ├── test_key_dispatch.py          # 按键分发：每个键都要落到明确的状态变化，且不越界、不崩
 │   │   │   ├── test_keys_and_navigation.py   # TUI 按键测试：转义序列解码、方向键与别名键导航、数字跳图、Esc 语义
 │   │   │   ├── test_layout_rendering.py      # TUI 布局渲染测试：双栏/单栏切换、窄屏提示、异常不外溢
@@ -155,8 +159,8 @@ ImageProcessing/
 │   │   └── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口
 │   └── __init__.py                           # 项目源码包：src.python 为程序代码，src.test 为测试用例
 ├── tools/                                    # 工程工具，不进运行时包
-│   ├── check_all.py                          # 本地全量门禁：ruff/mypy/guards/perf/用例
-│   ├── check_guards.py                       # 工程守护 12 项
+│   ├── check_all.py                          # 本地全量门禁：ruff/mypy/guards/perf/用例/无字体复跑
+│   ├── check_guards.py                       # 工程守护 13 项
 │   ├── check_perf.py                         # 耗时守卫（四步热路径）
 │   └── run_tests.py                          # 测试编排：报告 / 覆盖率 / 摘要 / 清理
 ├── .gitignore                                # 忽略虚拟环境 / 缓存 / 输出 / 日志

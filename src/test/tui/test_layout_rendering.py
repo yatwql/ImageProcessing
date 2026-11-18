@@ -205,6 +205,19 @@ class ResponsiveLayout(TuiTestCase):
         self.assertIn("图片 1/", text)
         self.assertNotIn("Tab→文字", text, "32~43 列放不下切换提示，只留计数")
 
+    def test_size_marker_survives_a_very_long_output_path(self):
+        """CI 的临时目录比本机深得多：标记不能因为状态行被填满而消失。
+
+        这正是"本机绿、CI 红"的那一处：以前把 [宽x高] 拼在状态文字末尾，长度一超就被裁掉。
+        """
+        app = self.make_app()
+        app.out_dir = "/very/deep/temporary/directory/for/ci/runners/" + "x" * 60
+        app.message = "一个相当长的提示信息" * 4
+        for cols, rows in ((44, 22), (50, 24)):
+            with self.subTest(size=f"{cols}x{rows}"):
+                text = "\n".join(self.render(app, cols, rows).screen)
+                self.assertIn(f"[{cols}x{rows}]", text)
+
     def test_phone_keeps_key_hints_short_enough(self):
         app = self.make_app()
         for cols, rows in self.PHONE:

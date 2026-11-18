@@ -215,6 +215,15 @@
 | RF-94 | 交互缺陷（Windows） | 主循环 `get_wch()` 死等，而首帧里同步跑 OCR；Windows 首次加载 onnxruntime 十几秒，期间按 q / 方向键完全没反应 | `read_key(win, timeout_ms=120)` 超时轮询 + OCR 放后台线程（`App.start_loading()` / `loading` / `loaded_event`）；输入行同源复用 | 已修 |
 | RF-95 | 测试盲区 | 旧用例的 `FakeWin` 在"队列空"时按 timeout 状态抛不同异常，改成轮询后测试会永久转圈；也没有"识别中按 q"的用例 | `FakeWin.get_wch` 语义收紧（`None`＝无输入、队列空＝结束）；新增 `NonBlockingInput` / `BackgroundLoading` 共 6 例 | 已修 |
 
+## 2026-11-18 扩测（功能 / 交互 / 跨平台 / 稳定）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-96 | 缺陷（新用例发现） | `parse_color("#12345")` 被静默截成 `(0x12,0x34,0x05)`；`"300,0,0"` 也照收，颜色完全不对却没有任何提示 | 校验十六进制长度只能是 3/6、字符集必须是十六进制、三分量必须在 0~255，越界抛 `CoreError` | 已修 |
+| RF-97 | 缺陷（新用例发现） | TUI 样式面板设字号时先赋值再校验，`-3` 会被写进 `Options.size`，只留一句提示 | 改为先校验后赋值，非法值保留原设置并提示下限 | 已修 |
+| RF-98 | 健壮性 | 字体池为空（系统无字体 / `--font` 指向坏文件）时 `replace_image` 裸抛 `IndexError`，违反"核心层只抛 CoreError" | 明确抛 `CoreError("没有可用字体…")`，渠道提示一句即可 | 已修 |
+| RF-99 | 测试覆盖 | 功能边界、交互边界、跨平台默认值与稳定性（规模/幂等）几乎空白，只有主流程用例 | 新增 3 个文件 70 例：`core/test_feature_edges.py`、`tui/test_interaction_edges.py`、`core/test_platform_stability.py`（平台分支用 `sys.platform` 打桩，任何系统都能跑） | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

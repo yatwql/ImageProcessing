@@ -109,7 +109,14 @@ def replace_image(
             _log(f"匹配度过低 {fit[4]:.2f}，判定字体不可靠")
             fit = None
         if fit is None:
-            face = FontFace(opts.font, 0) if opts.font else pool[0]
+            if opts.font:
+                face = FontFace(opts.font, 0)
+            elif pool:
+                face = pool[0]
+            else:
+                # 字体池为空（系统没字体 / --font 指向坏文件）时不能裸 IndexError，
+                # 核心层只抛可预期异常，渠道据此提示一句就够
+                raise CoreError("没有可用字体：请用 --font 指定字体文件，或安装中文字体")
             hh = info["ink_box"][3] - info["ink_box"][1]
             size = opts.size or guess_size(hh, face)
             tracking, iou = 0.0, 0.0

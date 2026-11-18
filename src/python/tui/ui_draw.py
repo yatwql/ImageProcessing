@@ -87,9 +87,15 @@ def _draw_footer(win, app: App, h: int, w: int, img) -> None:
     else:
         detail = app.status if not app.images else ""
     put(win, h - 4, 2, detail, w - 4, attr("accent"))
-    size_marker = f"  [{w}x{h}]" if w < 60 else ""
-    put(win, h - 3, 2, _status_text(app, w - 4 - dwidth(size_marker)) + size_marker,
-        w - 4, attr("ok"))
+    # 右上角的 [宽x高] 单独右对齐画：之前的写法把它拼在状态文字末尾，
+    # 路径一长（CI 的临时目录比本机深）就被裁掉——本机绿、CI 红的经典来源。
+    size_marker = f"[{w}x{h}]" if w < 60 else ""
+    marker_cols = dwidth(size_marker) + 1 if size_marker else 0
+    put(win, h - 3, 2, _status_text(app, max(0, w - 4 - marker_cols)), w - 4 - marker_cols,
+        attr("ok"))
+    if size_marker:
+        put(win, h - 3, w - 1 - dwidth(size_marker), size_marker, dwidth(size_marker),
+            attr("dim"))
     put(win, h - 2, 2, f" {_keys_hint(app, w)} ", w - 4, attr("sel"))
 
 

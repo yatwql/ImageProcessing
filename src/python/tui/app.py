@@ -389,9 +389,14 @@ class App:
                         return f"找不到字体文件: {text}"
                     self.opts.font = text
             elif key == "size":
-                self.opts.size = None if auto else int(text)
-                if self.opts.size is not None and self.opts.size < 6:
-                    return "字号至少要 6"
+                # 先校验再赋值：否则 -3 这类非法值会先写进去，提示完界面已经带着坏设置了
+                if auto:
+                    self.opts.size = None
+                else:
+                    size = int(text)
+                    if size < 6:
+                        return f"字号至少要 6（当前 {self.setting_value(key)}）"
+                    self.opts.size = size
             elif key == "color":
                 if auto:
                     self.opts.color = None

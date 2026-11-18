@@ -107,3 +107,6 @@
 | PLAN-73 | 本地对齐 CI | `tools/check_all.py`：ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑（`--quick` 跳过末两项）；提交前钩子改调 `--quick` | 完成 |
 | PLAN-74 | 窄屏尺寸标记归位 | 标题变长后 `[宽x高]` 改由底部状态行显示，44/50 列布局用例恢复 | 完成 |
 | PLAN-75 | Windows TUI 响应 | 主循环改超时轮询（120ms）、OCR 放后台线程；新增 6 个用例覆盖"识别中按 q""无输入重画""后台只跑一次" | 完成 |
+| PLAN-76 | 扩测（功能） | `test_feature_edges.py`：映射规则/颜色解析/区域任务/日志轮转/格式表与质量校验 | 完成 |
+| PLAN-77 | 扩测（交互） | `test_interaction_edges.py`：样式面板非法输入与全角数字、映射增删改与坏 JSON、目录边界、批量取消与翻页/等价键 | 完成 |
+| PLAN-78 | 扩测（跨平台/稳定） | `test_platform_stability.py`：平台默认值打桩、配置解析与编码、路径处理与原子占名、CoreError 契约、40 块规模与字节级幂等 | 完成 |

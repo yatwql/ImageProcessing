@@ -17,10 +17,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, dev]   # master = 已发布，dev = 日常开发；旧 main 已改名
     tags: ["v*"]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 # 同一分支连续推送时取消旧 run：runner 不排队空跑，失败反馈也不会被新提交掩盖。
 # 标签构建不取消（发布不能被打断）。

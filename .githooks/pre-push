@@ -22,4 +22,4 @@ if [ ! -x "$PY" ]; then
 fi
 
 echo "[pre-push] check_all（全量：覆盖率 + 无字体复跑）"
-exec "$PY" tools/check_all.py
+exec "$PY" -m src.python.tools.check_all

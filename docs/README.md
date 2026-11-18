@@ -2,7 +2,7 @@
 
 > 版本：v0.1
 
-本仓所有文档的入口。`tools/check_guards.py` 的第 15 项「文档索引」会核对：
+本仓所有文档的入口。`src/python/tools/check_guards.py` 的第 15 项「文档索引」会核对：
 每份管理文档与手册都必须出现在下表中，否则即红。
 
 ## 面向使用者
@@ -20,8 +20,8 @@
 | [技术设计](managements/technical.md) | 分层、模块表、算法与阈值、性能与测试策略、扩展点 |
 | [架构约束与设计契约](managements/contracts.md) | 依赖方向（AR-x）、核心 API/CLI/数据/界面契约、版本兼容策略 |
 | [测试计划与质量标准](managements/testplan.md) | 质量目标 QG-1..9、门禁分层 P0/P1/P2、13 类测试职责、用例规范、缺陷分级 |
-| [覆盖率与分组统计](managements/test-coverage.md) | 覆盖率报告、模块门槛、场景/单元测试分组（`tools/coverage_report.py` 生成） |
-| [发布流程](managements/releasing.md) | `tools/release.py` 六个子命令、发布前检查清单、回滚方式 |
+| [覆盖率与分组统计](managements/test-coverage.md) | 覆盖率报告、模块门槛、场景/单元测试分组（`src/python/tools/coverage_report.py` 生成） |
+| [发布流程](managements/releasing.md) | `src/python/tools/release.py` 六个子命令、发布前检查清单、回滚方式 |
 | [计划任务](managements/plan.md) | `PLAN-x` 任务与验收口径 |
 | [变更记录](managements/changelog.md) | 按时间倒序的实质变更 |
 | [自检记录与缺陷](managements/review-findings.md) | `RF-x` 缺陷、技术债与验证记录 |

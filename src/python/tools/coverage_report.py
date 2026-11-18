@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 COVERAGE = ROOT / "reports" / "coverage.xml"
 JUNIT = ROOT / "reports" / "junit.xml"
 OUTPUT = ROOT / "docs" / "managements" / "test-coverage.md"

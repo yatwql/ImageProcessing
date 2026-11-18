@@ -5,6 +5,21 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 开发工具迁入 src/python/tools
+
+### 变更
+
+- `tools/*.py`（12 个：守护、覆盖率门禁与报告、耗时守卫、测试编排、工作流自检、导入方向、
+  环境指纹、发布、变异、约束升级）整体迁到 `src/python/tools/`，根目录不再有 `tools/`。
+- `pyproject.toml`：`packages.find.exclude = ["src.python.tools*"]`（不进发行包）、
+  `coverage.omit = ["src/python/tools/*"]`（工具由 CI 自身驱动，不纳入覆盖率）。
+- 调用一律改成模块形式：`python -m src.python.tools.check_all` /
+  `...check_guards` / `...run_tests` / `...release`；`scripts/runTest.*`、`launch` 的 test 渠道、
+  CI 与两个钩子全部同步。
+- 导入方向新约束 AR-8：`core`/`cli`/`tui` 不得反向依赖 `src.python.tools`（否则发行包会拖上
+  `gh`/`pip-audit`/bash 这类只在 CI 需要的东西），由 `check_import_surface.py` 校验。
+- `test_coverage_gaps3.py` 超过 1000 行上限 → 拆成 `gaps3` / `gaps4`（守护要求单文件 ≤1000 行）。
+
 ## 2026-11-18 — 覆盖率冲刺：84% → 96%
 
 ### 新增测试（83 例，6 个文件）
@@ -22,7 +37,7 @@
 ### 变更
 
 - 删除 `cli/main.py` 中 `reserve_path` 之后重复的 `same_file` 判断（不可达的死代码）。
-- 覆盖率门槛：`fail_under` 75 → **96**，`tools/check_coverage.py` 与 `coverage_report.py` 的
+- 覆盖率门槛：`fail_under` 75 → **96**，`src/python/tools/check_coverage.py` 与 `coverage_report.py` 的
   `TOTAL_MIN` 同步；`coverage` 改为只统计行覆盖（分支覆盖在平台分支上无法收敛，仍可 `--cov-branch` 查看）。
 
 ### 未覆盖残余（4 行，已记录）
@@ -39,8 +54,8 @@
   §2 核心 API / CLI / 数据 / 界面四类契约、§3 版本与兼容策略、§4 扩展点、§5 约束与守护对照。
 - `docs/managements/releasing.md`：六步发布流程（check/prepare/gate/build/tag/publish）、
   版本策略、发布前清单、CI 侧发布、回滚方式。
-- `tools/release.py`：上述六步的可执行编排；`tag`/`publish` 等有副作用的步骤必须 `--yes`。
-- `tools/check_import_surface.py`：AST 检查导入方向——`core` 不导入 `cli`/`tui`，`cli`/`tui` 互不导入。
+- `src/python/tools/release.py`：上述六步的可执行编排；`tag`/`publish` 等有副作用的步骤必须 `--yes`。
+- `src/python/tools/check_import_surface.py`：AST 检查导入方向——`core` 不导入 `cli`/`tui`，`cli`/`tui` 互不导入。
 - `docs/README.md`：全仓文档索引。
 - CI `release` 作业：推 `v*` 标签时跑全量门禁 → 构建 wheel/sdist + SHA256SUMS → `gh release create --verify-tag`。
 
@@ -78,7 +93,7 @@
 
 ### 变更
 
-- `tools/check_coverage.py` 与 `tools/coverage_report.py` 的 `MODULE_MIN` 新增 7 项
+- `src/python/tools/check_coverage.py` 与 `src/python/tools/coverage_report.py` 的 `MODULE_MIN` 新增 7 项
   （bootstrap/launch/ui/ui_base/ui_input/cli-main/log_query），贴实测下沿防回落。
 - `testplan.md` 的 QG-4 与门槛说明同步；`technical.md` 用例对照表补两个文件。
 
@@ -90,8 +105,8 @@
   13 类测试的职责与位置、用例编写十条规范、覆盖率/性能/跨平台标准、缺陷分级（P0/P1/P2）、
   质量产物清单、合并前检查清单。
 - `docs/managements/test-coverage.md`：覆盖率与分组统计（总览、模块覆盖率带门槛、包级汇总、
-  场景测试分组、单元测试分组、薄弱点 top10），由 `tools/coverage_report.py --write` 生成。
-- `tools/coverage_report.py`：读 `reports/{coverage,junit}.xml` 输出上述报告；
+  场景测试分组、单元测试分组、薄弱点 top10），由 `src/python/tools/coverage_report.py --write` 生成。
+- `src/python/tools/coverage_report.py`：读 `reports/{coverage,junit}.xml` 输出上述报告；
   `--write` 落盘，不带参数只打印。
 - `src/test/cli/test_log_query_cli.py`：8 例覆盖日志查询命令（过滤/`--json`/坏日期/无匹配/`--help`）。
 
@@ -128,11 +143,11 @@
 - 属性测试 `src/test/core/test_properties.py`（hypothesis）：`norm_map` 下标可回溯、
   `cut/pad` 不超预算、`parse_color` 只有合法三元组或 `CoreError`、`unique_path` 不吞扩展名、
   `plan_jobs` 的 span 精准切片。
-- `tools/check_coverage.py`：总量 ≥75%，`core/match|options` ≥90%，`core/edit|render|image|audit`
+- `src/python/tools/check_coverage.py`：总量 ≥75%，`core/match|options` ≥90%，`core/edit|render|image|audit`
   与 `tui/ui_draw` ≥85%，`tui/app|ui_actions` ≥80%，正常模式 skip ≤15%；接入 `check_all`。
 - `.githooks/pre-push`：推送前跑 `check_all` 全量（含覆盖率与无字体复跑）。
-- `tools/mutation_check.py`：mutmut 试点脚本（opt-in），先跑 `core/match.py`。
-- `tools/update_constraints.py`：`--check` 看可升级项、`--write` 按当前环境重写锁定（保留分档标记）。
+- `src/python/tools/mutation_check.py`：mutmut 试点脚本（opt-in），先跑 `core/match.py`。
+- `src/python/tools/update_constraints.py`：`--check` 看可升级项、`--write` 按当前环境重写锁定（保留分档标记）。
 - `src/test/cli/test_entry_smoke.py`：11 例入口冒烟（`--version/--help/launch` 错误码、tools `--help`、
   shell 薄壳语法检查）。
 - CI：新增 `audit` 作业（`pip-audit --strict`）、环境指纹（python/platform/pip freeze/字体清单）
@@ -186,9 +201,9 @@
 
 ### 新增
 
-- `tools/check_all.py`：本机跑完 CI 的全部检查——ruff → mypy → guards → perf →
+- `src/python/tools/check_all.py`：本机跑完 CI 的全部检查——ruff → mypy → guards → perf →
   用例（含覆盖率）→ "无中文字体"复跑；`--quick` 跳过后两项。失败即停，最后打印"全部通过 ✅"。
-- 提交前钩子改为执行 `tools/check_all.py --quick`：提交一次就等于跑了一遍 CI 的静态与用例部分。
+- 提交前钩子改为执行 `src/python/tools/check_all.py --quick`：提交一次就等于跑了一遍 CI 的静态与用例部分。
 
 ### 修复（本轮真实暴露）
 
@@ -203,7 +218,7 @@
   TUI 标题 `retype v0.1 (2026-11-18) · 图片文字替换`、帮助页首行、CLI 横幅与 `--version`
   都带上它。
 - 写盘日志新增 `app_updated` 字段（与 `app` / `app_version` 并列）。
-- `tools/check_guards.py`：`UPDATED` 必须与 `git log -1 --format=%cs -- src` 一致，
+- `src/python/tools/check_guards.py`：`UPDATED` 必须与 `git log -1 --format=%cs -- src` 一致，
   改了代码忘了改日期即红（无 git 时跳过）。
 - 新增 5 个用例：标题 / 帮助页 / 日志字段 / `--version` / 日期格式。
 
@@ -221,7 +236,7 @@
 
 - 新增 `IMG_P_TEST_NO_CJK_FONT=1`：本地模拟"机器上没有中文字体"，
   `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` → 230 passed / 104 skipped / 0 failed。
-- `tools/check_guards.py` 新增第 13 项「测试字体」：AST 扫描用例里的
+- `src/python/tools/check_guards.py` 新增第 13 项「测试字体」：AST 扫描用例里的
   `ImageFont.truetype(FONT_CJK…)` 调用，出现即红（文档串里的示例不会误报）。
 
 ## 2026-11-18 — 目录树文档 folders.md
@@ -231,8 +246,8 @@
 - `docs/managements/folders.md`（对齐 investor-review 的写法）：项目统计表（按类别：主程序 /
   测试 / 工具 / 脚本 / CI / 文档 / 示例图，含文件数与行数）+ 逐行注释的目录树（109 个跟踪文件）
   + 排除项表（`data/output`、`logs`、`/data/tmp`、`/test-reports`、字体缓存、`.venv`）+ 维护规则。
-- `tools/check_guards.py` 第 12 项「目录树文档」：解析树状图的缩进还原完整路径，逐个核对
-  `src/`、`tools/`、`scripts/`、`docs/`、`.githooks/`、`.github/` 与根文件，缺一个即红。
+- `src/python/tools/check_guards.py` 第 12 项「目录树文档」：解析树状图的缩进还原完整路径，逐个核对
+  `src/`、`src/python/tools/`、`scripts/`、`docs/`、`.githooks/`、`.github/` 与根文件，缺一个即红。
 
 ### 变更
 
@@ -246,7 +261,7 @@
 - `scripts/` 里不留 `.py`：`scripts/log-query.py` 删除，改由 `scripts/log-query.sh` /
   `log-query.ps1` 调用 `python -m src.python.launch log-query`（逻辑仍在 `src/python/cli/log_query.py`）。
 - `scripts/test.sh` / `test.ps1` 更名为 `scripts/runTest.sh` / `runTest.ps1`（实际执行的是
-  `tools/run_tests.py`，避免"脚本名=测试框架名"的误导）。
+  `src/python/tools/run_tests.py`，避免"脚本名=测试框架名"的误导）。
 - 守护 `scripts 薄壳` 收紧：`scripts/` 只允许 `.sh` / `.ps1`，出现 `.py` 直接报错。
 - CI windows 作业的安装步骤改用 `shell: bash`：Windows 默认 PowerShell 把反斜杠续行当成参数，
   会报 `Directory '\' is not installable`。
@@ -296,16 +311,16 @@
 - 修正历史残留：字体缓存路径 `~/.cache/img-p` → `~/.cache/retype`（CLAUDE.md、technical.md）；
   门禁"六项" → "十二项"（requirements NFR-4、review-findings RF-43）；
   `mypy 守 core` → `mypy 全树`。
-- 目录结构补全新分层：`tools/`（check_guards / check_perf / run_tests）、
+- 目录结构补全新分层：`src/python/tools/`（check_guards / check_perf / run_tests）、
   `src/python/{bootstrap,launch}.py`、`src/python/cli/log_query.py`、`src/python/tui/browse.py`、
-  `ui_base/ui_draw/ui_input/ui_actions`；命令示例同步为 `tools/check_guards.py`。
+  `ui_base/ui_draw/ui_input/ui_actions`；命令示例同步为 `src/python/tools/check_guards.py`。
 - requirements 新增 FR-12.6（名称一致）与 FR-13（界面自适应：宽屏双栏 / 窄屏单栏 /
   极窄收缩 / 状态可见），验收口径补到需求侧。
 - technical 补「用例对照表」：28 个测试文件 → 需求/约束。
 
 ### 验证
 
-- `tools/check_guards.py` 12/12（含「版本号」与「名称」一致性检查）、
+- `src/python/tools/check_guards.py` 12/12（含「版本号」与「名称」一致性检查）、
   `ruff` 零告警、`mypy` 79 文件零错误、全量用例 357 passed。
 
 ## 2026-11-17 — 技术债清理与架构核查
@@ -313,7 +328,7 @@
 ### 变更
 
 - 新增 `src/python/tui/browse.py`：目录扫描/首张图定位抽成纯函数，`App` 从 637 行降到 615 行且只留状态与动作。
-- `tools/run_tests.py`：删掉 `shutil.which("true")` 死条件；`ui_draw` 删掉 `_row` 空壳转发。
+- `src/python/tools/run_tests.py`：删掉 `shutil.which("true")` 死条件；`ui_draw` 删掉 `_row` 空壳转发。
 - `ui_actions`：面板分发改 `PANEL_HANDLERS` 查表（表在模块末尾定义）。
 - 修缺陷：数字键判断从 `str.isdigit()` 改为 ASCII 白名单——上标「²」会通过 `isdigit()` 但
   `int("²")` 抛异常，一次误触就能把界面打崩；补回归用例。
@@ -392,14 +407,14 @@
 
 ### 变更
 
-- `tools/`（新增）：`check_guards.py`（原 `scripts/check-guards.py`）、`check_perf.py`
+- `src/python/tools/`（新增）：`check_guards.py`（原 `scripts/check-guards.py`）、`check_perf.py`
   （原 `scripts/check-perf.py`）、`run_tests.py`（从 `scripts/runTest.sh` 抽出的编排逻辑）。
 - `src/python/cli/log_query.py`（新增）：日志查询实现，`scripts/log-query.py` 变薄壳。
 - `src/python/bootstrap.py`（新增）：环境引导（建 venv、按 constraints 装依赖、写默认配置），
   只用标准库，可被系统 Python 直接调用。
 - `scripts/{setup,test}.sh`、`scripts/{setup,test}.ps1`：132/149/44/68 行 → 13/29/14/26 行，
   只负责找解释器与转交。
-- `tools/check_guards.py` 新增第 10 项「scripts 薄壳」：单文件 >40 行即红。
+- `src/python/tools/check_guards.py` 新增第 10 项「scripts 薄壳」：单文件 >40 行即红。
 - `pyproject.toml` 的 mypy 覆盖范围加上 `tools`。
 
 ### 验证
@@ -413,7 +428,7 @@
 
 - `scripts/{cli,setup,test,tui}.ps1` 全部改为 UTF-8 with BOM：PowerShell 5.1 对无 BOM 文件按
   ANSI 解码，中文提示会显示成「缂哄皯杩愯鐜」这类乱码。
-- `tools/check_guards.py` 新增第 9 项「PS 编码」。
+- `src/python/tools/check_guards.py` 新增第 9 项「PS 编码」。
 - 手册补「Windows 注意事项」：先跑 `setup.ps1`、BOM 要求、`windows-curses` 由平台标记安装。
 
 ## 2026-11-17 — 依赖锁定、单图内中断、交互用例补齐
@@ -423,7 +438,7 @@
 - `constraints.txt`：精确固定直接与传递依赖；`setup.sh` / `setup.ps1` / CI 全部改用
   `pip install -c constraints.txt`，升级路径写进文件头注释。
 - `core.replace_image(should_stop=...)`：每处理一块之前询问回调，停手时保留已完成块。
-- `tools/check_guards.py` 第 8 项：依赖锁（全部 `==` 且覆盖 pyproject 的直接依赖）。
+- `src/python/tools/check_guards.py` 第 8 项：依赖锁（全部 `==` 且覆盖 pyproject 的直接依赖）。
 - `src/test/tui/test_key_dispatch.py`：主界面 / 全局映射 / 样式选项三块面板的逐键用例 +
   批量中断；`src/test/core/test_cancel_pipeline.py`：核心层中断语义。
 
@@ -449,7 +464,7 @@
 - TUI：进 curses 前打印同一行；标题栏显示 `文字替换 v0.1`，帮助页首行带版本。
 - 写盘日志：每条记录新增 `app_version` 字段。
 - 8 份文档（README、CLAUDE.md、三份管理文档、手册）开头统一 `> 版本：v0.1`。
-- `tools/check_guards.py` 新增第 7 项：版本一致性（version.py / pyproject / 文档）。
+- `src/python/tools/check_guards.py` 新增第 7 项：版本一致性（version.py / pyproject / 文档）。
 - `src/test/core/test_version_display.py`：8 个用例固定上述链路。
 
 ### 变更
@@ -460,7 +475,7 @@
 ### 验证
 
 - `ruff check src/ scripts/` 零告警；`python -m mypy` 全树 71 文件零错误；
-  `tools/check_guards.py` 7/7；`pytest src/test -q` 全绿（含新增版本用例）。
+  `src/python/tools/check_guards.py` 7/7；`pytest src/test -q` 全绿（含新增版本用例）。
 
 ## 2026-11-10 — 工程化整改（配置/CI/门禁/分层/画质/可观测）
 
@@ -470,7 +485,7 @@
   `requirements.txt` / `requirements-dev.txt` 改为 `-e .` / `-e .[dev]`。
 - `.github/workflows/ci.yml`：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf。
 - `.githooks/pre-commit` + `install-hooks.sh`：提交前 ruff → guards → 全量用例。
-- `tools/check_guards.py`（编号/分层/文件长度/显式编码/测试目录/空包）、`tools/check_perf.py`（四步热路径）、
+- `src/python/tools/check_guards.py`（编号/分层/文件长度/显式编码/测试目录/空包）、`src/python/tools/check_perf.py`（四步热路径）、
   `scripts/log-query.py`（按原图/日期/渠道查写盘记录，支持 `--json`）。
 - `core.audit.read_entries/summarize`（坏行跳过）、`record_write(when=)` 显式时间。
 - `core.edit.inpaint_radius` 与常量 `INPAINT_RADIUS_MIN/MAX/STROKE_FACTOR`（4 / 14 / 0.75）。
@@ -486,8 +501,8 @@
 
 ### 验证
 
-- `ruff check src/ scripts/` 零告警；`python -m mypy` 零错误；`tools/check_guards.py` 6/6；
-  `tools/check_perf.py` 合计约 0.6s（上限 6s）；`pytest src/test -q` 全绿。
+- `ruff check src/ scripts/` 零告警；`python -m mypy` 零错误；`src/python/tools/check_guards.py` 6/6；
+  `src/python/tools/check_perf.py` 合计约 0.6s（上限 6s）；`pytest src/test -q` 全绿。
 
 ## 2026-11-10 — 配置、临时目录与仓库清理
 

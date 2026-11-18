@@ -4,13 +4,13 @@
 #   lint       ruff check（阻塞）、ruff format 漂移（只报告，非阻塞）
 #   typecheck  mypy 全树（阻塞）
 #   guards     编号/分层/长度/编码/测试目录/版本/名称/依赖锁/PS编码/薄壳
-#   perf       渲染与擦除的耗时守卫（阈值见 tools/check_perf.py）
+#   perf       渲染与擦除的耗时守卫（阈值见 src/python/tools/check_perf.py）
 #
 # 本地等价命令：
 #   .venv/bin/ruff check src/ scripts/
 #   .venv/bin/python -m mypy
-#   .venv/bin/python tools/check_guards.py
-#   .venv/bin/python tools/check_perf.py
+#   .venv/bin/python -m src.python.tools.check_guards
+#   .venv/bin/python -m src.python.tools.check_perf
 #   .venv/bin/python -m pytest src/test -q
 
 name: CI
@@ -71,7 +71,7 @@ jobs:
       # 出"本机绿 CI 红"时能直接比对，而不是靠猜
       - name: 环境指纹
         if: always()
-        run: python tools/ci_env.py ci-env
+        run: python -m src.python.tools.ci_env ci-env
 
       - name: 上传报告与指纹
         if: always()
@@ -140,7 +140,7 @@ jobs:
           python -m pip install --retries 5 --timeout 60 \
             -c constraints.txt -e ".[dev]"
       - name: 工程守护
-        run: python tools/check_guards.py
+        run: python -m src.python.tools.check_guards
 
   perf:
     runs-on: ubuntu-latest
@@ -156,7 +156,7 @@ jobs:
           python -m pip install --retries 5 --timeout 60 \
             -c constraints.txt -e ".[dev]"
       - name: 渲染/擦除耗时守卫
-        run: python tools/check_perf.py
+        run: python -m src.python.tools.check_perf
 
   windows:
     # Windows 与 Linux 的差异点：curses 实现（windows-curses）与路径/编码，
@@ -184,9 +184,9 @@ jobs:
       - name: 类型检查
         run: python -m mypy
       - name: 工程守护
-        run: python tools/check_guards.py
+        run: python -m src.python.tools.check_guards
       - name: 耗时守卫
-        run: python tools/check_perf.py
+        run: python -m src.python.tools.check_perf
 
   audit:
     # 依赖漏洞审计：装到当前环境的版本（就是 constraints.txt 锁的那套）逐个查 CVE。
@@ -203,8 +203,13 @@ jobs:
         run: |
           python -m pip install --retries 5 --timeout 60 \
             -c constraints.txt -e ".[dev]"
+      # 审计冻结清单而不是当前环境：本地包（editable）不在 PyPI 上，
+      # 直接审计环境会让 pip-audit 以 "distribution marked as editable" 报错退出。
       - name: pip-audit
-        run: python -m pip_audit --strict --skip-editable --progress-spinner off
+        run: |
+          python -m pip freeze | grep -v "^-e" > ci-audit-reqs.txt
+          python -m pip_audit -r ci-audit-reqs.txt --strict \
+            --progress-spinner off
 
   release:
     # 发布：推 v* 标签触发——全量门禁 → 构建 wheel/sdist → 建 GitHub Release。
@@ -229,11 +234,11 @@ jobs:
             -c constraints.txt -e ".[dev]"
           sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
       - name: 发布门禁（全量）
-        run: python tools/check_all.py
+        run: python -m src.python.tools.check_all
       - name: 构建产物
         run: |
           python -m pip install --quiet build
-          python tools/release.py build
+          python -m src.python.tools.release build
       - name: 建 Release 并上传产物
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

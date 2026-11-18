@@ -29,6 +29,7 @@ from ..core import (
     unique_path,
 )
 from ..core.image import IMG_EXTS
+from ..stdio import ensure_utf8_stdio
 from ..version import NAME, UPDATED, VERSION
 
 USAGE = """\
@@ -114,6 +115,7 @@ def announce_version() -> None:
 
 
 def _run(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = build_parser().parse_args(argv)
     announce_version()
 

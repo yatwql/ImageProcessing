@@ -29,7 +29,7 @@ CHANNELS = {
     "cli": (False, ["-m", "src.python.cli"]),
     "tui": (False, ["-m", "src.python.tui"]),
     "log-query": (False, ["-m", "src.python.cli.log_query"]),
-    "test": (True, ["tools/run_tests.py"]),
+    "test": (True, ["-m", "src.python.tools.run_tests"]),
     "setup": (False, ["-m", "src.python.bootstrap"]),
 }
 

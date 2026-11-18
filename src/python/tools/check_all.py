@@ -19,7 +19,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 PY = sys.executable
 
 
@@ -43,10 +43,10 @@ def main(argv: list[str] | None = None) -> int:
     extra = [a for a in args if a not in ("--quick", "--no-font")]
 
     steps: list[tuple[str, list[str], dict[str, str] | None]] = [
-        ("ruff", [PY, "-m", "ruff", "check", "src/", "tools/"], None),
+        ("ruff", [PY, "-m", "ruff", "check", "src/"], None),
         ("mypy", [PY, "-m", "mypy"], None),
-        ("guards", [PY, "tools/check_guards.py"], None),
-        ("perf", [PY, "tools/check_perf.py", "--ci"], None),
+        ("guards", [PY, "-m", "src.python.tools.check_guards"], None),
+        ("perf", [PY, "-m", "src.python.tools.check_perf", "--ci"], None),
     ]
     if quick:
         steps.append(
@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
                 "覆盖率门禁（总量 / 分模块 / skip 比例）",
                 [
                     PY,
-                    "tools/check_coverage.py",
+                    "-m", "src.python.tools.check_coverage",
                     str(reports / "coverage.xml"),
                     str(reports / "junit.xml"),
                 ],

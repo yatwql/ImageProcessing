@@ -2,7 +2,7 @@
 
 被 `src.python.__init__` 再导出为 `__version__` / `__app_name__`；
 命令行横幅与 `--version`、TUI 标题、写盘日志的 `app` 字段、文档开头都引用它，
-`tools/check_guards.py` 会核对它们是否一致。
+`src/python/tools/check_guards.py` 会核对它们是否一致。
 """
 
 from __future__ import annotations

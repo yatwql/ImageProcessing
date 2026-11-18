@@ -9,7 +9,7 @@ retype（图片文字替换）：把图片里指定的一些字换成别的字�
 
 ```text
 scripts/                 只放 .sh/.ps1 薄壳启动脚本（cli/tui/setup/runTest/log-query）
-tools/                   工程工具：check_guards.py / check_perf.py / run_tests.py
+src/python/tools/        工程工具：check_guards / check_perf / check_coverage / run_tests / release …
 .githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
 .github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf /
                          windows（windows-latest 跑全量用例）
@@ -42,7 +42,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳；
   版本组合由 `constraints.txt` 锁定，安装与 CI 都要带 `-c constraints.txt`。
 - 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`）；钩子执行
-  `tools/check_all.py --quick`（ruff/mypy/guards/perf/全量用例），`IMG_P_SKIP_HOOK=1` 临时跳过。
+  `src/python/tools/check_all.py --quick`（ruff/mypy/guards/perf/全量用例），`IMG_P_SKIP_HOOK=1` 临时跳过。
 - 配置文件：`/data/config/retype.json`（模板见 `/data/config/retype.example.json`，可用 `IMG_P_CONFIG` 指定）；
   测试中间文件写 `/data/tmp`，测试报告写 `/test-reports`。
 - 入口：`./scripts/cli.sh`（= `python -m src.python.cli`）、`./scripts/tui.sh`（= `python -m src.python.tui`）；
@@ -51,24 +51,24 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 **推送前只跑一条命令**（与 CI 的七个作业对齐，绿了再推）：
 
 ```bash
-.venv/bin/python tools/check_all.py           # ruff → mypy → guards → perf → 用例(含覆盖率) → 无字体复跑
-.venv/bin/python tools/check_all.py --quick   # 跳过覆盖率与无字体复跑（提交前钩子用这个）
+.venv/bin/python -m src.python.tools.check_all           # ruff → mypy → guards → perf → 用例(含覆盖率) → 无字体复跑
+.venv/bin/python -m src.python.tools.check_all --quick   # 跳过覆盖率与无字体复跑（提交前钩子用这个）
 ```
 
 - 提交前钩子 `pre-commit` 跑 `--quick`，推送前钩子 `pre-push` 跑全量（含覆盖率门禁与无字体复跑）。
 - 覆盖率门禁：总量 ≥75%，且 `core/{match,options}` ≥90%、`core/{edit,render,image,audit,render}` 与
-  `tui/{ui_draw}` ≥85%、`tui/{app,ui_actions}` ≥80%；正常模式 skip ≤15%（`tools/check_coverage.py`）。
+  `tui/{ui_draw}` ≥85%、`tui/{app,ui_actions}` ≥80%；正常模式 skip ≤15%（`src/python/tools/check_coverage.py`）。
 - 界面快照：`src/test/snapshots/tui.json`（5 尺寸 × 8 状态）。有意改界面后
   `UPDATE_SNAPSHOTS=1 .venv/bin/python -m pytest src/test/tui/test_screen_snapshots.py`，
   把快照 diff 一起提交。
-- 变异测试（opt-in）：`python tools/mutation_check.py`（需 `pip install mutmut`），
+- 变异测试（opt-in）：`python -m src.python.tools.mutation_check`（需 `pip install mutmut`），
   先跑 `core/match.py`、`core/options.py`，存活变异体说明断言太松。
 
 ```bash
-.venv/bin/ruff check src/ tools/                                   # 静态检查
+.venv/bin/ruff check src/                                          # 静态检查（含工具）
 .venv/bin/python -m mypy                                              # 类型检查（守 core）
-.venv/bin/python tools/check_guards.py                              # 编号/分层/长度/编码/测试目录
-.venv/bin/python tools/check_perf.py                                # 耗时守卫
+.venv/bin/python -m src.python.tools.check_guards                              # 编号/分层/长度/编码/测试目录
+.venv/bin/python -m src.python.tools.check_perf                                # 耗时守卫
 .venv/bin/python scripts/log-query.py --src 报告                        # 查写盘记录
 .venv/bin/python -m pytest src/test -q                                # 全部用例
 ./scripts/runTest.sh                                                     # 全量用例 + 报告
@@ -106,7 +106,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
      匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
   2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程与中断；
   3. **稳定**（跨档）：错误契约、幂等重跑、输出覆盖保护、缓存失效、异常不外溢。
-- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`tools/check_guards.py` 十项全过、
+- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`src/python/tools/check_guards.py` 十项全过、
   `check-perf.py` 不超阈值、覆盖率不低于 `pyproject.toml` 的 `fail_under`。
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。
@@ -124,10 +124,10 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 ## 文档纪律
 
-- 发布走 `docs/managements/releasing.md` + `tools/release.py`（check → prepare → gate → build → tag → publish）；
+- 发布走 `docs/managements/releasing.md` + `src/python/tools/release.py`（check → prepare → gate → build → tag → publish）；
   文档索引在 `docs/README.md`，新增文档必须加进索引（守护第 15 项）。
 - 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`
-  （后者由 `.venv/bin/python tools/coverage_report.py --write` 生成，别手改数字）。
+  （后者由 `.venv/bin/python -m src.python.tools.coverage_report --write` 生成，别手改数字）。
 - 三份文档随实现同步：
 - `docs/managements/plan.md` 的任务编号一律 `PLAN-x`，`docs/managements/review-findings.md`
   的任务/缺陷编号一律 `RF-x`；两者连续编号、不复用，新增任务只在对应文件里追加。

@@ -22,7 +22,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 VERSION_FILE = ROOT / "src" / "python" / "version.py"
 CHANGELOG = ROOT / "docs" / "managements" / "changelog.md"
 DIST = ROOT / "dist"
@@ -53,7 +53,7 @@ def cmd_check() -> int:
         problems.append(f"UPDATED={updated} 与 src/ 最后提交 {commit_date} 不一致")
     if not re.fullmatch(r"\d+\.\d+", version):
         problems.append(f"版本号格式应为 MAJOR.MINOR，收到 {version!r}")
-    quick = sh([PY, "tools/check_all.py", "--quick"], check=False)
+    quick = sh([PY, "-m", "src.python.tools.check_all", "--quick"], check=False)
     if quick.returncode != 0:
         problems.append("check_all --quick 未通过")
     if problems:
@@ -90,7 +90,7 @@ def cmd_prepare(version: str) -> int:
 
 
 def cmd_gate() -> int:
-    proc = subprocess.run([PY, "tools/check_all.py"], cwd=str(ROOT))
+    proc = subprocess.run([PY, "-m", "src.python.tools.check_all"], cwd=str(ROOT))
     return proc.returncode
 
 

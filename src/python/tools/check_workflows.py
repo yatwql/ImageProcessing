@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 import subprocess
 import sys
@@ -24,7 +25,7 @@ import tempfile
 from collections.abc import Iterator
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 CI = ROOT / ".github" / "workflows" / "ci.yml"
 
 EXPECTED_JOBS = {"test", "lint", "typecheck", "guards", "perf", "windows", "audit", "release"}
@@ -67,18 +68,23 @@ def check_run_blocks(workflow: dict) -> list[str]:
         for snippet in PY_C_SNIPPET.findall(script):
             source = snippet.replace("\\n", "\n")
             try:
-                compile(source, f"<{job_name}/{name}>", "exec")
+                ast.parse(source, filename=f"<{job_name}/{name}>")   # 只解析语法，不执行
             except SyntaxError as exc:
-                problems.append(f"{job_name}/{name}: python -c 片段无法编译（{exc.msg}）")
+                problems.append(f"{job_name}/{name}: python -c 片段语法错误（{exc.msg}）")
     return problems
 
 
 def check_audit_step(workflow: dict) -> list[str]:
+    """audit 必须审计"冻结的依赖清单"：直接审计环境会撞上本地 editable 包而失败。"""
     for _job, step in iter_steps(workflow):
         script = step.get("run")
-        if isinstance(script, str) and "pip_audit" in script and "--skip-editable" not in script:
-            return ["audit 作业必须带 --skip-editable（本地包不在 PyPI 上会让 pip-audit 直接失败）"]
-    return []
+        if isinstance(script, str) and "pip_audit" in script:
+            if "-r " not in script:
+                return ["audit 作业要用 `-r <冻结清单>` 审计依赖，而不是审计当前环境"]
+            if "grep -v \"^-e\"" not in script:
+                return ["audit 作业要先把 editable 安装过滤掉（`pip freeze | grep -v '^-e'`）"]
+            return []
+    return ["缺少 pip-audit 步骤"]
 
 
 def check_release_job(workflow: dict) -> list[str]:

@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 CONSTRAINTS = ROOT / "constraints.txt"
 MARKED = re.compile(r";\s*sys_platform|;\s*python_version")
 PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)")

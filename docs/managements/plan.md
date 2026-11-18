@@ -61,10 +61,10 @@
 | PLAN-27 | 配置单一来源 | `pyproject.toml` 承担依赖、可选依赖 `dev`、ruff、mypy、pytest、coverage；`requirements*.txt` 退化为 `-e .` 兼容壳；`pip install -e .` 可用 | 完成 |
 | PLAN-28 | CI 流水线 | `.github/workflows/ci.yml`：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf 五个作业，测试与覆盖率报告按 Python 版本上传 | 完成 |
 | PLAN-29 | 提交前钩子 | `.githooks/pre-commit` + `install-hooks.sh`：ruff → guards → 全量用例；`IMG_P_SKIP_HOOK=1` 可跳过 | 完成 |
-| PLAN-30 | 工程守护脚本 | `tools/check_guards.py`：编号（PLAN-/RF-）、分层（core 禁 argparse/curses/sys.exit）、单文件 ≤1000 行、文本 I/O 显式 encoding、测试目录与文档一致、无空测试包 | 完成 |
+| PLAN-30 | 工程守护脚本 | `src/python/tools/check_guards.py`：编号（PLAN-/RF-）、分层（core 禁 argparse/curses/sys.exit）、单文件 ≤1000 行、文本 I/O 显式 encoding、测试目录与文档一致、无空测试包 | 完成 |
 | PLAN-31 | 类型检查 | `mypy` 守 `src/python/core`（`disallow_untyped_defs`），渠道层放宽；`python -m mypy` 零错误 | 完成 |
 | PLAN-32 | 覆盖率门禁 | `[tool.coverage.report] fail_under = 75`，CI 跑 `--cov` | 完成 |
-| PLAN-33 | 性能门禁 | `tools/check_perf.py` 钉住 soft_iou / erase / PNG 读写 / 日志追加四步，合计 ≤6s | 完成 |
+| PLAN-33 | 性能门禁 | `src/python/tools/check_perf.py` 钉住 soft_iou / erase / PNG 读写 / 日志追加四步，合计 ≤6s | 完成 |
 | PLAN-34 | 测试目录收敛 | `src/test/image_processing/**` 并入 `src/test/core/**`，删除空包 `degrade/`；文档结构同步 | 完成 |
 | PLAN-35 | TUI 分层 | `ui.py` 856 行拆成 `ui_base` / `ui_draw` / `ui_input` / `ui_actions` + 门面 `ui.py`（每个 <300 行） | 完成 |
 | PLAN-36 | 自适应擦除半径 | `edit.inpaint_radius` 按笔画宽度定半径（4~14），粗笔画不再留糊边 | 完成 |
@@ -81,7 +81,7 @@
 | PLAN-47 | 交互用例补齐 | 新增 `test_key_dispatch.py`（主界面/映射/样式三块面板 + 批量中断）与 `test_cancel_pipeline.py`（核心中断），覆盖率 80% → 84%，`ui_actions.py` 55% → 88%、`ui.py` 64% → 82% | 完成 |
 | PLAN-48 | 契约用例补强 | CLI `--version`、版本横幅只走 stderr、坏图跳过不拖垮整批、日志记录 `app_version` | 完成 |
 | PLAN-49 | Windows 脚本编码 | `scripts/*.ps1` 统一改为 UTF-8 with BOM，修掉 PS 5.1 下「缺少运行环境」等中文提示变乱码的问题；守护新增第 9 项「PS 编码」 | 完成 |
-| PLAN-50 | 目录归位 | `scripts/` 只留薄壳：`check-guards.py`/`check-perf.py` 移到 `tools/`（check_guards.py / check_perf.py），日志查询逻辑进 `src/python/cli/log_query.py`，`scripts/log-query.py` 变壳；`setup`/`test` 逻辑进 `src/python/bootstrap.py` 与 `tools/run_tests.py`，两端 .sh/.ps1 从 44~149 行降到 13~29 行 | 完成 |
+| PLAN-50 | 目录归位 | `scripts/` 只留薄壳：`check-guards.py`/`check-perf.py` 移到 `src/python/tools/`（check_guards.py / check_perf.py），日志查询逻辑进 `src/python/cli/log_query.py`，`scripts/log-query.py` 变壳；`setup`/`test` 逻辑进 `src/python/bootstrap.py` 与 `src/python/tools/run_tests.py`，两端 .sh/.ps1 从 44~149 行降到 13~29 行 | 完成 |
 | PLAN-51 | 守护 | `check_guards.py` 新增「scripts 薄壳」（单文件 ≤40 行），防逻辑再堆回 `scripts/` | 完成 |
 | PLAN-52 | 自动准备环境 | 新增 `src/python/launch.py`：启动脚本先经它探测 `.venv` 与关键依赖，缺则按 `constraints.txt` 自动安装，再 exec 到真实入口；`IMG_P_NO_AUTO_SETUP=1` 可关闭 | 完成 |
 | PLAN-53 | 用具覆盖启动链路 | 新增 `src/test/cli/test_launch_env.py`（12 用例）：渠道分派、参数校验、自动安装开关、缺依赖探测、`--check` 不改环境 | 完成 |
@@ -104,7 +104,7 @@
 | PLAN-70 | 目录树文档 | 新增 `docs/managements/folders.md`：项目统计表 + 逐行注释的目录树（110 条）+ 排除项 + 维护规则；守护新增「目录树文档」，解析树层级还原路径逐个核对 | 完成 |
 | PLAN-71 | 字体探测与本地复现 | `_support.cjk_font()/cjk_font_spec()` 逐候选字体 + 逐 ttc index 探测，找不到即 SkipTest；`IMG_P_TEST_NO_CJK_FONT=1` 本地模拟无字体环境；`make_text_image` 也改走它；守护新增第 13 项「测试字体」禁止硬编码 index | 完成 |
 | PLAN-72 | 代码更新日期 | `version.UPDATED` 展示在 TUI 标题/帮助页/CLI 横幅，并写入日志 `app_updated`；守护核对它与 `src/` 最后提交日期一致 | 完成 |
-| PLAN-73 | 本地对齐 CI | `tools/check_all.py`：ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑（`--quick` 跳过末两项）；提交前钩子改调 `--quick` | 完成 |
+| PLAN-73 | 本地对齐 CI | `src/python/tools/check_all.py`：ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑（`--quick` 跳过末两项）；提交前钩子改调 `--quick` | 完成 |
 | PLAN-74 | 窄屏尺寸标记归位 | 标题变长后 `[宽x高]` 改由底部状态行显示，44/50 列布局用例恢复 | 完成 |
 | PLAN-75 | Windows TUI 响应 | 主循环改超时轮询（120ms）、OCR 放后台线程；新增 6 个用例覆盖"识别中按 q""无输入重画""后台只跑一次" | 完成 |
 | PLAN-76 | 扩测（功能） | `test_feature_edges.py`：映射规则/颜色解析/区域任务/日志轮转/格式表与质量校验 | 完成 |
@@ -113,16 +113,17 @@
 | PLAN-79 | 界面快照 | `src/test/snapshots/tui.json`：5 尺寸 × 8 状态整屏文本；`UPDATE_SNAPSHOTS=1` 更新 | 完成 |
 | PLAN-80 | 属性测试 | `test_properties.py`（hypothesis）：`norm_map` 下标、`cut/pad` 预算、颜色两种结果、`unique_path` 扩展名、`plan_jobs` span | 完成 |
 | PLAN-81 | 推送门禁 | `.githooks/pre-push` 跑 `check_all` 全量；CI 增加环境指纹与失败产物归档 | 完成 |
-| PLAN-82 | 覆盖率分模块 | `tools/check_coverage.py`：总量 75%、9 个高风险模块 80~90%、skip ≤15%；接入 `check_all` | 完成 |
-| PLAN-83 | 变异测试 | `tools/mutation_check.py`（opt-in，mutmut），默认试点 `core/match.py` | 完成 |
-| PLAN-84 | 依赖审计与入口冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（含 shell 薄壳语法检查） | 完成 |
+| PLAN-82 | 覆盖率分模块 | `src/python/tools/check_coverage.py`：总量 75%、9 个高风险模块 80~90%、skip ≤15%；接入 `check_all` | 完成 |
+| PLAN-83 | 变异测试 | `src/python/tools/mutation_check.py`（opt-in，mutmut），默认试点 `core/match.py` | 完成 |
+| PLAN-84 | 依赖审计与入口冒烟 | CI `audit` 作业（pip-audit --strict）、`src/python/tools/update_constraints.py`、`test_entry_smoke.py`（含 shell 薄壳语法检查） | 完成 |
 | PLAN-85 | 文档全面校准（本轮） | 8 份文档对齐当前实现：统计数字（116 个代码/文档文件 14,097 行、含示例图 122 个跟踪文件、436 个 test 函数）、CI 七个作业、用例对照表新增属性/快照/入口冒烟、NFR-12/13（门禁分层与可复现失败）、README 钩子说明 | 完成 |
-| PLAN-86 | 覆盖率文档 | 新增 `docs/managements/test-coverage.md` + `tools/coverage_report.py`（`--write` 生成）：总览、模块覆盖率（带门槛）、包级汇总、场景/单元分组、薄弱点 | 完成 |
+| PLAN-86 | 覆盖率文档 | 新增 `docs/managements/test-coverage.md` + `src/python/tools/coverage_report.py`（`--write` 生成）：总览、模块覆盖率（带门槛）、包级汇总、场景/单元分组、薄弱点 | 完成 |
 | PLAN-87 | 测试计划 | 新增 `docs/managements/testplan.md`：质量目标 QG-1..9、门禁分层 P0/P1/P2、测试分层 13 类、用例编写标准、覆盖率/性能/跨平台标准、缺陷分级、合并前清单 | 完成 |
 | PLAN-88 | 日志查询命令覆盖 | `cli/log_query.py` 覆盖率 0% → 92%：新增 8 例（过滤/`--json`/坏日期/无匹配/`--help`），并修正"指定日期无日志文件"应返回空而不是报错 | 完成 |
 | PLAN-89 | 补测薄弱模块 | `bootstrap.py` 58%→94%、`launch.py` 72%→94%、`tui/ui.py` 60%→95%、`ui_base` 81%、`ui_input` 81%（新增 57 例：平台路径、依赖安装分支、入口分支/退出码、主循环异常、Esc 序列、绘制件边界）；总覆盖率 84%→88.8% | 完成 |
 | PLAN-90 | 门槛收紧 | `MODULE_MIN` 新增 bootstrap/launch/ui/ui_base/ui_input/cli-main/log_query 七项，贴实测下沿防回落 | 完成 |
-| PLAN-91 | 架构约束可执行 | 新增 `tools/check_import_surface.py`（core 不导入 cli/tui、渠道互不导入），并入守护第 14 项；`contracts.md` 写清 AR-1..7 与 API/CLI/数据/界面契约 | 完成 |
+| PLAN-91 | 架构约束可执行 | 新增 `src/python/tools/check_import_surface.py`（core 不导入 cli/tui、渠道互不导入），并入守护第 14 项；`contracts.md` 写清 AR-1..7 与 API/CLI/数据/界面契约 | 完成 |
 | PLAN-92 | 文档索引 | 新增 `docs/README.md` 统一索引 + 守护第 15 项（每份管理文档/手册必须被索引引用） | 完成 |
-| PLAN-93 | 发布流程 | 新增 `tools/release.py`（check/prepare/gate/build/tag/publish，副作用步骤需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（推 `v*` 标签：全量门禁 → 构建 → 建 Release） | 完成 |
+| PLAN-93 | 发布流程 | 新增 `src/python/tools/release.py`（check/prepare/gate/build/tag/publish，副作用步骤需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（推 `v*` 标签：全量门禁 → 构建 → 建 Release） | 完成 |
 | PLAN-94 | 覆盖率冲刺 | 新增 6 个补测文件（gaps1..3 共 83 例）：错误分支/空输入/平台分支/终端异常/入口薄壳；总量 84% → 96%，门槛 75% → 96%（`fail_under` 与 `check_coverage.TOTAL_MIN` 同步） | 完成 |
+| PLAN-95 | 工具归位 | `tools/*.py` 迁到 `src/python/tools/`（12 个模块），排除出发行包与覆盖率；调用改为 `python -m src.python.tools.x`；新增 AR-8（产品代码不得反向依赖工具）；过长的 gaps3 拆成 gaps3/gaps4 | 完成 |

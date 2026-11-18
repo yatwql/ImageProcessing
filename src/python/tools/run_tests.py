@@ -18,7 +18,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 TMP_ROOT = Path(os.environ.get("IMG_P_TMP_DIR", "/data/tmp"))
 REPORT_DIR_FALLBACK = ROOT / "reports"
 

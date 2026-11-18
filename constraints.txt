@@ -3,14 +3,15 @@
 # 直接依赖见 pyproject.toml，本文件同时锁住它们的传递依赖。
 # Python 3.10 上少数包没有对应 wheel（Pillow 13 / numpy 2.5 / onnxruntime 1.31 都要 3.11+），
 # 用环境标记给 3.10 单独钉一档；安装器按解释器版本自动取其一。
-# coverage / shapely 同理：7.17 与 2.2.0 只发 3.11+ 的 wheel。
+# coverage / shapely / hypothesis 同理：新版本只发 3.11+ 的 wheel，3.10 单独钉一档。
 # onnxruntime 1.16 的 cp310 轮子在 Ubuntu 22.04 上会 execstack 失败，故 3.10 固定 1.22.0。
 # Windows 的 TUI 依赖 windows-curses（仅 win32 安装），同样锁版本。
 ast_serialize==0.13.1
 coverage==7.17.2; python_version >= "3.11"
 coverage==7.16.2; python_version < "3.11"
 flatbuffers==25.12.19
-hypothesis==6.170.15
+hypothesis==6.170.15; python_version >= "3.11"
+hypothesis==6.168.5; python_version < "3.11"
 iniconfig==2.3.1
 Jinja2==3.1.6
 librt==0.16.0

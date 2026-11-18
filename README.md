@@ -35,13 +35,13 @@ Windows（PowerShell）用同名 `.ps1`：
 本地与 CI 跑同一套检查，提交前钩子也跑前两项：
 
 ```bash
-.venv/bin/python tools/check_all.py                   # 本地一条命令跑完 CI 的全部检查
+.venv/bin/python -m src.python.tools.check_all                   # 本地一条命令跑完 CI 的全部检查
 sh .githooks/install-hooks.sh                         # 启用钩子：提交前 --quick、推送前全量
                                                      # 界面快照：UPDATE_SNAPSHOTS=1 pytest src/test/tui/test_screen_snapshots.py
 .venv/bin/ruff check src/ scripts/                    # 静态检查
 .venv/bin/python -m mypy                              # 类型检查（守 core）
-.venv/bin/python tools/check_guards.py              # 编号/分层/长度/编码/测试目录/版本/依赖锁
-.venv/bin/python tools/check_perf.py                # 耗时守卫
+.venv/bin/python -m src.python.tools.check_guards              # 编号/分层/长度/编码/测试目录/版本/依赖锁
+.venv/bin/python -m src.python.tools.check_perf                # 耗时守卫
 .venv/bin/python -m pytest src/test -q                # 全量用例（覆盖率阈值 75%）
 ```
 
@@ -57,7 +57,7 @@ GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lin
 | [技术设计](docs/managements/technical.md) | 架构分层、目录结构、算法与阈值、扩展点 |
 | [计划任务](docs/managements/plan.md) | 当前目标、功能提升项与待排期任务 |
 | [架构约束与契约](docs/managements/contracts.md) | 依赖方向（AR-x）、核心 API/CLI/数据/界面契约 |
-| [发布流程](docs/managements/releasing.md) | `tools/release.py` 六步、发布清单、回滚 |
+| [发布流程](docs/managements/releasing.md) | `src/python/tools/release.py` 六步、发布清单、回滚 |
 | [测试计划](docs/managements/testplan.md) | 质量控制体系与测试标准（门禁分层、用例规范、阈值） |
 | [覆盖率与分组](docs/managements/test-coverage.md) | 覆盖率报告、场景/单元测试分组统计 |
 | [文档索引](docs/README.md) | 所有文档的入口（守护会核对是否漏链） |
@@ -69,7 +69,7 @@ GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lin
 
 ```text
 scripts/    薄壳启动脚本（cli/tui/setup/runTest/log-query 的 .sh + .ps1）
-tools/      工程工具（check_guards / check_perf / run_tests，不进运行时包）
+src/python/tools/  工程工具（守护/覆盖率/测试编排/发布；不进发行包、不计覆盖率）
 .githooks/  pre-commit 钩子（ruff + guards + 用例）与 install-hooks.sh
 .github/    CI 流水线（test / lint / typecheck / guards / perf）
 pyproject.toml  依赖与工具配置的唯一来源（ruff / mypy / pytest / coverage）

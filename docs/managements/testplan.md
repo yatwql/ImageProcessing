@@ -12,17 +12,17 @@
 | 编号 | 目标 | 判定方式 | 门槛 |
 | --- | --- | --- | --- |
 | QG-1 | 静态质量 | `ruff check src/ tools/` + `mypy`（全树） | 零告警 / 零错误 |
-| QG-2 | 结构约定 | `tools/check_guards.py` | 13 项全过 |
-| QG-3 | 行覆盖率 | `tools/check_coverage.py` | 总量 ≥ 96%（实测 96%） |
+| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 13 项全过 |
+| QG-3 | 行覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 96%（实测 96%） |
 | QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%；edit/render/image/audit/ui_draw/bootstrap/launch/ui/cli-main/cli-log_query ≥85~90%；app/ui_actions/ui_base/ui_input ≥80%） | 逐项达标 |
 | QG-5 | 跳过率 | 同上（正常模式，即机器上有中文字体） | ≤ 15% |
 | QG-6 | 行为正确性 | 全量用例（功能/交互/跨平台/稳定性/入口冒烟/快照/属性） | 0 失败 |
-| QG-7 | 性能不退化 | `tools/check_perf.py` | 四步各阈值 + 合计 ≤ 6s |
+| QG-7 | 性能不退化 | `src/python/tools/check_perf.py` | 四步各阈值 + 合计 ≤ 6s |
 | QG-8 | 依赖安全 | CI `audit` 作业 `pip-audit --strict` | 无已知漏洞 |
 | QG-9 | 缺陷回归 | 每个已修缺陷都有对应用例 | 100%（见 §6） |
-| QG-10 | 发布门禁 | `tools/release.py check/gate`（工作区干净、版本与日期一致、全量门禁） | 全绿才可打标签 |
+| QG-10 | 发布门禁 | `src/python/tools/release.py check/gate`（工作区干净、版本与日期一致、全量门禁） | 全绿才可打标签 |
 
-一条命令自查：`python tools/check_all.py`（全量）/ `--quick`（提交前用）。
+一条命令自查：`python -m src.python.tools.check_all`（全量）/ `--quick`（提交前用）。
 
 ## 2. 门禁分层
 
@@ -31,7 +31,7 @@
 | P0 提交前 | `git commit` → `.githooks/pre-commit` | `check_all.py --quick`：ruff → mypy → guards → perf → 全量用例 | 拒绝提交 |
 | P1 推送前 | `git push` → `.githooks/pre-push` | `check_all.py` 全量：再加覆盖率门禁 + 无字体复跑 | 拒绝推送 |
 | P2 CI | push / PR | 七个作业：test（3.10/3.12/3.13）、lint、typecheck、guards、perf、windows、audit | 红则不合入 |
-| 手工 | 改界面/改依赖后 | `UPDATE_SNAPSHOTS=1` 重生成快照、`tools/update_constraints.py --write` | 快照/锁文件 diff 随提交 |
+| 手工 | 改界面/改依赖后 | `UPDATE_SNAPSHOTS=1` 重生成快照、`src/python/tools/update_constraints.py --write` | 快照/锁文件 diff 随提交 |
 
 **例外**：`IMG_P_SKIP_HOOK=1` 可跳过 P0/P1，但**不允许**跳过 P2；跳过后必须在推送前手动跑
 `check_all.py` 全量并在提交信息里写明原因。
@@ -50,10 +50,10 @@
 | 稳定性 | 幂等、并发、规模 | `core/test_platform_stability.py`、`core/test_write_audit_log.py`（3 进程并发） | 同输入两次结果字节一致 |
 | 入口冒烟 | 对外入口可用 | `cli/test_entry_smoke.py` | `--version/--help` 退出码 + shell 薄壳语法 |
 | 真终端 | 真 curses 渲染 | `tui/test_tui_real_terminal.py`（`script(1)` 伪终端） | POSIX + `script` 才跑，其余平台 skip |
-| 性能 | 热路径耗时 | `tools/check_perf.py` | 阈值 = 实测 × 5 以上，只挡数量级退化 |
-| 变异（opt-in） | 验证断言强度 | `tools/mutation_check.py`（mutmut） | 默认试点 `core/match.py`、`core/options.py` |
-| 架构约束 | 依赖方向不被破坏 | `tools/check_import_surface.py`（守护第 14 项） | `core` 不导入渠道、渠道互不导入 |
-| 发布 | 发行物可复现 | `tools/release.py`（check/gate/build/tag/publish） | 见 `releasing.md` |
+| 性能 | 热路径耗时 | `src/python/tools/check_perf.py` | 阈值 = 实测 × 5 以上，只挡数量级退化 |
+| 变异（opt-in） | 验证断言强度 | `src/python/tools/mutation_check.py`（mutmut） | 默认试点 `core/match.py`、`core/options.py` |
+| 架构约束 | 依赖方向不被破坏 | `src/python/tools/check_import_surface.py`（守护第 14 项） | `core` 不导入渠道、渠道互不导入 |
+| 发布 | 发行物可复现 | `src/python/tools/release.py`（check/gate/build/tag/publish） | 见 `releasing.md` |
 
 ## 4. 用例编写标准
 
@@ -71,7 +71,7 @@
 
 ## 5. 覆盖率标准
 
-- 总量 ≥ 96%（实测 96%）；9 个高风险模块单独设限（见 `tools/check_coverage.py` 的 `MODULE_MIN`）。
+- 总量 ≥ 96%（实测 96%）；9 个高风险模块单独设限（见 `src/python/tools/check_coverage.py` 的 `MODULE_MIN`）。
   剩余未覆盖行集中在平台分支（msvcrt 锁）与防御性 `except`，逐条在 `review-findings.md` 记录。
 - 新增模块：若属于"判断密集/出错代价高"的类别，必须同时加进 `MODULE_MIN`。
 - 现有门槛（贴实测下沿，防止回落）：`core/{match,options}` 90%，`core/{edit,render,image,audit}`、
@@ -112,17 +112,17 @@
 | 产物 | 生成方式 | 位置 |
 | --- | --- | --- |
 | 用例与覆盖率原始数据 | `check_all.py` 全量 | `reports/junit.xml`、`reports/coverage.xml` |
-| 覆盖率与分组统计（本仓文档） | `tools/coverage_report.py --write` | `docs/managements/test-coverage.md` |
-| 性能读数 | `tools/check_perf.py` | 终端输出（超限即红） |
+| 覆盖率与分组统计（本仓文档） | `src/python/tools/coverage_report.py --write` | `docs/managements/test-coverage.md` |
+| 性能读数 | `src/python/tools/check_perf.py` | 终端输出（超限即红） |
 | CI 环境指纹 | CI `环境指纹` 步骤 | artifact `ci-env/`（python / platform / pip freeze / 字体清单） |
 | 界面快照 | `UPDATE_SNAPSHOTS=1 pytest src/test/tui/test_screen_snapshots.py` | `src/test/snapshots/tui.json` |
 
 ## 10. 合并前检查清单
 
-- [ ] `python tools/check_all.py` 全绿（或 `--quick` + 推送前全量）
+- [ ] `python -m src.python.tools.check_all` 全绿（或 `--quick` + 推送前全量）
 - [ ] 新缺陷有回归用例；新功能有用例；新模块有覆盖率门槛
 - [ ] 改了界面 → 快照已更新且 diff 合理
-- [ ] 改了依赖 → `constraints.txt` 已更新（`tools/update_constraints.py --write`）
+- [ ] 改了依赖 → `constraints.txt` 已更新（`src/python/tools/update_constraints.py --write`）
 - [ ] 改了 CLI 参数 / TUI 按键 → `README`、`how-to-use.md`、`--help` 同步
 - [ ] 动了文件 → `folders.md` 已更新（守护会核对）
 - [ ] 文档三件套与 `test-coverage.md` 已同步

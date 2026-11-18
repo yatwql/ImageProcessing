@@ -23,13 +23,14 @@
 
 | 编号 | 约束 | 检查方式 |
 | --- | --- | --- |
-| AR-1 | `core/` 不得导入 `cli/` 或 `tui/`（核心层不认识渠道） | `tools/check_import_surface.py` |
+| AR-1 | `core/` 不得导入 `cli/` 或 `tui/`（核心层不认识渠道） | `src/python/tools/check_import_surface.py` |
 | AR-2 | `cli/` 与 `tui/` 不得互相导入 | 同上 |
-| AR-3 | `core/` 不得 `import argparse` / `curses`，不得 `sys.exit` | `tools/check_guards.py`（分层） |
+| AR-3 | `core/` 不得 `import argparse` / `curses`，不得 `sys.exit` | `src/python/tools/check_guards.py`（分层） |
 | AR-4 | 任何"输入 → 替换"的入口都必须先产出 `core.Job` 再交给 `core.replace_image` | 代码审查 + `core/jobs.py` 契约 |
 | AR-5 | 渠道不得重复实现"找字体 / 擦除 / 绘制 / 匹配规则" | 用例断言行为 + 代码审查 |
 | AR-6 | 单文件 ≤ 1000 行；`scripts/` 只放 `.sh/.ps1` 薄壳（≤40 行） | `check_guards.py`（文件长度 / scripts 薄壳） |
 | AR-7 | 文本 I/O 一律显式 `encoding="utf-8"`；`.ps1` 必须 UTF-8 with BOM | `check_guards.py`（显式编码 / PS 编码） |
+| AR-8 | 开发工具放 `src/python/tools/`，不进发行包（`pyproject` 的 `packages.find.exclude`），也不纳入覆盖率；core/渠道**不得**反向依赖它们 | `check_import_surface.py` + `coverage.omit` |
 
 ## 2. 设计契约（对外承诺）
 
@@ -84,7 +85,7 @@
 
 | 约束 | 守护 / 用例 |
 | --- | --- |
-| AR-1/AR-2 | `tools/check_import_surface.py`（守护第 14 项） |
+| AR-1/AR-2 | `src/python/tools/check_import_surface.py`（守护第 14 项） |
 | AR-3 | `check_guards.py` 分层（core 禁 argparse/curses/sys.exit） |
 | AR-5 | `core/test_feature_edges.py`、`tui/test_*` 断言渠道只编排不实现 |
 | AR-6 | `check_guards.py` 文件长度 / scripts 薄壳 |

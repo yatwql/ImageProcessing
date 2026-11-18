@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """工程守护：把 `CLAUDE.md` 里的硬性约束变成可执行检查。
 
-    python tools/check_guards.py            # 人读
-    python tools/check_guards.py --ci       # 只输出一行一结论，任一不过即退出码 1
+    python -m src.python.tools.check_guards            # 人读
+    python -m src.python.tools.check_guards --ci       # 只输出一行一结论，不过即退出 1
 
 覆盖项：
   编号      plan.md 用 `PLAN-x`（连续、唯一），review-findings.md 用 `RF-x`（唯一），无旧前缀
@@ -15,11 +15,11 @@
   名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
   目录树    `docs/managements/folders.md` 必须覆盖所有源文件与文档（新增文件要同步）
   测试字体  用例不得硬编码 `ImageFont.truetype(FONT_CJK…, index=…)`，必须走 `cjk_font()`
-  导入方向  `core` 不得导入 `cli/tui`，`cli` 与 `tui` 互不导入（`tools/check_import_surface.py`）
+  导入方向  `core` 不得导入 `cli/tui`，`cli` 与 `tui` 互不导入（`src/python/tools/check_import_surface.py`）
   文档索引  每份管理文档与手册都必须出现在 `docs/README.md` 的索引里
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
-  scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
+  scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python`）
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from pathlib import Path
 
 import tomllib
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SRC = ROOT / "src"
 DOCS = ROOT / "docs" / "managements"
 
@@ -465,7 +465,7 @@ def check_scripts_are_launchers() -> list[str]:
     """`scripts/` 只放 .sh/.ps1 启动脚本：业务逻辑进 `src/python`，工程工具进 `tools/`。
 
     判断标准是"薄"：单个脚本不超过 40 行。超过说明逻辑堆在这里了，
-    要么挪进 `src/python/<渠道>`，要么挪进 `tools/`。
+    要么挪进 `src/python/<渠道>`，要么挪进 `src/python/tools/`。
     """
     problems = []
     for path in sorted((ROOT / "scripts").iterdir()):
@@ -474,7 +474,7 @@ def check_scripts_are_launchers() -> list[str]:
         if path.suffix not in (".sh", ".ps1"):
             problems.append(
                 f"{path.relative_to(ROOT)} 不是 .sh/.ps1：scripts/ 只放启动脚本，"
-                "逻辑请移到 src/python 或 tools/"
+                "逻辑请移到 src/python（渠道或 tools/）"
             )
             continue
         n = len(path.read_text(encoding="utf-8").splitlines())
@@ -489,7 +489,7 @@ def check_scripts_are_launchers() -> list[str]:
 def check_import_surface() -> list[str]:
     """架构约束（AR-1/AR-2）：导入方向必须单一，渠道之间不得互相依赖。"""
     result = subprocess.run(
-        [sys.executable, "tools/check_import_surface.py"],
+        [sys.executable, "-m", "src.python.tools.check_import_surface"],
         cwd=str(ROOT),
         capture_output=True,
         text=True,
@@ -523,7 +523,7 @@ def check_docs_index() -> list[str]:
 
 def check_workflows() -> list[str]:
     """CI 工作流自检：run 块的 bash 语法、python -c 片段、audit 参数、release 作业。"""
-    result = subprocess.run([sys.executable, "tools/check_workflows.py"],
+    result = subprocess.run([sys.executable, "-m", "src.python.tools.check_workflows"],
                             cwd=str(ROOT), capture_output=True, text=True, check=False)
     if result.returncode == 0:
         return []

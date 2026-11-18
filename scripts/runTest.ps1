@@ -1,4 +1,4 @@
-﻿# 全量用例 + 报告。编排在 tools/run_tests.py；这里只找系统 Python 转交。
+﻿# 全量用例 + 报告。编排在 src/python/tools/run_tests.py；这里只找系统 Python 转交。
 #   .\scripts\runTest.ps1 [--fast] [-k 关键字]
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

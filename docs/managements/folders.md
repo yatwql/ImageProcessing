@@ -3,7 +3,7 @@
 > 文档版本：v0.1
 >
 > 项目目录树 — 新增/重命名/删除任何非排除的文件或目录时，**必须同步更新此文档**；
-> `tools/check_guards.py` 的第 12 项「目录树文档」会核对本文件是否覆盖了所有源文件与文档，
+> `src/python/tools/check_guards.py` 的第 12 项「目录树文档」会核对本文件是否覆盖了所有源文件与文档，
 > 漏一个就红。
 
 ## 项目统计
@@ -17,7 +17,7 @@
 | 主程序代码 | Python | 30 | 4,259 | `src/python/**/*.py`（不含测试）：core 核心层 / cli / tui / 引导与启动器 |
 | 测试代码 | Python | 57 | 7,463 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
 | 测试用例 | — | — | 621 | `git grep -c "def test_"` 行数口径 |
-| 工程工具 | Python | 10 | 1,754 | `tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 导入方向 |
+| 工程工具 | Python | 10 | 1,754 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 326 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
 | 管理文档 | Markdown | 10 | 2,497 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
@@ -89,6 +89,20 @@ ImageProcessing/
 │   │   │   ├── options.py                    # 运行选项与颜色解析
 │   │   │   ├── render.py                     # 文字排版渲染：行渲染、字符横向区间、绘制到画布
 │   │   │   └── style.py                      # 版式分析：字迹 mask、字色、笔画粗细、字体/字号/字距反解
+│   │   ├── tools/
+│   │   │   ├── __init__.py                   # 开发工具（不进发行包）：守护、覆盖率、测试编排、发布等
+│   │   │   ├── check_all.py                  # 本地全量门禁：一条命令跑完 CI 跑的所有检查，绿了再推
+│   │   │   ├── check_coverage.py             # 覆盖率门禁：总覆盖率 + 高风险模块单独设限 + skip 上限
+│   │   │   ├── check_guards.py               # 工程守护：把 `CLAUDE.md` 里的硬性约束变成可执行检查
+│   │   │   ├── check_import_surface.py       # 架构约束：模块导入方向（谁可以依赖谁）
+│   │   │   ├── check_perf.py                 # 耗时守卫：把最热的几步钉住，退化即红
+│   │   │   ├── check_workflows.py            # CI 工作流自检：把"只在 runner 上才炸"的脚本错误搬到本地
+│   │   │   ├── ci_env.py                     # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
+│   │   │   ├── coverage_report.py            # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统计
+│   │   │   ├── mutation_check.py             # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
+│   │   │   ├── release.py                    # 发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停
+│   │   │   ├── run_tests.py                  # 测试入口：跑全量用例并生成 junit / html / 覆盖率报告与摘要
+│   │   │   └── update_constraints.py         # 依赖升级助手：列出可升级项，并按当前环境重写 constraints.txt 的非标记部分
 │   │   ├── tui/                              # 交互渠道
 │   │   │   ├── __init__.py                   # 交互界面渠道（curses）
 │   │   │   ├── __main__.py                   # 交互渠道
@@ -103,6 +117,7 @@ ImageProcessing/
 │   │   ├── bootstrap.py                      # 环境引导：建 `.venv`、按 `constraints.txt` 装依赖、写默认配置
 │   │   ├── config.py                         # 全局路径与配置：默认读 <配置目录>/retype.json（旧 img-p.json 仍兼容），图片在 /da
 │   │   ├── launch.py                         # 统一启动器：先确认环境就绪（必要时自动装依赖），再把控制权交给真正的入口
+│   │   ├── stdio.py                          # 控制台编码：保证中文提示在非 UTF-8 的终端（Windows cp936/cp1252）上也能打印
 │   │   └── version.py                        # 程序名称与版本号：全仓库唯一来源
 │   ├── test/                                 # 测试用例
 │   │   ├── cli/                              # CLI 用例
@@ -144,9 +159,11 @@ ImageProcessing/
 │   │   │   ├── __init__.py                   # core 场景测试
 │   │   │   ├── test_cancel_pipeline.py       # 替换过程中的中断：`replace_image(should_stop=...)` 要在块与块之间能停手
 │   │   │   ├── test_config_file.py           # 配置文件（<配置目录>/retype.json，兼容旧 img-p.json）：读取、容错与优先级
+│   │   │   ├── test_coverage_100.py          # 覆盖率收尾：把最后 4 行"看起来难、其实只是没构造对场景"的分支补齐
 │   │   │   ├── test_coverage_gaps.py         # 补齐覆盖率薄弱点：把每个模块最后的"难触达分支"逐个打掉
 │   │   │   ├── test_coverage_gaps2.py        # 覆盖率收尾（core / cli 侧）：把最后几十行"错误分支与空输入"补齐
 │   │   │   ├── test_coverage_gaps3.py        # 覆盖率收尾：把最后二十几行"只有出错才会走到"的分支补齐
+│   │   │   ├── test_coverage_gaps4.py        # 覆盖率收尾：把最后二十几行"只有出错才会走到"的分支补齐
 │   │   │   ├── test_error_contract.py        # 错误契约测试：核心层用 CoreError 报可预期失败，不直接退出进程
 │   │   │   ├── test_feature_edges.py         # 功能边界：映射规则、颜色解析、任务构造、日志轮转等容易漏的输入
 │   │   │   ├── test_log_query.py             # 日志查询：按日期/原图/渠道过滤，并汇总替换次数
@@ -154,6 +171,7 @@ ImageProcessing/
 │   │   │   ├── test_ocr_contract.py          # OCR 封装测试：结果结构、区域裁剪、引擎缺失时的错误契约
 │   │   │   ├── test_platform_stability.py    # 跨平台兼容与稳定性：路径/配置/环境变量、异常契约、幂等与规模
 │   │   │   ├── test_properties.py            # 属性测试（hypothesis）：用生成的大量输入验证"永远成立的性质"
+│   │   │   ├── test_stdio.py                 # 控制台编码：中文提示在非 UTF-8 终端（Windows cp936）上不能崩
 │   │   │   ├── test_version_display.py       # 版本号：唯一来源、界面可见、每次运行都报、写盘日志记录、文档开头一致
 │   │   │   └── test_write_audit_log.py       # 写盘日志：真实保存图片后必须留下一条可追溯的记录
 │   │   ├── snapshots/
@@ -175,19 +193,6 @@ ImageProcessing/
 │   │   ├── __init__.py                       # 测试用例包：统一仓库根路径与测试临时目录
 │   │   └── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口
 │   └── __init__.py                           # 项目源码包：src.python 为程序代码，src.test 为测试用例
-├── tools/                                    # 工程工具，不进运行时包
-│   ├── check_all.py                          # 本地全量门禁：ruff/mypy/guards/perf/用例/无字体复跑
-│   ├── check_coverage.py                     # 覆盖率门禁：总覆盖率 + 高风险模块单独设限 + skip 上限
-│   ├── check_guards.py                       # 工程守护 13 项
-│   ├── check_import_surface.py               # 架构约束：模块导入方向（谁可以依赖谁）
-│   ├── check_perf.py                         # 耗时守卫（四步热路径）
-│   ├── check_workflows.py                    # CI 工作流自检：把"只在 runner 上才炸"的脚本错误搬到本地
-│   ├── ci_env.py                             # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
-│   ├── coverage_report.py                    # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统计
-│   ├── mutation_check.py                     # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
-│   ├── release.py                            # 发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停
-│   ├── run_tests.py                          # 测试编排：报告 / 覆盖率 / 摘要 / 清理
-│   └── update_constraints.py                 # 依赖升级助手：列出可升级项，并按当前环境重写 constraints.txt 的非标记部分
 ├── .gitignore                                # 忽略虚拟环境 / 缓存 / 输出 / 日志
 ├── CLAUDE.md                                 # AI 协作者约定：架构硬约束、纪律、已知坑
 ├── README.md                                 # 项目简介 / 快速开始 / 门禁 / 文档索引

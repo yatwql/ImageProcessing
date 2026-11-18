@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """架构约束：模块导入方向（谁可以依赖谁）。
 
-    python tools/check_import_surface.py          # 违规即非零退出
-    python tools/check_import_surface.py -v       # 打印扫描范围
+    python -m src.python.tools.check_import_surface          # 违规即非零退出
+    python -m src.python.tools.check_import_surface -v       # 打印扫描范围
 
 规则（与 `docs/managements/technical.md` 的分层一致）：
 - `core/` 只依赖标准库/第三方与 `src.python.{core,version,config?}`；
   **不得**导入 `cli` / `tui`（核心层不认识渠道）；
 - `cli/` 与 `tui/` 可以依赖 `core`、`config`、`version`，但**彼此不得互相导入**；
-- `tools/` 与 `src/test/` 不受限（工程工具与用例可以随便用）。
+- `src/python/tools/`（开发工具）与 `src/test/` 不受限；但 core/渠道不得反向依赖 tools。
 
 这样"替换逻辑只在 core"就不是靠自觉，而是导入图上的硬约束。
 """
@@ -19,11 +19,14 @@ import ast
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 SRC = ROOT / "src" / "python"
 
 CORE_ALLOWED = {"core", "version", "config"}
 CHANNEL_ALLOWED = {"core", "version", "config"}
+# 开发工具（src/python/tools）可以随便用；但 core/渠道绝不能反向依赖它们，
+# 否则发行包会拖上 CI 才需要的东西（gh/pip-audit/bash 等）。
+FORBIDDEN_FOR_PRODUCT = {"tools"}
 
 
 def module_package(path: Path) -> str | None:
@@ -57,6 +60,8 @@ def violations() -> list[str]:
     problems: list[str] = []
     for path in sorted(SRC.rglob("*.py")):
         package = module_package(path)
+        if package == "tools":
+            continue                       # 开发工具不受方向限制
         if package not in ("core", "cli", "tui"):
             continue
         allowed = CORE_ALLOWED if package == "core" else CHANNEL_ALLOWED

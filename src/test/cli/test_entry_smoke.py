@@ -58,7 +58,7 @@ class EntryPoints(unittest.TestCase):
     def test_guard_and_perf_tools_are_runnable(self):
         for module in ("check_guards", "check_perf", "check_coverage"):
             with self.subTest(tool=module):
-                proc = run(f"tools/{module}.py", "--help")
+                proc = run("-m", f"src.python.tools.{module}", "--help")
                 self.assertEqual(proc.returncode, 0, proc.stderr)
 
 

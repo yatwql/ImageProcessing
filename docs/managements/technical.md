@@ -36,9 +36,9 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
   tui.sh / tui.ps1           交互入口      → python -m src.python.tui
   setup.sh / setup.ps1       环境引导      → python -m src.python.bootstrap（ps1 支持 -Dev）
-  runTest.sh / runTest.ps1   测试 + 报告   → tools/run_tests.py（ps1 支持 -Fast）
+  runTest.sh / runTest.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
-tools/                       工程工具（不进运行时包）
+    tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
   check_guards.py            工程守护（10 项）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
@@ -77,7 +77,7 @@ src/
 
 ## 1.2 依赖方向（硬约束）
 
-`core` 不导入 `cli`/`tui`；`cli` 与 `tui` 互不导入——由 `tools/check_import_surface.py`
+`core` 不导入 `cli`/`tui`；`cli` 与 `tui` 互不导入——由 `src/python/tools/check_import_surface.py`
 （守护第 14 项）逐文件核对 `src.python.X` 形式的导入。完整契约见 `contracts.md`。
 
 ## 2. 模块与职责
@@ -363,7 +363,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 已做的优化：`soft_iou` 的模糊从“每个平移位置一次”提到“每张掩码一次”（字体匹配 0.78s → 0.50s/块）；
 字体池落盘缓存；`fit_font` 先按宽度比例剪枝再加权打分。
 
-性能门禁（`tools/check_perf.py`，CI 的 `perf` 作业）在合成数据上钉住四步热路径，
+性能门禁（`src/python/tools/check_perf.py`，CI 的 `perf` 作业）在合成数据上钉住四步热路径，
 阈值 = 本机实测值 × 5 以上（只挡数量级退化，不追求机器间可比）：
 
 | 项目 | 上限 |
@@ -383,8 +383,8 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 
 - 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
-  渠道/用例/脚本放宽）、`python tools/check_guards.py`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 13 项）、`python tools/check_perf.py`（耗时守卫）。
+  渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
+  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 13 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
   覆盖率阈值 `fail_under = 75`（实测约 84%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。
@@ -401,9 +401,9 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
   这是"改界面要留证据"的门槛。
 - 属性测试：`src/test/core/test_properties.py`（hypothesis）验证 `norm_map` 下标可回溯、
   `cut/pad` 不超预算、`parse_color` 只有两种结果、`unique_path` 不吞扩展名、`plan_jobs` 的 span 精准。
-- 覆盖率门禁：`tools/check_coverage.py` 校验总量 75%、9 个高风险模块 80~90%、skip ≤15%。
+- 覆盖率门禁：`src/python/tools/check_coverage.py` 校验总量 75%、9 个高风险模块 80~90%、skip ≤15%。
 - 入口冒烟：`src/test/cli/test_entry_smoke.py` 逐个跑 `--version/--help` 与 `launch` 的错误码。
-- 变异测试（opt-in）：`tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
+- 变异测试（opt-in）：`src/python/tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
 - 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），
   `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` 可在本地模拟"无中文字体"的机器。
 - 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-cov、pytest-html、ruff、mypy）；
@@ -467,9 +467,9 @@ sh .githooks/install-hooks.sh                                 # 启用提交前�
 ./scripts/runTest.sh                                             # 全量用例 + 测试报告
 .venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
 .venv/bin/python -m mypy                                      # 类型检查，守 core
-.venv/bin/python tools/check_guards.py                      # 工程守护（8 项，含版本/依赖锁）
-.venv/bin/python tools/check_perf.py                        # 耗时守卫
-.venv/bin/python tools/run_tests.py --fast                    # 测试编排（scripts/runTest.sh 的实现）
+.venv/bin/python -m src.python.tools.check_guards                      # 工程守护（8 项，含版本/依赖锁）
+.venv/bin/python -m src.python.tools.check_perf                        # 耗时守卫
+.venv/bin/python -m src.python.tools.run_tests --fast                    # 测试编排（scripts/runTest.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数
 ./scripts/cli.sh data/demo --list                              # OCR 是否正常（示例图）
 ./scripts/cli.sh data/demo --map "2023=2024" --dry-run          # 批量预演

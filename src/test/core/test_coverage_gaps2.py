@@ -88,15 +88,24 @@ class DebugMaskWriteFailure(unittest.TestCase):
         if not has_cjk_font():
             self.skipTest("需要 CJK 字体")
         rgb = np.full((60, 120, 3), 255, np.uint8)
-        info = {"mask": np.zeros((60, 120), bool), "ink_box": (5, 5, 100, 30),
-                "text_color": (0, 0, 0), "stroke": 2.0, "stroke_core": 2.0, "slant": 0.0}
+        info = {
+            "mask": np.zeros((60, 120), bool),
+            "ink_box": (5, 5, 100, 30),
+            "text_color": (0, 0, 0),
+            "stroke": 2.0,
+            "stroke_core": 2.0,
+            "slant": 0.0,
+        }
         with tempfile.TemporaryDirectory() as tmp:
             opts = options.Options(debug=tmp, quiet=True, font=FONT_CJK)
-            with mock.patch.object(edit, "analyze", return_value=info), \
-                    mock.patch.object(edit.cv2, "imwrite", return_value=False):
+            with (
+                mock.patch.object(edit, "analyze", return_value=info),
+                mock.patch.object(edit.cv2, "imwrite", return_value=False),
+            ):
                 with self.assertRaises(CoreError):
-                    edit.replace_image(rgb, None, [edit.Job((5, 5, 100, 25), "原文", "新文")],
-                                       opts, [])
+                    edit.replace_image(
+                        rgb, None, [edit.Job((5, 5, 100, 25), "原文", "新文")], opts, []
+                    )
 
 
 class FontRowParsing(unittest.TestCase):
@@ -114,8 +123,9 @@ class RenderEmptyLine(unittest.TestCase):
         canvas = np.full((120, 240, 3), 255, np.uint8)
         before = canvas.copy()
         face = fonts.FontFace(FONT_CJK, 0)
-        out = render.draw_text(canvas, "第一行\n\n第三行", face, 20, 0.0, (0, 0, 0),
-                               (10.0, 230.0, 10.0, 110.0), "left")
+        out = render.draw_text(
+            canvas, "第一行\n\n第三行", face, 20, 0.0, (0, 0, 0), (10.0, 230.0, 10.0, 110.0), "left"
+        )
         self.assertTrue((out != before).any(), "有空行时其余文字仍要画出来")
 
 
@@ -146,15 +156,25 @@ class CliSaveFailureCleanup(unittest.TestCase):
             if not has_cjk_font():
                 self.skipTest("需要 CJK 字体")
             region = {"text": "原文", "rect": (0, 0, 10, 10), "score": 1.0}
-            info = {"mask": np.zeros((20, 30), bool), "ink_box": (2, 2, 20, 12),
-                    "text_color": (0, 0, 0), "stroke": 2.0, "stroke_core": 2.0, "slant": 0.0}
-            with mock.patch.object(cli_main, "collect_images", return_value=[src]), \
-                    mock.patch("src.python.core.jobs.ocr_regions", return_value=[region]), \
-                    mock.patch("src.python.core.edit.analyze", return_value=info), \
-                    mock.patch.object(cli_main, "save_image", side_effect=OSError("磁盘满")), \
-                    contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
-                code = cli_main.main([src, "--map", "原文=新文", "--out-dir", out_dir,
-                                     "--font", FONT_CJK])
+            info = {
+                "mask": np.zeros((20, 30), bool),
+                "ink_box": (2, 2, 20, 12),
+                "text_color": (0, 0, 0),
+                "stroke": 2.0,
+                "stroke_core": 2.0,
+                "slant": 0.0,
+            }
+            with (
+                mock.patch.object(cli_main, "collect_images", return_value=[src]),
+                mock.patch("src.python.core.jobs.ocr_regions", return_value=[region]),
+                mock.patch("src.python.core.edit.analyze", return_value=info),
+                mock.patch.object(cli_main, "save_image", side_effect=OSError("磁盘满")),
+                contextlib.redirect_stderr(err),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                code = cli_main.main(
+                    [src, "--map", "原文=新文", "--out-dir", out_dir, "--font", FONT_CJK]
+                )
             remaining = os.listdir(out_dir)
             message = err.getvalue()
         self.assertEqual(code, 3, "全部失败时退出码为 3")
@@ -168,7 +188,7 @@ class AuditJsonError(unittest.TestCase):
             path = Path(audit.log_path(tmp))
             path.write_text("{坏的\n", encoding="utf-8")
             self.assertEqual(audit.read_entries(tmp), [])
-            self.assertTrue(json.dumps({"a": 1}))       # 保持 json 导入被使用
+            self.assertTrue(json.dumps({"a": 1}))  # 保持 json 导入被使用
 
 
 if __name__ == "__main__":

@@ -76,7 +76,7 @@
 | RF-40 | 工程缺口 | 无 `pyproject.toml`：依赖在两份 requirements、ruff/pytest 参数散在脚本里，`pip install -e .` 不可用 | 建 `pyproject.toml` 作为单一配置源（依赖 + `dev` extra + ruff/mypy/pytest/coverage），requirements 退化为 `-e .` / `-e .[dev]` | 已修 |
 | RF-41 | 工程缺口 | 无 CI：本地全绿靠自觉，格式/类型/文档漂移无人拦 | 新增 `.github/workflows/ci.yml` 五个作业（test/lint/typecheck/guards/perf） | 已修 |
 | RF-42 | 工程缺口 | 无提交前门禁 | `.githooks/pre-commit` + `install-hooks.sh`（`core.hooksPath`，不动 `.git/hooks`） | 已修 |
-| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `tools/check_guards.py` 十二项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
+| RF-43 | 约束失效 | CLAUDE.md 的硬性约束全靠人工复核（core 禁 argparse/curses/sys.exit、单文件 ≤1000 行、文本 I/O 显式 encoding） | `src/python/tools/check_guards.py` 十二项自动判定，CI 与钩子都跑；测试目录/空包/文档同步也纳管 | 已修 |
 | RF-44 | 质量缺口 | 无类型检查、无覆盖率门禁 | `mypy` 守 `core`（28 处历史 error 全部修掉：补注解、`rendered` 可空标注、dtype 标注）；`fail_under = 75` | 已修 |
 | RF-45 | 类型桩冲突 | numpy 2.5 的桩要求 `ndarray.min()/max()` 显式给 axis，`int(arr.min())` 被判成无匹配重载 | 改成内建 `min()/max()`（坐标数组很小，取值方式不影响耗时），不再依赖 `disable_error_code` 兜底 | 已修 |
 | RF-46 | 测试结构 | `src/test/image_processing/**` 与 `src/test/core/**` 两套命名并存，`image_processing/degrade/` 是空包，文档只写了 core/tui/cli | 七个测试子目录并入 `src/test/core/**`，删空包，`technical.md`/`CLAUDE.md` 同步 | 已修 |
@@ -113,7 +113,7 @@
 
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
-| RF-60 | 结构偏离 | `scripts/` 写着"只放启动脚本"，却堆了 515 行程序代码（check-guards 309、check-perf 124、log-query 82），且 setup/test 两端各有一份 130+ 行的编排脚本 | 工程工具移到 `tools/`（check_guards.py / check_perf.py / run_tests.py），日志查询实现进 `src/python/cli/log_query.py`，环境引导进 `src/python/bootstrap.py`；四个 .sh/.ps1 全部变薄壳（13~29 行） | 已修 |
+| RF-60 | 结构偏离 | `scripts/` 写着"只放启动脚本"，却堆了 515 行程序代码（check-guards 309、check-perf 124、log-query 82），且 setup/test 两端各有一份 130+ 行的编排脚本 | 工程工具移到 `src/python/tools/`（check_guards.py / check_perf.py / run_tests.py），日志查询实现进 `src/python/cli/log_query.py`，环境引导进 `src/python/bootstrap.py`；四个 .sh/.ps1 全部变薄壳（13~29 行） | 已修 |
 | RF-61 | 守护缺口 | "scripts 只放启动脚本"没有检查，所以能一路堆到 515 行 | `check_guards.py` 新增第 10 项「scripts 薄壳」（单文件 ≤40 行），超出即红 | 已修 |
 
 ## 2026-11-17 首次运行不再需要手动 setup
@@ -144,7 +144,7 @@
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
 | RF-70 | 技术债 | `App`（637 行）里塞着目录扫描这种纯逻辑，难单独测 | 抽出 `tui/browse.py`（`scan_rows` / `first_image_row`），`App` 只保留状态与动作 | 已修 |
-| RF-71 | 技术债 | `tools/run_tests.py` 里 `shutil.which("true") and has_module(...)` 是无意义死条件 | 删掉，只判断 pytest-cov / pytest-html 是否装 | 已修 |
+| RF-71 | 技术债 | `src/python/tools/run_tests.py` 里 `shutil.which("true") and has_module(...)` 是无意义死条件 | 删掉，只判断 pytest-cov / pytest-html 是否装 | 已修 |
 | RF-72 | 技术债 | `ui_draw._row()` 只是 `put()` 的空壳转发 | 删除，四处调用直接走 `put()` | 已修 |
 | RF-73 | 缺陷 | 按键用 `key.isdigit()` 判断数字：上标「²」也返回 True，`int("²")` 抛 ValueError，界面会因一次误触报错 | 改成 ASCII 白名单 `key in "0123456789"`，并补回归用例（含正常数字仍可跳图） | 已修 |
 | RF-74 | 技术债 | 三块面板的分发是三条 if 分支，新增面板要改两处 | 改为 `PANEL_HANDLERS` 查表（表放在模块末尾，避免引用未定义函数） | 已修 |
@@ -154,7 +154,7 @@
 
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
-| RF-76 | 文档漂移 | 更名与门禁增项后，文档里仍留着旧字样：字体缓存写成 `~/.cache/img-p`（2 处）、门禁写成"六项"（2 处）、NFR-4 还写"mypy 守 core" | 全量校准 8 份文档：缓存路径、门禁项数、mypy 范围、目录树（tools/、browse.py、launch.py、bootstrap.py）、命令路径（tools/check_guards.py） | 已修 |
+| RF-76 | 文档漂移 | 更名与门禁增项后，文档里仍留着旧字样：字体缓存写成 `~/.cache/img-p`（2 处）、门禁写成"六项"（2 处）、NFR-4 还写"mypy 守 core" | 全量校准 8 份文档：缓存路径、门禁项数、mypy 范围、目录树（tools/、browse.py、launch.py、bootstrap.py）、命令路径（src/python/tools/check_guards.py） | 已修 |
 | RF-77 | 需求缺口 | FR-12 只写版本，没写"名称"；TUI 响应式（窄屏断点）只在技术文档里描述，需求侧无验收口径 | requirements 补 FR-12.6（名称一致）与 FR-13（界面自适应：宽屏双栏/窄屏单栏/极窄收缩/状态可见） | 已修 |
 
 ## 2026-11-18 TUI 黑屏事故（真机）
@@ -177,7 +177,7 @@
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
 | RF-83 | 一致性 | `scripts/` 里还留着一个 `.py` 薄壳（`log-query.py`），与"只放 .sh/.ps1 启动脚本"的约定不符；守护也没拦 | 删 `.py`，改为 `log-query.sh` / `log-query.ps1`；守护「scripts 薄壳」收紧为只允许 `.sh`/`.ps1` | 已修 |
-| RF-84 | 可读性 | `scripts/test.sh` 名字像"测试框架"，实际只是 `tools/run_tests.py` 的壳 | 更名 `runTest.sh` / `runTest.ps1`，全仓库引用与文档同步 | 已修 |
+| RF-84 | 可读性 | `scripts/test.sh` 名字像"测试框架"，实际只是 `src/python/tools/run_tests.py` 的壳 | 更名 `runTest.sh` / `runTest.ps1`，全仓库引用与文档同步 | 已修 |
 | RF-85 | CI 缺陷（Windows） | windows 作业里用反斜杠续行写 pip 安装，PowerShell 把 `\` 当路径参数，报 `Directory '\' is not installable` | 该步骤显式 `shell: bash`（与 Ubuntu 作业同款写法），并保留注释说明原因 | 已修 |
 
 ## 2026-11-18 目录树文档
@@ -204,9 +204,9 @@
 
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
-| RF-91 | 流程缺陷 | "本地绿、CI 红"反复出现：本地没有一条能覆盖 CI 六个作业的命令，靠人记着跑哪几条 | 新增 `tools/check_all.py`（ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑），提交前钩子改调 `--quick`；推送前只跑这一条 | 已修 |
+| RF-91 | 流程缺陷 | "本地绿、CI 红"反复出现：本地没有一条能覆盖 CI 六个作业的命令，靠人记着跑哪几条 | 新增 `src/python/tools/check_all.py`（ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑），提交前钩子改调 `--quick`；推送前只跑这一条 | 已修 |
 | RF-92 | 界面回归 | 标题加上版本与日期后变长，窄屏 44/50 列放不下右上角 `[宽x高]`，两个布局用例失败 | 尺寸标记改放底部状态行，标题行不再与它抢位置；布局用例恢复 | 已修 |
-| RF-93 | 守护有效性 | 新增 `tools/check_all.py` 后守护立刻报「目录树文档未覆盖」——说明第 12 项确实拦得住漂移 | 同步 `folders.md` 的树与统计 | 已修 |
+| RF-93 | 守护有效性 | 新增 `src/python/tools/check_all.py` 后守护立刻报「目录树文档未覆盖」——说明第 12 项确实拦得住漂移 | 同步 `folders.md` 的树与统计 | 已修 |
 
 ## 2026-11-18 Windows TUI 假死
 
@@ -231,9 +231,9 @@
 | RF-100 | 测试盲区 | 布局事故只能靠"断言某个标记存在"来抓，漏一次就流到真机 | 整屏快照：5 尺寸 × 8 状态存 `snapshots/tui.json`，布局漂移必须显式更新 | 已修 |
 | RF-101 | 测试盲区 | 手写用例覆盖不到输入边界（颜色/宽度/下标映射） | hypothesis 属性测试 9 组性质，120 examples/组 | 已修 |
 | RF-102 | 流程 | pre-commit 只跑 `--quick`，覆盖率与无字体模式要到 CI 才见 | 新增 `pre-push` 跑全量；CI 加环境指纹与失败产物归档 | 已修 |
-| RF-103 | 门禁粒度 | 只看总覆盖率（75%），单个高风险模块掉到 40% 也看不出来；skip 无上限 | `tools/check_coverage.py`：9 个模块 80~90% + skip ≤15%，接入 `check_all` | 已修 |
+| RF-103 | 门禁粒度 | 只看总覆盖率（75%），单个高风险模块掉到 40% 也看不出来；skip 无上限 | `src/python/tools/check_coverage.py`：9 个模块 80~90% + skip ≤15%，接入 `check_all` | 已修 |
 | RF-104 | 断言强度 | 覆盖率不等于"能杀 bug"，没有机制验证断言强度 | 引入 mutmut 试点脚本（opt-in），先跑 match/options | 已修 |
-| RF-105 | 供应链/入口 | 依赖漏洞无审计；入口（`--version/--help/launch`）没有冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（11 例） | 已修 |
+| RF-105 | 供应链/入口 | 依赖漏洞无审计；入口（`--version/--help/launch`）没有冒烟 | CI `audit` 作业（pip-audit --strict）、`src/python/tools/update_constraints.py`、`test_entry_smoke.py`（11 例） | 已修 |
 
 ## 2026-11-18 文档校准（质量加固之后）
 
@@ -246,7 +246,7 @@
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
 | RF-107 | 文档缺口 | 有 13 类测试与 13 项守护，却没有一处写清"什么算合格"：门禁分层、用例规范、阈值、缺陷分级全靠口头 | 新增 `testplan.md`（QG-1..9 质量目标、P0/P1/P2 门禁、13 类测试职责、用例规范、覆盖率/性能/跨平台标准、缺陷分级、合并前清单） | 已修 |
-| RF-108 | 可观测缺口 | 覆盖率只有 CI 数字，没有"分模块 + 分组"的可读报告，也看不出哪类测试薄 | 新增 `tools/coverage_report.py` 生成 `test-coverage.md`：总览、模块覆盖率（带门槛）、包级汇总、场景/单元分组、薄弱 top10 | 已修 |
+| RF-108 | 可观测缺口 | 覆盖率只有 CI 数字，没有"分模块 + 分组"的可读报告，也看不出哪类测试薄 | 新增 `src/python/tools/coverage_report.py` 生成 `test-coverage.md`：总览、模块覆盖率（带门槛）、包级汇总、场景/单元分组、薄弱 top10 | 已修 |
 | RF-109 | 覆盖缺口 | `cli/log_query.py` 覆盖率 0%（只有 core 层回读用例，用户真按的那条命令没测） | 新增 8 例覆盖过滤/`--json`/坏日期/无匹配/`--help`，覆盖率 0% → 92% | 已修 |
 | RF-110 | 行为缺陷 | `--date` 指定某天且当天没有日志文件时抛 `CoreError`（退出码 2），应为"没有匹配的记录" | `read_entries` 把 `FileNotFoundError` 当空结果；补回归用例 | 已修 |
 
@@ -261,9 +261,9 @@
 
 | 编号 | 类别 | 问题 | 处理 | 状态 |
 | --- | --- | --- | --- | --- |
-| RF-113 | 架构约束不可执行 | "core 唯一实现替换逻辑、渠道不互相依赖"只写在 CLAUDE.md，没有机器检查 | 新增 `tools/check_import_surface.py`：AST 扫描 `src.python.X` 导入，core 不得导入 cli/tui、cli 与 tui 互不导入；并入守护第 14 项 | 已修 |
+| RF-113 | 架构约束不可执行 | "core 唯一实现替换逻辑、渠道不互相依赖"只写在 CLAUDE.md，没有机器检查 | 新增 `src/python/tools/check_import_surface.py`：AST 扫描 `src.python.X` 导入，core 不得导入 cli/tui、cli 与 tui 互不导入；并入守护第 14 项 | 已修 |
 | RF-114 | 契约未成文 | 核心 API、CLI 退出码、日志/摘要字段、配置文件键的稳定性与破坏方式没有一处成文，升级时容易无声破坏 | 新增 `contracts.md`：AR-1..7 依赖/分层约束、§2 四类契约、§3 版本与兼容策略、§4 扩展点、§5 约束与守护对照 | 已修 |
-| RF-115 | 发布无流程 | 发布靠手动改版本号 + 手推标签，没有预检/门禁/产物/回滚说明；CI 也没有 tag 触发链路 | 新增 `tools/release.py`（check/prepare/gate/build/tag/publish，副作用需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（`v*` 标签：全量门禁 → wheel/sdist+SHA256SUMS → `gh release create`） | 已修 |
+| RF-115 | 发布无流程 | 发布靠手动改版本号 + 手推标签，没有预检/门禁/产物/回滚说明；CI 也没有 tag 触发链路 | 新增 `src/python/tools/release.py`（check/prepare/gate/build/tag/publish，副作用需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（`v*` 标签：全量门禁 → wheel/sdist+SHA256SUMS → `gh release create`） | 已修 |
 | RF-116 | 文档无统一入口 | 文档散在 README 与管理目录，新增文档没人知道；也没有检查 | 新增 `docs/README.md` 索引 + 守护第 15 项「文档索引」（漏链即红） | 已修 |
 
 ## 2026-11-18 覆盖率冲刺（84% → 96%）
@@ -274,8 +274,16 @@
 | RF-118 | 死代码 | `cli/main.py` 里 `reserve_path` 之后还重复判了一次 `same_file`（占名成功必然是不同路径，永远进不去） | 删除重复分支并注明理由 | 已修 |
 | RF-119 | 门槛偏低 | 覆盖率门槛停在 75%，补测成果无法锁定 | `fail_under` 与 `TOTAL_MIN` 提到 96%（贴实测下沿） | 已修 |
 
+## 2026-11-18 开发工具归位
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-120 | 结构 | 工程工具放根目录 `tools/`：既不是产品代码也不是启动脚本，打包/覆盖率/导入方向都说不清 | 迁到 `src/python/tools/`；`packages.find` 排除出发行包、`coverage.omit` 排除出覆盖率；调用统一 `python -m src.python.tools.x` | 已修 |
+| RF-121 | 架构 | 没有约束禁止产品代码反向依赖开发工具（会让发行包拖上 gh/pip-audit/bash） | 新增 AR-8 并在 `check_import_surface.py` 里校验 `core/cli/tui` 不得导入 `tools` 包 | 已修 |
+| RF-122 | 规范 | `test_coverage_gaps3.py` 长到 1065 行，超过"单文件 ≤1000 行"的约定 | 按 class 边界拆成 `gaps3.py`（601 行）/ `gaps4.py`（489 行） | 已修 |
+
 ## 已验证项
 
-- `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。
+- `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`src/python/tools/check_guards.py`：6/6 通过。
 - `pytest src/test -q`：全绿（用例数随迭代增长）。
 - 冗余/无效用例复查：全用例均含断言；无重复用例名；无法满足的断言仅 RF-15 一处，已改正。

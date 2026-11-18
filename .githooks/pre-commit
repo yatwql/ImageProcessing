@@ -4,8 +4,8 @@
 #   sh .githooks/install-hooks.sh      # 启用（git config core.hooksPath .githooks）
 #   IMG_P_SKIP_HOOK=1 git commit ...   # 临时跳过（仅限明确知道后果时）
 #
-# 与 CI 对齐：`tools/check_all.py --quick` 跑静态检查 + 守护 + 耗时守卫 + 全量用例
-# （约 60s；想更快可以先手动 `tools/check_all.py --quick -k 关键字`）。
+# 与 CI 对齐：`-m src.python.tools.check_all --quick` 跑静态检查 + 守护 + 耗时守卫 + 全量用例
+# （约 60s；想更快可以先手动 `-m src.python.tools.check_all --quick -k 关键字`）。
 # 只改了非代码文件时直接放行。
 
 set -e
@@ -27,4 +27,4 @@ if [ ! -x "$PY" ]; then
 fi
 
 echo "[pre-commit] check_all --quick（ruff / mypy / guards / perf / 用例）"
-exec "$PY" tools/check_all.py --quick
+exec "$PY" -m src.python.tools.check_all --quick

@@ -38,6 +38,8 @@ version = { attr = "src.python.version.VERSION" }
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
+# 开发工具不进发行包：它们依赖 CI/开发环境（bash、gh、pip-audit 等）
+exclude = ["src.python.tools*"]
 
 # ── 静态检查 ─────────────────────────────────────────────────────────
 # 基线命令：ruff check --select E,F,B,I --ignore E501 src/
@@ -58,7 +60,7 @@ known-first-party = ["src"]
 # 全绿才允许合入，避免"只有核心层被守"的假安全感。
 [tool.mypy]
 python_version = "3.10"
-files = ["src", "tools"]   # scripts/ 只有 .sh/.ps1 薄壳，没有 Python 代码
+files = ["src"]   # 开发工具已移到 src/python/tools（随 src 一起检查）
 ignore_missing_imports = true
 disallow_untyped_defs = true
 no_implicit_optional = true
@@ -87,6 +89,8 @@ markers = [
 
 [tool.coverage.run]
 source = ["src/python"]
+# 开发工具（src/python/tools）由 CI 自身驱动，不纳入覆盖率统计
+omit = ["src/python/tools/*"]
 # 只统计行覆盖：分支覆盖在"平台分支 / 防御性 except"上会长期无法收敛，
 # 用它做门禁只会逼人写无意义用例。分支覆盖率仍可人工查看（--cov-branch）。
 branch = false

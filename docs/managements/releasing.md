@@ -2,16 +2,16 @@
 
 > 版本：v0.1
 
-发布 = 六个可单独重试的步骤，全部由 `tools/release.py` 编排。**每次发布前必须全绿**，
+发布 = 六个可单独重试的步骤，全部由 `src/python/tools/release.py` 编排。**每次发布前必须全绿**，
 不靠人记；`gate` 会跑与 CI 完全相同的检查。
 
 ```bash
-.venv/bin/python tools/release.py check                  # 1. 预检
-.venv/bin/python tools/release.py prepare --version 0.2   # 2. 起版本
+.venv/bin/python -m src.python.tools.release check                  # 1. 预检
+.venv/bin/python -m src.python.tools.release prepare --version 0.2   # 2. 起版本
 #   3. 手写 changelog（prepare 只插入标题与占位）
-.venv/bin/python tools/release.py gate                    # 4. 全量门禁
-.venv/bin/python tools/release.py build                   # 5. 打产物
-.venv/bin/python tools/release.py tag --yes               # 6. 打标签（推标签触发 CI 发布）
+.venv/bin/python -m src.python.tools.release gate                    # 4. 全量门禁
+.venv/bin/python -m src.python.tools.release build                   # 5. 打产物
+.venv/bin/python -m src.python.tools.release tag --yes               # 6. 打标签（推标签触发 CI 发布）
 ```
 
 ## 1. 版本策略
@@ -30,20 +30,20 @@
 | --- | --- | --- |
 | `check` | 工作区干净、`UPDATED` 与 `src/` 最后提交一致、版本格式合法、`check_all --quick` 全绿 | 按提示修；**不要**用 `--no-verify` 硬推 |
 | `prepare` | 改 `version.py` 的 `VERSION`/`UPDATED`，在 `changelog.md` 顶部插入 `## vX.Y — 日期` 与「变更」占位 | 手写 changelog 内容；标题重复时脚本会跳过 |
-| `gate` | 跑 `tools/check_all.py`（含覆盖率门禁、无字体复跑） | 必须修到全绿；这步与 CI 等价 |
+| `gate` | 跑 `src/python/tools/check_all.py`（含覆盖率门禁、无字体复跑） | 必须修到全绿；这步与 CI 等价 |
 | `build` | `pip wheel` 出 wheel，`python -m build --sdist` 出 sdist（没装 `build` 则跳过），写 `dist/SHA256SUMS` | 清理 `dist/` 重跑；打包配置问题看 `pyproject.toml` |
 | `tag` | 打附注标签 `vX.Y`（不带 `--yes` 只打印命令） | 标签已存在则先确认是否发错；删除：`git tag -d vX.Y && git push origin :refs/tags/vX.Y` |
 | `publish` | 推标签后由 CI 生成 GitHub Release（附 wheel/sdist/SHA256SUMS） | 看 CI `release` 作业日志；可手动 `gh release create vX.Y dist/* --verify-tag` |
 
 ## 3. 发布前检查清单
 
-- [ ] `tools/release.py check` 通过（工作区干净、版本一致、quick 门禁绿）
+- [ ] `src/python/tools/release.py check` 通过（工作区干净、版本一致、quick 门禁绿）
 - [ ] `changelog.md` 的本版本段落写清：新增 / 变更 / 修复 / 不兼容项与迁移步骤
 - [ ] `requirements.md` 的 FR/NFR、`technical.md` 的算法与阈值、`contracts.md` 的契约都已同步
 - [ ] `folders.md` 与实际文件一致（守护会核对）
-- [ ] `test-coverage.md` 已重新生成（`tools/coverage_report.py --write`）
-- [ ] `tools/release.py gate` 全绿（覆盖率、无字体、性能、依赖审计相关检查均通过）
-- [ ] `tools/release.py build` 产物齐全且 `SHA256SUMS` 有内容
+- [ ] `test-coverage.md` 已重新生成（`src/python/tools/coverage_report.py --write`）
+- [ ] `src/python/tools/release.py gate` 全绿（覆盖率、无字体、性能、依赖审计相关检查均通过）
+- [ ] `src/python/tools/release.py build` 产物齐全且 `SHA256SUMS` 有内容
 
 ## 4. CI 侧的发布
 
@@ -58,7 +58,7 @@
 | --- | --- |
 | 刚打标签、未发布 | `git tag -d vX.Y` + `git push origin :refs/tags/vX.Y` |
 | 已发布但发现致命缺陷 | 不移动标签（会破坏校验）；打 `vX.(Y+1)` 补丁版本并在 changelog 写明原因 |
-| 依赖/约束回退 | `git revert` 对应提交 + `tools/update_constraints.py --write` + `gate` 全绿再发 |
+| 依赖/约束回退 | `git revert` 对应提交 + `src/python/tools/update_constraints.py --write` + `gate` 全绿再发 |
 
 ## 6. 与其它文档的关系
 

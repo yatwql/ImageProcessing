@@ -38,6 +38,12 @@
   是 WSL 存根（退 1、stderr 空），于是逐条报"bash 语法错误"。改为先探测 `bash -c "exit 0"`
   （`BASH_OK`），不可用时跳过 bash 检查，只保留 YAML 与 `python -c` 片段校验。
 
+### 新增（流程提速）
+
+- `src/python/tools/gate_stamp.py` + `src/test/tools/test_gate_stamp.py`（8 例）：全量门禁通过后按
+  「跟踪文件路径 + 内容」的 sha256 留戳（`.git/retype-gate-stamp.json`）；`pre-push` 先问戳，
+  同一份代码再推直接跳过 7 分钟的全量重跑，改任何跟踪文件即失效。
+
 ### 新增
 
 - `src/python/tools/junit_summary.py` + `src/test/tools/test_junit_summary.py`（5 例）：失败/错误用例

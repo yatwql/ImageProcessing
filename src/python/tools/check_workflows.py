@@ -74,6 +74,24 @@ def bash_runs() -> bool:
     return proc.returncode == 0
 
 
+def bash_syntax_error(script: str) -> str | None:
+    """`bash -n` 检查脚本；有语法错返回 stderr 摘要（单独成函数便于用例打桩）。"""
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False, encoding="utf-8") as f:
+        f.write(script)
+        temp_path = Path(f.name)
+    try:
+        result = subprocess.run(
+            ["bash", "-n", str(temp_path)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return None if result.returncode == 0 else result.stderr.strip()[:160]
+
+
 BASH_OK = bash_runs()   # 没有可执行的 bash 时跳过 bash -n（Windows 上的 WSL 存根）
 
 
@@ -94,15 +112,9 @@ def check_run_blocks(workflow: dict) -> list[str]:
             continue  # 非 bash 的步骤只做 YAML 解析
         if not BASH_OK:
             continue  # 没有能真正执行的 bash（WSL 存根）：只保留 YAML 与 python 片段检查
-        with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False, encoding="utf-8") as f:
-            f.write(script)
-            temp_path = Path(f.name)
-        try:
-            result = subprocess.run(["bash", "-n", str(temp_path)], capture_output=True, text=True, encoding="utf-8", errors="replace")
-        finally:
-            temp_path.unlink(missing_ok=True)
-        if result.returncode != 0:
-            problems.append(f"{job_name}/{name}: bash 语法错误 {result.stderr.strip()[:160]}")
+        error = bash_syntax_error(script)
+        if error:
+            problems.append(f"{job_name}/{name}: bash 语法错误 {error}")
         for snippet in PY_C_SNIPPET.findall(script):
             source = snippet.replace("\\n", "\n")
             try:

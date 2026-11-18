@@ -145,6 +145,7 @@
 | `check_platform_safety` | 五条用例卫生规则 × `# platform-safe` 豁免 | `tools/test_platform_safety_rules.py` |
 | `gen_folders` | 目录树生成、统计表数字重算、`alt`/指定字体模式 | `tools/test_gen_folders_stats.py` |
 | `junit_summary` | 失败/错误用例提取、报告缺失、用法提示 | `tools/test_junit_summary.py` |
+| `gate_stamp` | 指纹随跟踪文件变化、未跟踪文件不影响、戳缺失/损坏 | `tools/test_gate_stamp.py` |
 
 ## 9. 质量报告与产物
 

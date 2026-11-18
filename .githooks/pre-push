@@ -21,5 +21,11 @@ if [ ! -x "$PY" ]; then
   exit 0
 fi
 
-echo "[pre-push] check_all（全量：覆盖率 + 无字体复跑）"
+# 同一份代码刚全量通过过就跳过重跑（戳存在 .git 里，和是否提交无关）
+if "$PY" -m src.python.tools.gate_stamp --check; then
+  echo "[pre-push] 跳过：这份代码已经通过全量门禁（改了东西会自动重跑）"
+  exit 0
+fi
+
+echo "[pre-push] check_all（全量：覆盖率 + 三档矩阵）"
 exec "$PY" -m src.python.tools.check_all

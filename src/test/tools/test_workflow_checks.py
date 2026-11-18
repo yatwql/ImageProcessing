@@ -21,7 +21,10 @@ def workflow(*steps: dict) -> dict:
 class ShellSyntax(unittest.TestCase):
     def test_bash_syntax_error_is_reported_when_bash_runs(self):
         bad = workflow({"name": "坏脚本", "run": "if then fi\n"})
-        with mock.patch.object(check_workflows, "BASH_OK", True):
+        with (
+            mock.patch.object(check_workflows, "BASH_OK", True),
+            mock.patch.object(check_workflows, "bash_syntax_error", return_value="syntax error"),
+        ):
             problems = check_workflows.check_run_blocks(bad)
         self.assertTrue(problems)
         self.assertIn("bash 语法错误", problems[0])
@@ -33,21 +36,30 @@ class ShellSyntax(unittest.TestCase):
 
     def test_valid_script_passes(self):
         good = workflow({"name": "正常", "run": "echo ok\n"})
-        with mock.patch.object(check_workflows, "BASH_OK", True):
+        with (
+            mock.patch.object(check_workflows, "BASH_OK", True),
+            mock.patch.object(check_workflows, "bash_syntax_error", return_value=None),
+        ):
             self.assertEqual(check_workflows.check_run_blocks(good), [])
 
 
 class InlinePythonBan(unittest.TestCase):
     def test_python_heredoc_is_rejected(self):
         step = {"name": "摘要", "run": "python - <<'PY'\nprint('x')\nPY\n"}
-        with mock.patch.object(check_workflows, "BASH_OK", True):
+        with (
+            mock.patch.object(check_workflows, "BASH_OK", True),
+            mock.patch.object(check_workflows, "bash_syntax_error", return_value=None),
+        ):
             problems = check_workflows.check_run_blocks(workflow(step))
         self.assertTrue(problems)
         self.assertIn("heredoc", problems[0])
 
     def test_tool_invocation_is_allowed(self):
         step = {"name": "摘要", "run": "python -m src.python.tools.junit_summary a.xml\n"}
-        with mock.patch.object(check_workflows, "BASH_OK", True):
+        with (
+            mock.patch.object(check_workflows, "BASH_OK", True),
+            mock.patch.object(check_workflows, "bash_syntax_error", return_value=None),
+        ):
             self.assertEqual(check_workflows.check_run_blocks(workflow(step)), [])
 
 

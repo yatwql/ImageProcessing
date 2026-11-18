@@ -17,6 +17,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ..stdio import ensure_utf8_stdio
+
 OUT = Path("ci-env")
 FONT_LIMIT = 50
 
@@ -56,6 +58,7 @@ def write(out: Path) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)

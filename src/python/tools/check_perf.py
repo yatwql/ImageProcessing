@@ -20,10 +20,6 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 from src.python.core import audit, edit, image  # noqa: E402
 from src.python.core.style import soft_iou  # noqa: E402
 

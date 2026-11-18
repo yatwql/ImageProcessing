@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 
 ENCODING = "utf-8"
-_NORMALIZED = ENCODING.replace("-", "")   # 与 stream.encoding 的比较口径一致
+_NORMALIZED = ENCODING.replace("-", "")  # 与 stream.encoding 的比较口径一致
 
 
 def ensure_utf8_stdio() -> None:

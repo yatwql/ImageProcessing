@@ -19,7 +19,9 @@ import ast
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 SRC = ROOT / "src" / "python"
 
 CORE_ALLOWED = {"core", "version", "config"}
@@ -61,7 +63,7 @@ def violations() -> list[str]:
     for path in sorted(SRC.rglob("*.py")):
         package = module_package(path)
         if package == "tools":
-            continue                       # 开发工具不受方向限制
+            continue  # 开发工具不受方向限制
         if package not in ("core", "cli", "tui"):
             continue
         allowed = CORE_ALLOWED if package == "core" else CHANNEL_ALLOWED
@@ -77,6 +79,7 @@ def violations() -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)

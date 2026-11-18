@@ -19,9 +19,10 @@ import datetime as dt
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 COVERAGE = ROOT / "reports" / "coverage.xml"
 JUNIT = ROOT / "reports" / "junit.xml"
 OUTPUT = ROOT / "docs" / "managements" / "test-coverage.md"
@@ -296,6 +297,7 @@ def build() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)

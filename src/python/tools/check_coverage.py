@@ -13,6 +13,8 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from ..stdio import ensure_utf8_stdio
+
 # 模块 → 最低行覆盖率。挑的是"判断密集、出错代价高"的文件。
 # 键是相对 `source = ["src/python"]` 的路径（coverage.xml 里就是这么写的）
 MODULE_MIN = {
@@ -69,6 +71,7 @@ def skip_ratio(junit_xml: Path) -> tuple[int, int]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(argv) if argv else sys.argv[1:]
     if "-h" in args or "--help" in args:
         print(__doc__)

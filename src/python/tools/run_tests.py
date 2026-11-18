@@ -18,7 +18,9 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 TMP_ROOT = Path(os.environ.get("IMG_P_TMP_DIR", "/data/tmp"))
 REPORT_DIR_FALLBACK = ROOT / "reports"
 
@@ -154,6 +156,7 @@ def summarize(report_dir: Path, fast: bool) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     fast = "--fast" in args
     extra = [a for a in args if a != "--fast"]

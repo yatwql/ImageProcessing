@@ -15,8 +15,8 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 30 | 4,259 | `src/python/**/*.py`（不含测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 57 | 7,463 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 621 | `git grep -c "def test_"` 行数口径 |
+| 测试代码 | Python | 60 | 7,873 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 631 | `git grep -c "def test_"` 行数口径 |
 | 工程工具 | Python | 10 | 1,754 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 326 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
@@ -24,7 +24,7 @@
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 431 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 示例图 | PNG | 0 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **126** | **15,937** | 主程序 : 测试 ≈ 1 : 1.42；仓库共 138 个跟踪文件（含示例图与 docs/README.md 索引） |
+| **合计（不含示例图）** | — | **126** | **15,937** | 主程序 : 测试 ≈ 1 : 1.42；仓库共 144 个跟踪文件（含示例图与 docs/README.md 索引） |
 
 ## 目录树
 
@@ -91,6 +91,7 @@ ImageProcessing/
 │   │   │   └── style.py                      # 版式分析：字迹 mask、字色、笔画粗细、字体/字号/字距反解
 │   │   ├── tools/
 │   │   │   ├── __init__.py                   # 开发工具（不进发行包）：守护、覆盖率、测试编排、发布等
+│   │   │   ├── _paths.py                     # 工具共用的路径常量：仓库根
 │   │   │   ├── check_all.py                  # 本地全量门禁：一条命令跑完 CI 跑的所有检查，绿了再推
 │   │   │   ├── check_coverage.py             # 覆盖率门禁：总覆盖率 + 高风险模块单独设限 + skip 上限
 │   │   │   ├── check_guards.py               # 工程守护：把 `CLAUDE.md` 里的硬性约束变成可执行检查

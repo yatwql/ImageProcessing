@@ -31,9 +31,13 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-import tomllib
+try:                                    # 3.11+
+    import tomllib
+except ModuleNotFoundError:             # 3.10：用 tomli（dev 依赖，带平台标记）
+    import tomli as tomllib
 
-ROOT = Path(__file__).resolve().parents[3]
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 SRC = ROOT / "src"
 DOCS = ROOT / "docs" / "managements"
 
@@ -523,12 +527,20 @@ def check_docs_index() -> list[str]:
 
 def check_workflows() -> list[str]:
     """CI 工作流自检：run 块的 bash 语法、python -c 片段、audit 参数、release 作业。"""
-    result = subprocess.run([sys.executable, "-m", "src.python.tools.check_workflows"],
-                            cwd=str(ROOT), capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        [sys.executable, "-m", "src.python.tools.check_workflows"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     if result.returncode == 0:
         return []
-    problems = [line.strip().removeprefix("[FAIL] ") for line in result.stdout.splitlines()
-                if line.startswith("[FAIL]")]
+    problems = [
+        line.strip().removeprefix("[FAIL] ")
+        for line in result.stdout.splitlines()
+        if line.startswith("[FAIL]")
+    ]
     return problems or ["工作流自检失败"]
 
 

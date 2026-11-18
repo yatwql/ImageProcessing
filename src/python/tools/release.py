@@ -22,7 +22,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 VERSION_FILE = ROOT / "src" / "python" / "version.py"
 CHANGELOG = ROOT / "docs" / "managements" / "changelog.md"
 DIST = ROOT / "dist"
@@ -151,6 +153,7 @@ def cmd_publish(version: str, yes: bool) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     version, _updated = read_version()
     ap = argparse.ArgumentParser(description="retype 发布流程")
     ap.add_argument("command", choices=["check", "prepare", "gate", "build", "tag", "publish"])

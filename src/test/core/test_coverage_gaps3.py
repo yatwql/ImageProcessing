@@ -595,6 +595,14 @@ class FinalGaps3(TuiTestCase):
         self.assertGreater(calls["n"], 2)
 
 
+class LockWithoutAnyBackend(unittest.TestCase):
+    """既没有 fcntl 也没有 msvcrt（极端环境）：`_lock` 返回 False，写日志照常进行。"""
+
+    def test_lock_returns_false_without_any_backend(self):
+        with tempfile.TemporaryFile() as handle, \
+                mock.patch.object(audit, "fcntl", None), \
+                mock.patch.object(audit, "_winlock", return_value=None):
+            self.assertFalse(audit._lock(handle.fileno()))
 
 
 if __name__ == "__main__":

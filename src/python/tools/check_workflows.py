@@ -25,7 +25,9 @@ import tempfile
 from collections.abc import Iterator
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 CI = ROOT / ".github" / "workflows" / "ci.yml"
 
 EXPECTED_JOBS = {"test", "lint", "typecheck", "guards", "perf", "windows", "audit", "release"}
@@ -68,7 +70,7 @@ def check_run_blocks(workflow: dict) -> list[str]:
         for snippet in PY_C_SNIPPET.findall(script):
             source = snippet.replace("\\n", "\n")
             try:
-                ast.parse(source, filename=f"<{job_name}/{name}>")   # 只解析语法，不执行
+                ast.parse(source, filename=f"<{job_name}/{name}>")  # 只解析语法，不执行
             except SyntaxError as exc:
                 problems.append(f"{job_name}/{name}: python -c 片段语法错误（{exc.msg}）")
     return problems
@@ -81,7 +83,7 @@ def check_audit_step(workflow: dict) -> list[str]:
         if isinstance(script, str) and "pip_audit" in script:
             if "-r " not in script:
                 return ["audit 作业要用 `-r <冻结清单>` 审计依赖，而不是审计当前环境"]
-            if "grep -v \"^-e\"" not in script:
+            if 'grep -v "^-e"' not in script:
                 return ["audit 作业要先把 editable 安装过滤掉（`pip freeze | grep -v '^-e'`）"]
             return []
     return ["缺少 pip-audit 步骤"]
@@ -103,6 +105,7 @@ def check_release_job(workflow: dict) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)

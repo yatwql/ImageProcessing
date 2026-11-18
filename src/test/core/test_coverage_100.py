@@ -33,8 +33,10 @@ class StyleInkSizeFailure(unittest.TestCase):
         mask = np.zeros((80, 200), bool)
         mask[20:40, 20:120] = True
         logged: list[str] = []
-        with mock.patch.object(style, "ink_size", side_effect=OSError("渲染不出")), \
-                mock.patch.object(style, "_log", side_effect=logged.append):
+        with (
+            mock.patch.object(style, "ink_size", side_effect=OSError("渲染不出")),
+            mock.patch.object(style, "_log", side_effect=logged.append),
+        ):
             result = style.fit_font("年度", mask, (20, 20, 120, 40), [face], 1)
         self.assertIsNone(result)
         self.assertTrue(any("渲染失败" in item for item in logged), f"应记录失败：{logged}")
@@ -42,7 +44,9 @@ class StyleInkSizeFailure(unittest.TestCase):
 
 class WinLockImportFailure(unittest.TestCase):
     def test_winlock_returns_none_without_msvcrt(self):
-        with mock.patch.object(audit.importlib, "import_module", side_effect=ImportError("no msvcrt")):
+        with mock.patch.object(
+            audit.importlib, "import_module", side_effect=ImportError("no msvcrt")
+        ):
             self.assertIsNone(audit._winlock())
 
 
@@ -66,9 +70,12 @@ class AllImagesUnreadable(unittest.TestCase):
             src = os.path.join(tmp, "a.png")
             image.save_image(np.full((10, 10, 3), 255, np.uint8), None, src)
             err = io.StringIO()
-            with mock.patch.object(cli_main, "collect_images", return_value=[src]), \
-                    mock.patch.object(cli_main, "load_image", side_effect=OSError("坏图")), \
-                    contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            with (
+                mock.patch.object(cli_main, "collect_images", return_value=[src]),
+                mock.patch.object(cli_main, "load_image", side_effect=OSError("坏图")),
+                contextlib.redirect_stderr(err),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
                 with self.assertRaises(SystemExit) as ctx:
                     cli_main.main([src, "--map", "原文=新文", "--out-dir", tmp])
         self.assertIn("读取失败", str(ctx.exception.code))

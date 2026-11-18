@@ -18,6 +18,7 @@ from src.python import bootstrap, launch
 
 
 class ConfDirResolution(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "Windows 上 /tmp/cfg 不是绝对路径语义")
     def test_explicit_absolute_dir_is_used_as_is(self):
         with mock.patch.dict(os.environ, {"IMG_P_CONFIG_DIR": "/tmp/cfg"}):
             self.assertEqual(bootstrap._conf_dir(), Path("/tmp/cfg"))

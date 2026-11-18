@@ -17,9 +17,10 @@ import os
 import subprocess
 import sys
 import time
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 PY = sys.executable
 
 
@@ -37,6 +38,7 @@ def run(name: str, cmd: list[str], *, env: dict[str, str] | None = None) -> bool
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     quick = "--quick" in args
     no_font = "--no-font" in args
@@ -81,7 +83,8 @@ def main(argv: list[str] | None = None) -> int:
                 "覆盖率门禁（总量 / 分模块 / skip 比例）",
                 [
                     PY,
-                    "-m", "src.python.tools.check_coverage",
+                    "-m",
+                    "src.python.tools.check_coverage",
                     str(reports / "coverage.xml"),
                     str(reports / "junit.xml"),
                 ],

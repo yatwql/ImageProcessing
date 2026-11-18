@@ -282,6 +282,17 @@
 | RF-121 | 架构 | 没有约束禁止产品代码反向依赖开发工具（会让发行包拖上 gh/pip-audit/bash） | 新增 AR-8 并在 `check_import_surface.py` 里校验 `core/cli/tui` 不得导入 `tools` 包 | 已修 |
 | RF-122 | 规范 | `test_coverage_gaps3.py` 长到 1065 行，超过"单文件 ≤1000 行"的约定 | 按 class 边界拆成 `gaps3.py`（601 行）/ `gaps4.py`（489 行） | 已修 |
 
+## 2026-11-18 技术债清理
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-123 | 重复 | 10 个工具各自定义 `ROOT = parents[3]`，搬目录要改 10 处 | 收敛到 `src/python/tools/_paths.py` | 已修 |
+| RF-124 | 冗余 | `check_perf.py` 仍保留 `sys.path.insert`（移动后作为包模块已能导入） | 删除 | 已修 |
+| RF-125 | 断言宽松 | `core/audit.py` 有 5 处 `pragma: no cover`，其中 4 处其实已被 msvcrt 用例覆盖（pragma 反而掩盖了真实性） | 只保留"POSIX 上不可能执行"的 import 分支；`_lock` 无后端分支补真实用例，audit.py 行覆盖 100% | 已修 |
+| RF-126 | 平台缺陷 | 工具的 `--help` 在 Windows cp1252 控制台打印中文即 `UnicodeEncodeError`（windows 作业真实红因） | 12 个工具入口统一 `ensure_utf8_stdio()` | 已修 |
+| RF-127 | 版本兼容 | `check_guards.py` 用 `tomllib`（3.11+），在 3.10 上入口冒烟直接 `ModuleNotFoundError` | 回退到 `tomli`（`tomli==2.5.0; python_version < "3.11"`） | 已修 |
+| RF-128 | 用例不可移植 | 三处用例假设 POSIX：`/tmp/cfg` 是绝对路径、`/proc` 不可写、`bootstrap --check` 依赖 `.venv` | 分别改为 `skipIf(win32)`、打桩 `Path.mkdir`、无 venv 时 skip | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`src/python/tools/check_guards.py`：6/6 通过。

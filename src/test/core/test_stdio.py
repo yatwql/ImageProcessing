@@ -16,16 +16,20 @@ from src.python import stdio
 class Utf8Stdio(unittest.TestCase):
     def test_streams_already_utf8_are_left_alone(self):
         stream = mock.Mock(encoding="utf-8")
-        with mock.patch.object(stdio.sys, "stdout", stream), \
-                mock.patch.object(stdio.sys, "stderr", None):
+        with (
+            mock.patch.object(stdio.sys, "stdout", stream),
+            mock.patch.object(stdio.sys, "stderr", None),
+        ):
             stdio.ensure_utf8_stdio()
         stream.reconfigure.assert_not_called()
 
     def test_non_utf8_streams_are_reconfigured(self):
         out = mock.Mock(encoding="cp936")
         err = mock.Mock(encoding="cp1252")
-        with mock.patch.object(stdio.sys, "stdout", out), \
-                mock.patch.object(stdio.sys, "stderr", err):
+        with (
+            mock.patch.object(stdio.sys, "stdout", out),
+            mock.patch.object(stdio.sys, "stderr", err),
+        ):
             stdio.ensure_utf8_stdio()
         out.reconfigure.assert_called_once_with(encoding="utf-8", errors="replace")
         err.reconfigure.assert_called_once_with(encoding="utf-8", errors="replace")
@@ -33,15 +37,19 @@ class Utf8Stdio(unittest.TestCase):
     def test_reconfigure_failure_is_swallowed(self):
         bad = mock.Mock(encoding="cp936")
         bad.reconfigure.side_effect = OSError("不支持")
-        with mock.patch.object(stdio.sys, "stdout", bad), \
-                mock.patch.object(stdio.sys, "stderr", None):
-            stdio.ensure_utf8_stdio()          # 不抛即通过
+        with (
+            mock.patch.object(stdio.sys, "stdout", bad),
+            mock.patch.object(stdio.sys, "stderr", None),
+        ):
+            stdio.ensure_utf8_stdio()  # 不抛即通过
 
     def test_stream_without_encoding_attribute_is_handled(self):
         stream = mock.Mock(spec=["reconfigure"])
-        del stream.encoding                    # 模拟被替换成没有 encoding 的流
-        with mock.patch.object(stdio.sys, "stdout", stream), \
-                mock.patch.object(stdio.sys, "stderr", None):
+        del stream.encoding  # 模拟被替换成没有 encoding 的流
+        with (
+            mock.patch.object(stdio.sys, "stdout", stream),
+            mock.patch.object(stdio.sys, "stderr", None),
+        ):
             stdio.ensure_utf8_stdio()
         stream.reconfigure.assert_called_once()
 

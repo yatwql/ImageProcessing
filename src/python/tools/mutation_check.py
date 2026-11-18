@@ -14,13 +14,15 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+from ..stdio import ensure_utf8_stdio
+from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+
 DEFAULT_TARGETS = ["src/python/core/match.py"]
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv) or DEFAULT_TARGETS
     if importlib.util.find_spec("mutmut") is None:
         print("未安装 mutmut：`.venv/bin/python -m pip install mutmut` 后再来")

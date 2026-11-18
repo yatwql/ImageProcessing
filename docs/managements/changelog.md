@@ -5,6 +5,22 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 技术债清理（工具与平台兼容）
+
+### 变更
+
+- 工具共用路径：新增 `src/python/tools/_paths.py`，10 个工具不再各自算 `parents[3]`
+  （搬目录时只需改一处）。
+- `check_perf.py` 去掉多余的 `sys.path` 注入（作为包模块运行已可导入）。
+- `core/audit.py` 的平台 `pragma` 只保留"POSIX 上不可能执行"的那一处
+  （`import fcntl` 的 ImportError 分支）；`_lock` 在没有 fcntl/msvcrt 时返回 False 的分支
+  改为真实用例覆盖（audit.py 行覆盖回到 100%）。
+- 工具入口统一调用 `ensure_utf8_stdio()`：Windows cp1252 控制台下 `--help` 打印中文
+  不再 `UnicodeEncodeError`（本轮 windows 作业的真实红因）。
+- 3.10 兼容：`check_guards.py` 的 `tomllib` 用 `tomli` 回退（`tomli==2.5.0; python_version < "3.11"`）。
+- Windows 不适用用例显式处理：`/tmp/cfg` 绝对路径语义加 `skipIf(win32)`；
+  "目录不可写"改为打桩 `Path.mkdir`；`bootstrap --check` 在无 `.venv` 的环境 skip。
+
 ## 2026-11-18 — 开发工具迁入 src/python/tools
 
 ### 变更

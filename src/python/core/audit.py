@@ -24,14 +24,14 @@ from .options import Options
 
 try:                                    # POSIX
     import fcntl
-except ImportError:                     # pragma: no cover - 平台差异
+except ImportError:                     # pragma: no cover - 只在 Windows 上发生
     fcntl = None                        # type: ignore[assignment]
 
 def _winlock() -> Any:
     """Windows 的 msvcrt 模块（非 Windows 返回 None），只在用到时才导入。"""
     try:
         return importlib.import_module("msvcrt")
-    except ImportError:                 # pragma: no cover - 平台差异
+    except ImportError:                 # 平台差异：非 Windows 没有 msvcrt
         return None
 
 LOG_PREFIX = "image-writes-"
@@ -86,11 +86,11 @@ def _lock(fd: int) -> bool:
         fcntl.flock(fd, fcntl.LOCK_EX)
         return True
     win = _winlock()
-    if win is not None:                  # pragma: no cover - Windows 分支
+    if win is not None:                  # Windows 分支（用 msvcrt 锁首字节）
         os.lseek(fd, 0, os.SEEK_SET)
         win.locking(fd, win.LK_LOCK, 1)
         return True
-    return False                         # pragma: no cover - 其它平台
+    return False                         # 其它平台：没有 msvcrt
 
 
 def _unlock(fd: int, locked: bool) -> None:
@@ -101,7 +101,7 @@ def _unlock(fd: int, locked: bool) -> None:
             fcntl.flock(fd, fcntl.LOCK_UN)
         else:
             win = _winlock()
-            if win is None:              # pragma: no cover - 其它平台
+            if win is None:              # 其它平台：没有 msvcrt
                 return
             os.lseek(fd, 0, os.SEEK_SET)
             win.locking(fd, win.LK_UNLCK, 1)

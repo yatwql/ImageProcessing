@@ -56,6 +56,12 @@ def check_run_blocks(workflow: dict) -> list[str]:
         if not isinstance(script, str):
             continue
         name = step.get("name", "(unnamed)")
+        if "<<'PY'" in script or "<<\"PY\"" in script or re.search(r"python.*\s-\s*<<", script):
+            problems.append(
+                f"{job_name} / {name}：run 块里内联 python 脚本（heredoc）——"
+                "代码要进 src/python/tools（能 ensure_utf8_stdio、能写用例、能病态输入打桩）"
+            )
+            continue
         if step.get("shell", "bash") != "bash":
             continue  # 非 bash 的步骤只做 YAML 解析
         with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False, encoding="utf-8") as f:

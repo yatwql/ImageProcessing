@@ -190,30 +190,13 @@ jobs:
         run: |
           mkdir -p reports
           python -m pytest src/test -q --junitxml=reports/junit-windows.xml
-      # 失败时先给出"哪几条用例红"，不用翻整段日志（复盘模板要求一眼看到归类依据）
+      # 失败时先给出"哪几条用例红"，不用翻整段日志（复盘模板要求一眼看到归类依据）。
+      # 逻辑放在 src/python/tools/junit_summary.py：那里有 ensure_utf8_stdio()，
+      # 不会像 shell heredoc 那样在 Windows 控制台（cp1252）上自己先红。
       - name: 失败用例摘要
         if: always()
         shell: bash
-        run: |
-          python - <<'PY'
-          import xml.etree.ElementTree as ET
-          from pathlib import Path
-
-          report = Path("reports/junit-windows.xml")
-          if not report.is_file():
-              print("没有 junit 报告（用例可能没跑到），跳过摘要")
-              raise SystemExit(0)
-          root = ET.parse(report).getroot()
-          bad = [
-              case
-              for case in root.iter("testcase")
-              if case.find("failure") is not None
-              or case.find("error") is not None
-          ]
-          print(f"失败/错误用例：{len(bad)}")
-          for case in bad:
-              print(f"- {case.get('classname')}::{case.get('name')}")
-          PY
+        run: python -m src.python.tools.junit_summary reports/junit-windows.xml
       - name: 上传 junit 报告
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,6 +1,6 @@
 # 测试计划与质量标准
 
-> 版本：v0.2
+> 版本：v0.3-dev
 
 本文件定义 **retype 的质量控制体系与测试标准**：质量目标、门禁分层、测试分层与编写规范、
 覆盖率与性能阈值、缺陷分级与回归要求、例外流程。它是"什么算合格"的唯一依据；
@@ -124,6 +124,9 @@
   ③ **换字族/字重**（`IMG_P_TEST_FONT=alt`：粗体槽用常规体、常规槽用粗体）——
   Windows 用 msyh、Linux 用 Noto CJK，度量本来不同；写死像素/字体家族的断言在这一档就红。
   入口冒烟因此改为**本进程内跑**（`runpy` + 重定向），不经子进程管道。
+- **CI 的 `run:` 块里不许内联 python 脚本（heredoc/`python -c`）**：那段代码既没有
+  `ensure_utf8_stdio()`（Windows 控制台 cp1252 会 `UnicodeEncodeError`，本轮摘要步就是这么红的），
+  也没法写用例。逻辑一律进 `src/python/tools/`，工作流只留一行 `python -m ...`（守护「工作流」会拦）。
 - 断言卫生（守护「跨平台」本地拦，不等 CI）：不许写死字体家族名、不许裸 `bash`/`sh`、
   不许无守卫碰 `fcntl`、不许在 `assertGreater*` 里写绝对像素阈值（名字像尺寸且阈值 ≥20 才报，
   `index >= 0` 这类上下界检查不误报）、不许在断言里直接比 `sys.executable`/`sys.platform`。
@@ -139,6 +142,7 @@
 | `check_guards`「归档」/「编号」 | 目录命名、头部四项、索引存在；编号唯一/递增/不复用 | `tools/test_platform_safety_rules.py`、`check_guards --ci` |
 | `check_platform_safety` | 五条用例卫生规则 × `# platform-safe` 豁免 | `tools/test_platform_safety_rules.py` |
 | `gen_folders` | 目录树生成、统计表数字重算、`alt`/指定字体模式 | `tools/test_gen_folders_stats.py` |
+| `junit_summary` | 失败/错误用例提取、报告缺失、用法提示 | `tools/test_junit_summary.py` |
 
 ## 9. 质量报告与产物
 

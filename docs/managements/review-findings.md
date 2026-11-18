@@ -1,6 +1,6 @@
 # 自检记录与缺陷
 
-> 版本：v0.2
+> 版本：v0.3-dev
 
 > 记录开发自检时发现的问题、处理方式与遗留风险。编号 `RF-x`；
 > **编号约定**：本文件的任务与缺陷一律 `RF-x`（连续编号，不复用；早期 `TD-x` 已并入本系列）；
@@ -22,3 +22,11 @@
 | 系列 | 归档文件 | 涵盖版本 | 归档时间 |
 | --- | --- | --- | --- |
 | v0.2.x | [`archived_review-findings.0.2.x.md`](../archive/v0.2.x/archived_review-findings.0.2.x.md) | v0.2 | 2026-11-18（v0.2 发布，本系列首份） |
+
+## 2026-11-18 v0.2 发布后 windows 作业仍红（复盘）
+
+| 编号 | 类型 | 发现 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-149 | 断言依赖本机事实 | 上轮把宽字距断言改成"与本机 fit 的排版宽度比"，但 pipeline 内部会再 fit 一次，字体/字号/字距未必相同；Windows（msyh）上期望 193、实际画 111，仍然红 | 期望宽度改用 `report` 里 pipeline 自己报告的 font/size/tracking 计算，并以「同字体、字距 0」的宽度为下限（收紧到 0 才算回归） | 已修 |
+| RF-150 | 门禁缺口 | CI 的「失败用例摘要」本来写在 `run:` 的 heredoc 里，Windows 控制台 cp1252 打印中文直接 `UnicodeEncodeError`——摘要步自己红了，还掩盖了真实失败列表 | 逻辑搬进 `src/python/tools/junit_summary.py`（`ensure_utf8_stdio()`）+ 5 例；守护「工作流」禁止 `run:` 内联 python（heredoc / `python -c`） | 已修 |
+

@@ -14,23 +14,46 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from src.python.tui import ui
+from src.python import version as version_mod
+from src.python.tui import ui, ui_base, ui_draw
 from src.python.tui.app import Block
-from src.python.version import VERSION
 from src.test._support import FakeWin, TuiTestCase, has_cjk_font
 
 SNAPSHOT = Path(__file__).resolve().parents[1] / "snapshots" / "tui.json"
-VERSION_TOKEN = f"v{VERSION}"
+# 快照里固定成这个版本串：升版（含 -dev 后缀变化）都只改这几个字符的长度，
+# 归一化后 40 屏快照完全不受影响——否则每次升版都要重生成快照。
+SNAPSHOT_VERSION = "9.9-dev"
+VERSION_TOKEN = f"v{SNAPSHOT_VERSION}"
 
 
 def normalize(text: str) -> str:
-    """版本号不进快照：升版（含 -dev 后缀）不该让 40 屏快照全红。"""
+    """版本号不进快照：升版不该让 40 屏快照全红。"""
     return text.replace(VERSION_TOKEN, "v<VER>")
+
+
+@contextlib.contextmanager
+def fixed_version():
+    """把界面里的版本串固定成 `SNAPSHOT_VERSION`（标题/帮助页都会带它）。"""
+    title = (
+        f"{version_mod.NAME} v{SNAPSHOT_VERSION} ({version_mod.UPDATED}) · {version_mod.TITLE}"
+    )
+    help_text = ui_base.HELP.replace(
+        f"v{version_mod.VERSION}", f"v{SNAPSHOT_VERSION}"
+    )
+    with (
+        mock.patch.object(ui_draw, "VERSION", SNAPSHOT_VERSION),
+        mock.patch.object(ui_draw, "TITLE_TEXT", title),
+        mock.patch.object(ui_base, "VERSION", SNAPSHOT_VERSION),
+        mock.patch.object(ui_base, "HELP", help_text),
+    ):
+        yield
 UPDATE = os.environ.get("UPDATE_SNAPSHOTS") == "1"
 
 SIZES = [(32, 18), (44, 22), (50, 24), (80, 26), (130, 34)]
@@ -96,12 +119,13 @@ class ScreenSnapshots(TuiTestCase):
         return json.loads(SNAPSHOT.read_text(encoding="utf-8"))
 
     def test_screens_match_snapshots(self):
-        cases = self.states()
         current: dict[str, str] = {}
-        for case_name, app in cases.items():
-            for cols, rows in SIZES:
-                key = f"{case_name}@{cols}x{rows}"
-                current[key] = normalize(self.render(app, cols, rows))
+        with fixed_version():
+            cases = self.states()
+            for case_name, app in cases.items():
+                for cols, rows in SIZES:
+                    key = f"{case_name}@{cols}x{rows}"
+                    current[key] = normalize(self.render(app, cols, rows))
 
         if UPDATE:
             SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
@@ -131,7 +155,8 @@ class SnapshotSanity(ScreenSnapshots):
     """快照本身要能表达"看得见的东西"：标题、表头、底栏都在。"""
 
     def test_snapshot_contains_key_elements(self):
-        text = self.render(self.build(), 100, 30)
+        with fixed_version():
+            text = self.render(self.build(), 100, 30)
         for token in ("retype", "① 图片", "② 识别到的文字", "选："):
             self.assertIn(token, text)
 

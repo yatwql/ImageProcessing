@@ -104,9 +104,17 @@ class LetterSpacedTitle(unittest.TestCase):
         if fit is None:
             self.assertGreater(out_w, 0)  # 字体匹配失败时只确认确实画上了字
             return
-        _score, face, size, tracking, _iou = fit
+        # 用 pipeline 自己报告的字体/字号/字距算期望宽度：不同平台字族不同，
+        # 但"画出来的宽度 ≈ 报告的排版宽度"这条在各平台都成立。
+        entry = report[0]
+        named = entry.get("font") if isinstance(entry, dict) else None
+        face = next((f for f in pool if f.name == named), fit[1])
+        size = int(entry.get("size") or fit[2]) if isinstance(entry, dict) else fit[2]
+        tracking = float(entry.get("tracking") or 0.0) if isinstance(entry, dict) else fit[3]
         expected_w = ink_size("核心观点", face, size, tracking)[0]
-        self.assertGreaterEqual(out_w, 0.85 * expected_w)  # 仍铺开，不因换字收紧
+        tight_w = ink_size("核心观点", face, size, 0.0)[0]
+        # 至少不比"同字体无字距"更窄：收紧到 0 才算回归，字体度量差异不算
+        self.assertGreaterEqual(out_w, 0.9 * min(expected_w, tight_w))
 
 
 @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")

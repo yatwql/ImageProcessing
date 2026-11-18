@@ -1,6 +1,6 @@
 # 目录结构与项目统计
 
-> 文档版本：v0.2
+> 文档版本：v0.3-dev
 >
 > 项目目录树 — 新增/重命名/删除任何非排除的文件或目录时，**必须同步更新此文档**；
 > `src/python/tools/check_guards.py` 的第 12 项「目录树文档」会核对本文件是否覆盖了所有源文件与文档，
@@ -15,18 +15,18 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 31 | 4,308 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 65 | 8,644 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 673 | `git grep -c "def test_"` 行数口径 |
-| 工程工具 | Python | 16 | 2,967 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
+| 测试代码 | Python | 66 | 8,726 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 678 | `git grep -c "def test_"` 行数口径 |
+| 工程工具 | Python | 17 | 3,026 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
-| CI 与钩子 | YAML / Shell | 4 | 364 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
-| 管理文档 | Markdown | 10 | 1,722 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
+| CI 与钩子 | YAML / Shell | 4 | 347 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
+| 管理文档 | Markdown | 10 | 1,762 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
 | 归档文档 | Markdown | 4 | 1,468 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 477 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **152** | **20,694** | 主程序 : 测试 ≈ 1 : 2.01；仓库共 156 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **154** | **20,858** | 主程序 : 测试 ≈ 1 : 2.03；仓库共 158 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -110,6 +110,7 @@ ImageProcessing/
 │   │   │   ├── ci_env.py                     # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
 │   │   │   ├── coverage_report.py            # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统
 │   │   │   ├── gen_folders.py                # 重新生成 `docs/managements/folders.md` 的两个"机器可算"部分：目录树与项
+│   │   │   ├── junit_summary.py              # JUnit 报告摘要：把失败用例列成一行一条，CI 里一眼看清红在哪
 │   │   │   ├── mutation_check.py             # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
 │   │   │   ├── release.py                    # 发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停
 │   │   │   ├── run_tests.py                  # 测试入口：跑全量用例并生成 junit / html / 覆盖率报告与摘要
@@ -190,6 +191,7 @@ ImageProcessing/
 │   │   ├── tools/
 │   │   │   ├── __init__.py                   # 工程工具用例（发布编排 / 归档流程等）
 │   │   │   ├── test_gen_folders_stats.py     # `gen_folders` 的统计表重算：数字由脚本算，说明列与表结构一概不动
+│   │   │   ├── test_junit_summary.py         # CI 失败摘要工具（`junit_summary`）：把 junit 报告里的红用例列成 `class:
 │   │   │   ├── test_platform_safety_rules.py  # 「跨平台」守护的规则自检：规则本身也要有用例，否则它会悄悄失效
 │   │   │   ├── test_release_archive.py       # 归档流程（`release.py archive`）的用例
 │   │   │   └── test_release_versions.py      # 版本号与分支策略（`-dev` 开发版 / 正式版）：`release.py` 的定版与切版

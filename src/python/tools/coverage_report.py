@@ -21,6 +21,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
 from ..stdio import ensure_utf8_stdio
+from ..version import VERSION
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
 COVERAGE = ROOT / "reports" / "coverage.xml"
@@ -193,7 +194,7 @@ def build() -> str:
     lines = [
         "# 测试覆盖率与分组统计",
         "",
-        "> 版本：v0.1",
+        f"> 版本：v{VERSION}",
         "",
         "本文件由 `python -m src.python.tools.coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与",
         "`reports/junit.xml`（`python -m src.python.tools.check_all` 全量模式产出）。改完用例或实现后重新生成即可，",

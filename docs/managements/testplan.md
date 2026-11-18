@@ -12,7 +12,7 @@
 | 编号 | 目标 | 判定方式 | 门槛 |
 | --- | --- | --- | --- |
 | QG-1 | 静态质量 | `ruff check src/ tools/` + `mypy`（全树） | 零告警 / 零错误 |
-| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 17 项全过 |
+| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 18 项全过 |
 | QG-3 | 行覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 96%（实测 97%） |
 | QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%；edit/render/image/audit/ui_draw/bootstrap/launch/ui/cli-main/cli-log_query ≥85~90%；app/ui_actions/ui_base/ui_input ≥80%） | 逐项达标 |
 | QG-5 | 跳过率 | 同上（正常模式，即机器上有中文字体） | ≤ 15% |
@@ -22,13 +22,14 @@
 | QG-9 | 缺陷回归 | 每个已修缺陷都有对应用例 | 100%（见 §6） |
 | QG-10 | 发布门禁 | `src/python/tools/release.py check/gate`（工作区干净、版本与日期一致、全量门禁） | 全绿才可打标签 |
 
-一条命令自查：`python -m src.python.tools.check_all`（全量）/ `--quick`（提交前用）。
+一条命令自查：`python -m src.python.tools.check_all`（全量：静态并发 + 四档环境矩阵 × `-n 8`
++ 覆盖率 + 分片重排，约 3 分钟）/ `--quick`（提交前用：只跑本机档，约 30s）。
 
 ## 2. 门禁分层
 
 | 层级 | 触发点 | 跑什么 | 失败后果 |
 | --- | --- | --- | --- |
-| P0 提交前 | `git commit` → `.githooks/pre-commit` | `check_all.py --quick`：ruff → mypy → guards → perf → 全量用例 | 拒绝提交 |
+| P0 提交前 | `git commit` → `.githooks/pre-commit` | `check_all.py --quick`：ruff / mypy / guards（并发）→ perf → 本机单档用例（`-n 8`） | 拒绝提交 |
 | P1 推送前 | `git push` → `.githooks/pre-push` | `check_all.py` 全量：再加覆盖率门禁 + 无字体复跑 | 拒绝推送 |
 | P2 CI | push / PR | 八个常驻作业：test（3.10/3.12/3.13）、lint、typecheck、guards、perf、windows、audit（release 只在打 tag 时跑） | 红则不合入 |
 | 手工 | 改界面/改依赖后 | `UPDATE_SNAPSHOTS=1` 重生成快照、`src/python/tools/update_constraints.py --write` | 快照/锁文件 diff 随提交 |

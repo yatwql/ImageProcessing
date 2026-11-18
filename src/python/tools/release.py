@@ -22,9 +22,11 @@ import hashlib
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
+from . import gate_stamp
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
 VERSION_FILE = ROOT / "src" / "python" / "version.py"
@@ -83,6 +85,40 @@ def write_version(version: str, today: str, version_file: Path | None = None) ->
 
 
 def cmd_check() -> int:
+    """发布前预检：**便宜的检查先红就停**，绿了再决定要不要跑全量门禁。
+
+    顺序很要紧：工作区不干净、版本号不对这类问题几毫秒就能查出来，
+    以前却要先把整条门禁跑完才报——那是纯粹白跑。
+    """
+    started = time.perf_counter()
+    problems = cheap_problems()
+    if problems:
+        for item in problems:
+            print(f"[FAIL] {item}")
+        print("[!] 结构性预检未通过：全量门禁一行没跑（先修上面这些）")
+        return 1
+
+    version, updated = read_version()
+    if gate_stamp.stamp_matches():
+        print(
+            f"[ok] 预检通过：版本 {version}（{updated}），"
+            f"同一份代码已通过全量门禁（命中门禁戳，跳过重跑，{_elapsed(started)}）"
+        )
+        return 0
+
+    print("[..] 跑全量门禁：静态检查 + 四档环境矩阵 + 覆盖率 + 并行分片重排")
+    if subprocess.run([PY, "-m", "src.python.tools.check_all"], cwd=str(ROOT)).returncode != 0:
+        print(f"[FAIL] 全量门禁未通过（{_elapsed(started)}，失败的一档见上方输出）")
+        return 1
+    print(
+        f"[ok] 预检通过：版本 {version}（{updated}），工作区干净，"
+        f"全量门禁全绿（{_elapsed(started)}，已写门禁戳）"
+    )
+    return 0
+
+
+def cheap_problems() -> list[str]:
+    """几毫秒就能查完的结构性预检（不看代码是否真的能跑）。"""
     problems: list[str] = []
     status = sh(["git", "status", "--porcelain"]).stdout.strip()
     if status:
@@ -98,30 +134,11 @@ def cmd_check() -> int:
         problems.append(f"master 上是 {version}：发布分支不能带 -dev（先 prepare 成正式号）")
     if branch == "dev" and not is_dev(version):
         problems.append(f"dev 上是 {version}：开发分支的版本必须带 -dev（如 {version}-dev）")
-    # 发布预检不只跑“本机默认环境”：把两档 CI 矩阵一起过（字族/控制台差异）。
-    # 这是“本地绿、CI 红”在发布前最后一次拦截点。
-    quick = sh(
-        [
-            PY,
-            "-m",
-            "src.python.tools.check_all",
-            "--quick",
-            "--ci-matrix",
-            "--font-matrix",
-        ],
-        check=False,
-    )
-    if quick.returncode != 0:
-        problems.append("check_all --quick --ci-matrix --font-matrix 未通过")
-    if problems:
-        for item in problems:
-            print(f"[FAIL] {item}")
-        return 1
-    print(
-        f"[ok] 预检通过：版本 {version}（{updated}），工作区干净，"
-        "quick 门禁 + CI 矩阵（locale / 字体）全绿"
-    )
-    return 0
+    return problems
+
+
+def _elapsed(started: float) -> str:
+    return f"{time.perf_counter() - started:.1f}s"
 
 
 def cmd_prepare(version: str) -> int:
@@ -293,9 +310,15 @@ def cmd_archive(version: str, yes: bool, docs: Path | None = None) -> int:
     return 0
 
 
-def cmd_gate() -> int:
-    proc = subprocess.run([PY, "-m", "src.python.tools.check_all"], cwd=str(ROOT))
-    return proc.returncode
+def cmd_gate(force: bool = False) -> int:
+    """全量门禁。命中门禁戳（同一份代码已全绿）就直接放行，`--force` 强制重跑。"""
+    if not force and gate_stamp.stamp_matches():
+        print("[ok] 同一份代码已通过全量门禁（命中门禁戳）；要强制重跑加 --force")
+        return 0
+    started = time.perf_counter()
+    code = subprocess.run([PY, "-m", "src.python.tools.check_all"], cwd=str(ROOT)).returncode
+    print(f"[{'ok' if code == 0 else 'FAIL'}] 全量门禁{'通过' if code == 0 else '未通过'}（{_elapsed(started)}）")
+    return code
 
 
 def cmd_build() -> int:
@@ -382,6 +405,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--version", default=version, help=f"目标版本（当前 {version}）")
     ap.add_argument("--yes", action="store_true", help="真的执行有副作用的步骤")
+    ap.add_argument("--force", action="store_true", help="gate 忽略门禁戳，强制重跑")
     args = ap.parse_args(sys.argv[1:] if argv is None else argv)
 
     if args.command == "check":
@@ -393,7 +417,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "devbump":
         return cmd_devbump(args.version)
     if args.command == "gate":
-        return cmd_gate()
+        return cmd_gate(args.force)
     if args.command == "build":
         return cmd_build()
     if args.command == "tag":

@@ -19,6 +19,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
+from ._parallel import parallel_args, worker_count
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
 TMP_ROOT = Path(os.environ.get("IMG_P_TMP_DIR", "/data/tmp"))  # platform-safe
@@ -58,12 +59,14 @@ def prepare_report_dir() -> Path:
 
 
 def build_args(report_dir: Path, fast: bool, extra: list[str]) -> list[str]:
+    """pytest 命令行；用例分片并行（worker 数见 `_parallel.worker_count`）。"""
     args = [
         "src/test",
         "-q",
         f"--junitxml={report_dir / 'junit.xml'}",
         "-o",
         f"cache_dir={TMP_ROOT / 'pytest-cache'}",
+        *parallel_args(worker_count()),
         *extra,
     ]
     if fast:

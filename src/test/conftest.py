@@ -14,6 +14,11 @@ import os
 
 import pytest
 
+try:  # POSIX-only：Windows 没有 resource 模块
+    import resource
+except ImportError:  # pragma: no cover - Windows
+    resource = None  # type: ignore[assignment]  # platform-safe：导入失败即无该模块
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUTPUT_DIR = os.path.join(_ROOT, "data", "output")
 
@@ -27,6 +32,24 @@ def _snapshot(root: str) -> set[str]:
         for name in filenames:
             found.add(os.path.relpath(os.path.join(dirpath, name), root))
     return found
+
+
+@pytest.fixture(scope="session", autouse=True)
+def no_core_dumps():
+    """用例子进程不许留 core dump（POSIX）。
+
+    真实事故：真终端冒烟用例在 pty 里跑 TUI，子进程偶发段错误，
+    每次落地一个 ~800MB 的 `core.<pid>`（一轮门禁 16 个、1.8GB），
+    既撑满磁盘又让 `git status` 变脏、`release.py check` 直接红。
+    根因还没定位到（curses 退出与后台 OCR 线程的时序），先在测试入口把
+    `RLIMIT_CORE` 清零：子进程继承该上限，崩了也不落地。
+    """
+    if resource is not None:
+        try:
+            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        except (OSError, ValueError):  # 有的容器不允许改上限，不影响结论
+            pass
+    yield
 
 
 @pytest.fixture(scope="session", autouse=True)

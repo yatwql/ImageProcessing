@@ -7,6 +7,54 @@
 
 ## v0.3-dev — 开发中
 
+### 优化（门禁提速：同一份质量，墙钟减半）
+
+改造前的事实：全量门禁把**同一套 703 个用例串行跑四遍**（本机 / cp1252+C locale / 无字体 / 换字族，
+每遍 69s），静态检查也一条接一条；`release.py check` 用 `--quick` 加两档矩阵（三遍）却**不跑覆盖率**，
+然后 `gate` 再跑一遍全量——一次发布要跑七遍用例；而且结构性预检红了也照样先把门禁跑完。
+
+- `src/python/tools/_parallel.py`（新增）：门禁并行执行。实测（16 核 / 703 用例）单档串行 69s、
+  `-n 8` 25s、`-n 16` 25s（已饱和）、四档并发只快 16% 却要 4 倍进程——因此定成
+  **档位串行、档内 `-n min(核数,8)`**；`IMG_P_TEST_WORKERS` / `--gate-workers` / `--serial` 可覆盖。
+- `src/python/tools/check_all.py`：静态检查（ruff / mypy / mypy-win32 / guards）**并发**跑，
+  耗时守卫 `check_perf` 仍独占 CPU（按墙钟卡阈值，混跑会假红）；用例改四档 `-n 8`，
+  每档出 junit 报告，结尾打印总耗时与最慢一步。
+- `src/python/tools/release.py`：`check` 先跑秒级结构性预检（工作区/版本/分支），**红了直接停**，
+  不再白跑门禁；绿了以后跑的是**全量**门禁（含覆盖率），命中门禁戳则跳过；`gate` 默认复用门禁戳，
+  `--force` 强制重跑。
+- `src/python/tools/run_tests.py`：`runTest.sh` 也走同一套 worker 规则。
+- `.github/workflows/ci.yml`：`test` 作业原来把全量用例跑**两遍**（一遍出 junit、一遍出覆盖率），
+  合成一遍（`--cov` + `--junitxml` 同时出）并加 `-n 4`。
+
+### 优化（门禁质量：提速同时把标尺抬高）
+
+- **各档对账**：每档 junit 报告里实际跑到的**用例模块集合必须一致**；某档因 `-k` 打错或环境变量
+  把整个文件 deselect 时，退出码仍是 0，以前就是"全绿什么都没测"，现在当场红
+  （不比用例总数：`nofont` 档少 132 个跳过是设计如此）。
+- **顺序依赖探测**：全量档加一档 `--dist load`（把用例打散到 worker、改变执行顺序），
+  并行后才暴露的用例间耦合在这一档红。
+- **覆盖率前移到发布预检**：`release.py check` 以前只跑 `--quick`（不含覆盖率门禁），现在跑全量。
+- `src/test/tools/test_gate_pipeline.py`（26 例）：worker 规则、批次顺序与 `isolated` 不并发、
+  档位选择、模块集合对账、发布预检失败即停与门禁戳跳过。
+- 顺手修两处文档：`plan.md` 任务表头缺「领域」列（整表错位）、`requirements.md` 的
+  `cli|tui` 未转义（表格多一列）。
+
+实测（16 核）：提交前 `--quick` 约 30s（原 ~80s）；全量门禁 160~176s（原 ~285s，且多了两档检查）；
+一次发布从 ~15 分钟降到 ~6 分钟（`check` 全量一次 + `gate` 命中门禁戳）。
+
+### 修复（真终端冒烟用例的 core dump：一轮门禁写 1.8GB 垃圾）
+
+- 现象：`src/test/tui/test_tui_real_terminal.py` 在 pty 里跑 `tui.sh`，TUI 子进程偶发段错误，
+  每次落地一个 `core.<pid>`（~800MB）。一轮全量门禁产生 16 个、共 1.8GB，撑磁盘、
+  把 `git status` 弄脏（`release.py check` 因此直接红），而用例本身照样"通过"。
+- `src/test/conftest.py`：新增会话级 `no_core_dumps` 钩子，把 `RLIMIT_CORE` 清零
+  （子进程继承该上限）。根因尚未定位到（curses 退出与后台 OCR 线程的时序），
+  先在测试入口止损：崩了也不落地。
+- `src/test/tui/test_tui_real_terminal.py`：新增 `preflight()`——先判"这个环境能不能画中文"，
+  不能就跳过，不再白起一次必然无效的 pty 子进程（每个非 UTF-8 档省 5s）；
+  并检查子进程退出码，被信号打死直接红（以前 `check=False` 把退出码丢掉了，
+  段错误也算通过）。"没有真实终端" 的跳过逻辑仍保留在 `assert_usable_terminal`。
+
 ### 修复（归档遗留项收尾：行内替换的报告字段）
 
 - `src/python/core/edit.py`：行内替换的报告条目补 `fragment`（命中的原文子串）与 `span`
@@ -79,7 +127,8 @@
 
 ### 验证
 
-- `ruff` / `mypy` / `guards 18/18` / `check_workflows` 全绿；`pytest src/test -q` 674 passed。
+- `ruff` / `mypy` / `guards 18/18` / `check_workflows` 全绿；`pytest src/test -q` 729 passed。
+- `check_all` 全量：静态并发 + 四档环境矩阵 × `-n 8` + 覆盖率 96.7% + 分片重排，160~176s 全绿。
 
 ## v0.2 — 2026-11-18
 

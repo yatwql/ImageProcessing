@@ -44,7 +44,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳；
   版本组合由 `constraints.txt` 锁定，安装与 CI 都要带 `-c constraints.txt`。
 - 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`）；钩子执行
-  `src/python/tools/check_all.py --quick`（ruff/mypy/guards/perf/全量用例），`IMG_P_SKIP_HOOK=1` 临时跳过。
+  `src/python/tools/check_all.py --quick`（ruff/mypy/guards 并发 → perf → 本机单档用例 `-n 8`，约 30s），
+  `IMG_P_SKIP_HOOK=1` 临时跳过。
 - 配置文件：`/data/config/retype.json`（模板见 `/data/config/retype.example.json`，可用 `IMG_P_CONFIG` 指定）；
   测试中间文件写 `/data/tmp`，测试报告写 `/test-reports`。
 - 入口：`./scripts/cli.sh`（= `python -m src.python.cli`）、`./scripts/tui.sh`（= `python -m src.python.tui`）；
@@ -53,12 +54,15 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 **推送前只跑一条命令**（与 CI 的八个常驻作业对齐，绿了再推）：
 
 ```bash
-.venv/bin/python -m src.python.tools.check_all           # ruff → mypy → guards → perf → 用例(含覆盖率) → 无字体复跑
-.venv/bin/python -m src.python.tools.check_all --quick   # 跳过覆盖率与无字体复跑（提交前钩子用这个）
+.venv/bin/python -m src.python.tools.check_all           # 静态(并发) → 四档环境矩阵 × `-n 8` → 覆盖率 → 分片重排；约 3 分钟
+.venv/bin/python -m src.python.tools.check_all --quick   # 只跑本机单档（提交前钩子用这个，约 30s）
+.venv/bin/python -m src.python.tools.check_all --serial   # 内存小的机器 / 排障时串行
+.venv/bin/python -m src.python.tools.check_all --gate-workers 4   # 手动限 worker（等价 IMG_P_TEST_WORKERS=4）
 ```
 
-- 提交前钩子 `pre-commit` 跑 `--quick`，推送前钩子 `pre-push` 跑全量（含覆盖率门禁与三档矩阵）；
-  全量通过会在 `.git/retype-gate-stamp.json` 留戳，**同一份代码再推不重跑**（约省 7 分钟），
+- 提交前钩子 `pre-commit` 跑 `--quick`（约 30s），推送前钩子 `pre-push` 跑全量（含覆盖率门禁、
+  四档环境矩阵与分片重排，约 3 分钟）；
+  全量通过会在 `.git/retype-gate-stamp.json` 留戳，**同一份代码再推不重跑**，
   改任何跟踪文件都会让戳失效。
 - 覆盖率门禁：总量 ≥96%，且 `core/{match,options}` ≥90%、`core/{edit,render,image,audit,render}` 与
   `tui/{ui_draw}` ≥85%、`tui/{app,ui_actions}` ≥80%；正常模式 skip ≤15%（`src/python/tools/check_coverage.py`）。
@@ -139,8 +143,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - **红一次 = 补一条**：任何 CI 失败先在 `review-findings.md` 按「CI 红复盘模板」填一条
   （现象 / 归类 / 处理 / **本地拦截** / 回归），再动代码；没写本地拦截的条目状态只能是 `待办`。
 - 同一类红第二次出现视为**门禁缺口**，必须补进守护规则或 CI 矩阵档，而不是再改用例口径了事。
-- 推送前跑 `.venv/bin/python -m src.python.tools.check_all`（含覆盖率、无字体、locale 与字体两档矩阵）；
-  发布前 `release.py check` 会强制过两档矩阵。
+- 推送前跑 `.venv/bin/python -m src.python.tools.check_all`（含覆盖率、四档环境矩阵）；
+  发布前 `release.py check` 跑的是同一份全量门禁（命中门禁戳则跳过）。
 
 ## 文档纪律
 
@@ -198,8 +202,9 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
   ④ 路径期望值用 `str(Path(...))` 算，别手写 `"/x/python"`；
   ⑤ `assertGreater*(x_w, 111)` 这种绝对像素阈值改用两个测量值的比值；断言里别直接比
   `sys.executable`/`sys.platform`。确认与平台无关的行尾标 `# platform-safe`。
-  本地三档矩阵：`check_all --font-matrix`（换字族/字重）、`--ci-matrix`（cp1252+C locale）、
-  无字体档；发布前 `release.py check` 强制过前两档。
+  本地四档矩阵：`check_all` 默认全跑（本机 / `--ci-matrix` cp1252+C locale / `--no-font` / `--font-matrix`
+  换字族与字重），另有一档 `--dist load` 分片重排查用例顺序依赖；单档也能单跑，
+  发布前 `release.py check` 跑的就是这套全量。
 - 纯数字块容易被斜体字体凑上，`analyze` 会估倾斜并在正体时剔除 italic 候选。
 - 输出重名会自动编号，所以「同一个命令跑两次」会产生 `-1`/`-2` 文件，这是预期行为。
 

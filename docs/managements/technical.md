@@ -39,15 +39,18 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   runTest.sh / runTest.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
-  check_guards.py            工程守护（18 项，含编号/版本/目录树/文档索引/归档）
+  check_guards.py            工程守护（18 项，含编号/版本/目录树/文档索引/归档/跨平台）
+  check_all.py               本地全量门禁：静态并发 + 四档环境矩阵 × `-n 8` + 覆盖率 + 分片重排
+  _parallel.py               门禁并行执行：worker 数规则与批次并发（档位串行、档内并行）
   release.py                 发布编排：check → archive → prepare → gate → build → tag → publish
   gen_folders.py             重新生成 folders.md 的目录树与统计表数字（说明列保留）
   junit_summary.py           把 junit 报告里的失败用例列成一行一条（CI 摘要步用它）
-  gate_stamp.py              门禁戳：同一份代码已全量通过时，推送前跳过重跑（省 ~7 分钟）
+  gate_stamp.py              门禁戳：同一份代码已全量通过时，推送前跳过重跑（省一次全量门禁）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
-  pre-commit                 提交前：ruff + guards + 全量用例
+  pre-commit                 提交前：ruff + guards + 单档用例（`check_all --quick`，并行）
+  pre-push                   推送前：全量门禁（四档矩阵 + 覆盖率 + 分片重排），命中门禁戳则跳过
   install-hooks.sh           启用 / --off 关闭
 .github/workflows/ci.yml     CI：test×3 / lint / typecheck / guards / perf / windows / audit（+ release 仅在打 tag 时）
 pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
@@ -83,7 +86,7 @@ src/
     _support.py              公共设施：字体路径、合成图、OCR 桩、FakeWin、用例基类
     core/                    核心层用例（含 background/color/font/format/layout/pipeline/primitives 子目录）
     cli/  tui/               渠道与交互用例
-    tools/                   工程工具用例（发布编排 / 归档流程）
+    tools/                   工程工具用例（发布编排 / 归档流程 / 门禁流水线）
 ```
 
 ## 1.2 依赖方向（硬约束）
@@ -396,10 +399,42 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 ## 10. 测试策略
 
 - 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
-  `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
+  `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树；core 严格注解、
   渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流，共 17 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
+  测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流/跨平台，
+  共 18 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
   覆盖率阈值 `fail_under = 96`（实测约 97%）。
+
+### 10.0 门禁的并行与对账（速度 × 质量）
+
+`check_all` 的执行形状由 `src/python/tools/_parallel.py` 统一决定，实测数据（703 用例 / 16 核）：
+
+| 形状 | 墙钟 | 结论 |
+| --- | --- | --- |
+| 单档串行 | 69s | 基线（改造前） |
+| 单档 `-n 8` | 25s | 8 路已饱和，`-n 16` 同值 |
+| 四档串行 × `-n 8` | 123s | **默认**（内存友好、结论可复现） |
+| 四档并发 × `-n 4` | 103s | 只快 ~16%，却要 4 倍进程与内存，不取 |
+
+因此定下三条固定规则：
+
+1. **档位串行、档内并行**：`-n` 缺省 `min(核数, 8)`，`IMG_P_TEST_WORKERS` / `--gate-workers` 可覆盖，
+   `IMG_P_GATE_SERIAL=1` 或 `--serial` 退回单进程；
+2. **静态检查并发**（ruff / mypy / mypy-win32 / guards 互不冲突），
+   只有耗时守卫 `check_perf` 独占 CPU——它按墙钟判阈值，混跑会假红；
+3. **各档要"对账"**：每档 junit 报告里实际跑到的**用例模块集合必须一致**。
+   `nofont` 档少 132 个跳过是设计如此（所以不比用例总数），但"某个文件整批 deselect"
+   会让一档全绿却什么都没测——这条断言把它变成红。
+
+全量门禁的档位（`--quick` 只跑第一档）：
+
+| 档 | 环境 | 目的 |
+| --- | --- | --- |
+| `plain` | 本机默认（+ 覆盖率） | 主结论与覆盖率门禁 |
+| `ci` | `PYTHONIOENCODING=cp1252` + `LC_ALL=C` | Windows runner / 最小镜像的控制台与 locale 差异 |
+| `nofont` | `IMG_P_TEST_NO_CJK_FONT=1` | Windows runner 没有中文字体 |
+| `font` | `IMG_P_TEST_FONT=alt` | 换字族/字重的度量差异 |
+| `stress` | `--dist load`（打散到 worker、改变顺序） | 并行才暴露的用例顺序依赖 |
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。
 - 核心层：合成图（已知字体/字号/颜色）→ 断言 `fit_font` 选回原字体与字号、`analyze` 取回原字色。
@@ -419,11 +454,12 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 入口冒烟：`src/test/cli/test_entry_smoke.py` 用 `runpy` **在本进程内**跑每个入口
   （`--version/--help/launch` 的退出码与帮助文本），不走子进程管道——避免 Windows
   上 cp1252 解码把 stdout 变成空串，从而把"程序坏了"和"测试读不到输出"混为一谈。
-- CI 矩阵本地复现：`check_all --ci-matrix` 跑"cp1252 控制台 + C locale"与"无中文字体"两档。
+- CI 矩阵本地复现：全量 `check_all` 默认就跑四档（本机 / cp1252+C locale / 无中文字体 / 换字族），
+  单跑某一档用 `--ci-matrix` / `--no-font` / `--font-matrix`；另加一档 `--dist load` 分片重排查顺序依赖。
 - 变异测试（opt-in）：`src/python/tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
 - 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），
   `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` 可在本地模拟"无中文字体"的机器。
-- 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-cov、pytest-html、ruff、mypy）；
+- 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-xdist、pytest-cov、pytest-html、ruff、mypy）；
   `requirements.txt` = `-e .`、`requirements-dev.txt` = `-e .[dev]`，只为兼容既有脚本。
 
 ### 10.0.1 用例对照表（测试文件 → 需求/约束）
@@ -452,7 +488,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `core/test_write_audit_log.py` | FR-7 写盘日志字段 / 追加 / 并发 / 预演不记 |
 | `core/test_report_inline_fragment.py` | 行内替换的报告/日志字段：`fragment` + `span`，整行替换为 `null`，旧日志缺字段读成 `None` |
 | `core/test_log_query.py` | FR-11 日志查询与汇总 |
-| `conftest.py`（`src/test/`） | 用例不许往仓库 `data/output/` 写文件：会话前后对比快照，多出文件即红 |
+| `conftest.py`（`src/test/`） | 用例不许往仓库 `data/output/` 写文件：会话前后对比快照，多出文件即红；会话级把 `RLIMIT_CORE` 清零，用例子进程崩了不落地 core dump |
 | `core/test_cancel_pipeline.py` | FR-10.4 单块级中断 |
 | `core/test_version_display.py` | FR-12 版本号贯穿（横幅/标题/日志/文档） |
 | `cli/test_arguments.py`、`test_single_image.py`、`test_batch_directory.py` | FR-4 参数、单图、批量与坏图跳过 |
@@ -477,6 +513,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tools/test_gate_stamp.py` | 门禁戳：写/读/损坏戳、指纹随跟踪文件变化、未跟踪文件不影响、命令行退出码 |
 | `tools/test_workflow_checks.py` | 工作流自检：bash 不可用时跳过语法检查、heredoc 禁令、合法 `python -m` 放行 |
 | `tools/test_junit_summary.py` | CI 失败摘要：`class::name` 列表、失败+错误、报告缺失不报错、用法提示 |
+| `tools/test_gate_pipeline.py` | 门禁流水线：worker 数规则（上限 8 / 环境变量 / 串行开关）、批次顺序与 isolated 不并发、档位选择、各档模块集合对账（少一档/少一个文件即红）、发布预检失败即停 + 门禁戳跳过 |
 | `tools/test_gen_folders_stats.py` | 目录统计重算：文件数/行数/用例数/示例图与合计行由脚本算，说明列不动 |
 
 ## 10.0 测试报告脚本

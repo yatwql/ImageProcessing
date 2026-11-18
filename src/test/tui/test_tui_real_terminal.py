@@ -36,6 +36,23 @@ def _clean(raw: str) -> str:
     "需要 POSIX + script(1) + .venv（真终端冒烟）",
 )
 class RealTerminalSmoke(unittest.TestCase):
+    def preflight(self) -> None:
+        """先判"这个环境能不能画中文"，不能就跳过——省掉一次必然无效的 pty 子进程。
+
+        以前是先跑 TUI 再看结果，于是在 C/cp1252 locale 档里白白起一次进程
+        （真终端冒烟每个矩阵档都要多花 5s，且子进程偶发段错误）。
+        """
+        if "could not find terminal" in os.environ.get("TERM", ""):
+            self.skipTest("该环境无法初始化 curses（TERM/terminfo 缺失），真终端冒烟跳过")
+        ioenc = (os.environ.get("PYTHONIOENCODING") or "").lower().replace("-", "")
+        c_locale = os.environ.get("LC_ALL") == "C" or os.environ.get("LANG") == "C"
+        preferred = locale.getpreferredencoding(False).lower().replace("-", "")
+        if c_locale or (ioenc and ioenc != "utf8") or preferred != "utf8":
+            self.skipTest(
+                f"当前不是 UTF-8 终端（io={ioenc or '未设'}, C-locale={c_locale}），"
+                "curses 画不了中文——这是终端限制，不是界面坏了"
+            )
+
     def run_tui(self, seconds: float = 4.0) -> str:
         """在 pty 里跑一次 TUI，`seconds` 秒后按 q 退出，返回去转义后的输出。"""
         with tempfile.TemporaryDirectory() as tmp:
@@ -46,7 +63,7 @@ class RealTerminalSmoke(unittest.TestCase):
             feeder = f"exec 3>{fifo}; sleep {seconds}; printf q >&3; sleep 1"
             proc = subprocess.Popen(["sh", "-c", feeder])  # platform-safe：本类已 skipUnless(posix)
             try:
-                subprocess.run(
+                run = subprocess.run(
                     [str(SCRIPT), "-qec", "./scripts/tui.sh data/demo", str(record)],
                     cwd=str(ROOT),
                     stdin=fifo.open("rb"),
@@ -57,6 +74,10 @@ class RealTerminalSmoke(unittest.TestCase):
                 )
             finally:
                 proc.wait(timeout=20)
+            # 子进程被信号打死（负退出码）是真缺陷：界面可能只画了半帧就没了。
+            # 以前这里 `check=False` 就把退出码丢了，段错误也当"通过"。
+            if run.returncode < 0:
+                self.fail(f"TUI 子进程被信号 {-run.returncode} 终止（pty 里退出不干净）")
             return _clean(record.read_text(encoding="utf-8", errors="replace"))
 
     def assert_usable_terminal(self, text: str) -> None:
@@ -76,6 +97,7 @@ class RealTerminalSmoke(unittest.TestCase):
             self.skipTest(f"pty 里没有捕获到程序输出（环境限制）：{text[:120]!r}")
 
     def test_main_screen_really_renders(self):
+        self.preflight()
         text = self.run_tui()
         if "retype v" not in text:  # pty 计时抖动：再试一次
             text = self.run_tui()
@@ -85,6 +107,7 @@ class RealTerminalSmoke(unittest.TestCase):
         self.assertIn("识别到的文字", text, "右栏表头没画出来")
 
     def test_border_characters_are_present(self):
+        self.preflight()
         text = self.run_tui()
         self.assert_usable_terminal(text)
         # ACS 线框在 UTF-8 终端里是这些字符；退化成 ASCII 时是 - | +

@@ -57,21 +57,18 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq fonts-noto-cjk
 
-      - name: 全量用例
+      - name: 全量用例 + 覆盖率（并行分片）
         env:
           IMG_P_TMP_DIR: ${{ runner.temp }}/img-p
         run: |
           mkdir -p "$IMG_P_TMP_DIR"
-          python -m pytest src/test -q \
+          # 一条命令同时出 junit 与覆盖率：以前分两步跑两遍全量用例，
+          # 等于把同一份 700+ 用例在同一个 runner 上跑两次（时间白花一倍）。
+          # `-n 4` 对齐 GitHub 标准 runner 的 4 核（worker 策略见 tools/_parallel.py）。
+          python -m pytest src/test -q -n 4 \
+            --cov --cov-report=term \
+            --cov-report=xml:"$IMG_P_TMP_DIR/coverage.xml" \
             --junitxml="$IMG_P_TMP_DIR/junit.xml"
-
-      - name: 覆盖率
-        env:
-          IMG_P_TMP_DIR: ${{ runner.temp }}/img-p
-        run: |
-          python -m pytest src/test -q --cov \
-            --cov-report=term \
-            --cov-report=xml:"$IMG_P_TMP_DIR/coverage.xml"
 
       # 环境指纹：把解释器、平台、依赖版本、字体清单记下来，
       # 出"本机绿 CI 红"时能直接比对，而不是靠猜

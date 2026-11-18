@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
+  "pytest-xdist>=3.5",
   "pytest-cov>=5.0",
   "pytest-html>=4.1",
   "ruff>=0.5",
@@ -87,6 +88,9 @@ addopts = "-ra"   # 保留用例汇总行，失败时给出简要原因
 markers = [
   "slow: 需要加载 OCR / 真实字体的较慢用例",
 ]
+# 并行由开关控制而不是 default addopts：`-n` 只在门禁/测试入口里加
+# （`_parallel.worker_count()` 统一算 worker 数），裸 `pytest` 保持单进程单档，
+# 排障时看到的顺序就是源码顺序。
 
 [tool.coverage.run]
 source = ["src/python"]

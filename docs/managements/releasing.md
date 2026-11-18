@@ -2,16 +2,18 @@
 
 > 版本：v0.1
 
-发布 = 六个可单独重试的步骤，全部由 `src/python/tools/release.py` 编排。**每次发布前必须全绿**，
+发布 = 七个可单独重试的步骤，全部由 `src/python/tools/release.py` 编排。**每次发布前必须全绿**，
 不靠人记；`gate` 会跑与 CI 完全相同的检查。
 
 ```bash
 .venv/bin/python -m src.python.tools.release check                  # 1. 预检
-.venv/bin/python -m src.python.tools.release prepare --version 0.2   # 2. 起版本
-#   3. 手写 changelog（prepare 只插入标题与占位）
-.venv/bin/python -m src.python.tools.release gate                    # 4. 全量门禁
-.venv/bin/python -m src.python.tools.release build                   # 5. 打产物
-.venv/bin/python -m src.python.tools.release tag --yes               # 6. 打标签（推标签触发 CI 发布）
+.venv/bin/python -m src.python.tools.release archive                # 2. 预演归档（三份台账的旧内容）
+.venv/bin/python -m src.python.tools.release archive --yes          #    真搬进 docs/archive/vX.Y.x/
+.venv/bin/python -m src.python.tools.release prepare --version 0.2   # 3. 起版本
+#   4. 手写 changelog（prepare 只插入标题与占位）
+.venv/bin/python -m src.python.tools.release gate                    # 5. 全量门禁
+.venv/bin/python -m src.python.tools.release build                   # 6. 打产物
+.venv/bin/python -m src.python.tools.release tag --yes               # 7. 打标签（推标签触发 CI 发布）
 ```
 
 ## 1. 版本策略
@@ -28,8 +30,9 @@
 
 | 步骤 | 内容 | 失败时 |
 | --- | --- | --- |
-| `check` | 工作区干净、`UPDATED` 与 `src/` 最后提交一致、版本格式合法、`check_all --quick` 全绿 | 按提示修；**不要**用 `--no-verify` 硬推 |
+| `check` | 工作区干净、`UPDATED` 与 `src/` 最后提交一致、版本格式合法、`check_all --quick --ci-matrix --font-matrix` 全绿（含 locale 与字体两档矩阵） | 按提示修；**不要**用 `--no-verify` 硬推 |
 | `prepare` | 改 `version.py` 的 `VERSION`/`UPDATED`，在 `changelog.md` 顶部插入 `## vX.Y — 日期` 与「变更」占位 | 手写 changelog 内容；标题重复时脚本会跳过 |
+| `archive` | 把 `plan.md` / `review-findings.md` / `changelog.md` 的正文整块搬进 `docs/archive/v<系列>/`，主台账重写为「文件头 + 重新生成的 `## 归档` 索引」；不带 `--yes` 只预演 | 先看预演行数是否合理；搬完跟一句 `gen_folders --write` 同步目录树；规则见 `docs/archive/README.md` |
 | `gate` | 跑 `src/python/tools/check_all.py`（含覆盖率门禁、无字体复跑） | 必须修到全绿；这步与 CI 等价 |
 | `build` | `pip wheel` 出 wheel，`python -m build --sdist` 出 sdist（没装 `build` 则跳过），写 `dist/SHA256SUMS` | 清理 `dist/` 重跑；打包配置问题看 `pyproject.toml` |
 | `tag` | 打附注标签 `vX.Y`（不带 `--yes` 只打印命令） | 标签已存在则先确认是否发错；删除：`git tag -d vX.Y && git push origin :refs/tags/vX.Y` |
@@ -39,6 +42,8 @@
 
 - [ ] `src/python/tools/release.py check` 通过（工作区干净、版本一致、quick 门禁绿）
 - [ ] `changelog.md` 的本版本段落写清：新增 / 变更 / 修复 / 不兼容项与迁移步骤
+- [ ] `release.py archive --yes` 已跑：`docs/archive/vX.Y.x/` 有三份归档，主台账只剩当前开发版本 + `## 归档` 索引
+- [ ] `folders.md` 与归档后的目录树一致（`gen_folders --write` 跑过，守护会核对）
 - [ ] `requirements.md` 的 FR/NFR、`technical.md` 的算法与阈值、`contracts.md` 的契约都已同步
 - [ ] `folders.md` 与实际文件一致（守护会核对）
 - [ ] `test-coverage.md` 已重新生成（`src/python/tools/coverage_report.py --write`）
@@ -65,3 +70,4 @@
 - 质量标准与门禁分层：`testplan.md`（QG-1..9、P0/P1/P2）
 - 契约与兼容承诺：`contracts.md`（§2 契约、§3 版本策略）
 - 变更记录：`changelog.md`；缺陷与回归：`review-findings.md`；任务：`plan.md`
+- 已发布系列的旧内容：`docs/archive/vX.Y.x/`（规范见 `docs/archive/README.md`）

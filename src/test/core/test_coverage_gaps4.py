@@ -11,6 +11,7 @@ import datetime as dt
 import io
 import os
 import tempfile
+import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -21,7 +22,14 @@ from src.python.core import audit, fonts, image, style
 from src.python.core.errors import CoreError
 from src.python.tui import app as tui_app
 from src.python.tui import ui_actions, ui_base, ui_draw, ui_input
-from src.test._support import FONT_CJK, FakeWin, TuiTestCase, has_cjk_font, patch_curses
+from src.test._support import (
+    FONT_CJK,
+    FakeWin,
+    TuiTestCase,
+    cjk_family_name,
+    has_cjk_font,
+    patch_curses,
+)
 
 
 class FinalGaps4(TuiTestCase):
@@ -60,6 +68,9 @@ class FinalGaps4(TuiTestCase):
                 )
         self.assertIn(code, (0, 3), "预演不写盘，两个同名源图应各自算出不重复的目标名")
 
+    @unittest.skipIf(
+        getattr(audit, "fcntl", None) is None, "POSIX 才有 fcntl.flock（Windows 走 msvcrt）"
+    )
     def test_unlock_swallows_oserror(self):
         with (
             tempfile.TemporaryFile() as handle,
@@ -159,7 +170,11 @@ class FinalGaps5(TuiTestCase):
             self.skipTest("需要 CJK 字体")
         face = fonts.FontFace(FONT_CJK, 0)
         text = repr(face)
-        self.assertIn("Noto", text)
+        # 字族名随平台变（Linux 是 Noto CJK、Windows 是 msyh），从字体文件本身反解，不写死
+        expected_family = cjk_family_name()
+        if expected_family:
+            self.assertIn(expected_family, text)
+        self.assertTrue(face.name, "字体名不应为空")
         self.assertIn(os.path.basename(FONT_CJK), text)
 
     def test_apply_current_with_jobs_reports_progress(self):
@@ -181,7 +196,9 @@ class FinalGaps5(TuiTestCase):
         self.assertEqual(app.message, before, "没有块时按空格不应改动任何状态")
 
     def test_status_line_shows_progress_bar(self):
-        app = mock.Mock(message="", status="替换中 3/8", last_saved=None, out_dir="/tmp/out")  # platform-safe
+        app = mock.Mock(
+            message="", status="替换中 3/8", last_saved=None, out_dir="/tmp/out"
+        )  # platform-safe
         text = ui_draw._status_text(app, 60)
         self.assertIn("█", text + "█")  # 进度条字符存在（或已填满）
         self.assertIn("37%", text)

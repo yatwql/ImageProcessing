@@ -39,8 +39,9 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   runTest.sh / runTest.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
-  check_guards.py            工程守护（17 项）
-  gen_folders.py             重新生成 folders.md 的目录树与统计读数
+  check_guards.py            工程守护（18 项，含编号/版本/目录树/文档索引/归档）
+  release.py                 发布编排：check → archive → prepare → gate → build → tag → publish
+  gen_folders.py             重新生成 folders.md 的目录树与统计表数字（说明列保留）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
@@ -49,6 +50,12 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
 .github/workflows/ci.yml     CI：test×3 / lint / typecheck / guards / perf / windows / audit（+ release 仅在打 tag 时）
 pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
 constraints.txt              锁定的依赖组合（pip -c 使用；升级须跑全量用例）
+docs/README.md               文档索引（守护「文档索引」核对每份文档都被引用）
+docs/managements/            管理文档（plan / review-findings / changelog 是过程台账）
+docs/manuals/                使用手册
+docs/archive/                归档：已发布系列的台账旧内容（`release.py archive` 整块搬入）
+  vX.Y.x/                    一个版本系列一个子目录：archived_{plan,review-findings,changelog}.…md
+  README.md                  归档规范：命名、头部四项、编号不复用、发布时怎么搬
 
 启动链路（cli.sh / tui.ps1 等都一样）：
   系统 python -m src.python.launch <渠道> → 探测 .venv 与关键依赖（PIL/numpy/cv2[/pytest]）
@@ -74,6 +81,7 @@ src/
     _support.py              公共设施：字体路径、合成图、OCR 桩、FakeWin、用例基类
     core/                    核心层用例（含 background/color/font/format/layout/pipeline/primitives 子目录）
     cli/  tui/               渠道与交互用例
+    tools/                   工程工具用例（发布编排 / 归档流程）
 ```
 
 ## 1.2 依赖方向（硬约束）
@@ -454,6 +462,10 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tui/test_apply_and_batch.py` | FR-5、FR-10 替换、批量、进度与取消 |
 | `tui/test_session_state.py` | FR-5 会话状态与缓存 |
 | `tui/test_directory_browsing.py` | FR-5 目录进/退、选中记忆 |
+| `tools/test_release_archive.py` | 归档流程：台账切开、整块搬运、主台账留头与索引、幂等与追加批次、索引倒序 |
+| `tools/test_platform_safety_rules.py` | 守护「跨平台」的规则自检：写死字体家族 / 裸 bash / 无守卫 fcntl /
+绝对像素阈值 / 断言里比 `sys.executable`，以及 `bash_exe()` 探测、字体矩阵候选顺序与换行符规则 |
+| `tools/test_gen_folders_stats.py` | 目录统计重算：文件数/行数/用例数/示例图与合计行由脚本算，说明列不动 |
 
 ## 10.0 测试报告脚本
 
@@ -471,7 +483,8 @@ sh .githooks/install-hooks.sh                                 # 启用提交前�
 ./scripts/runTest.sh                                             # 全量用例 + 测试报告
 .venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
 .venv/bin/python -m mypy                                      # 类型检查，守 core
-.venv/bin/python -m src.python.tools.check_guards                      # 工程守护（8 项，含版本/依赖锁）
+.venv/bin/python -m src.python.tools.check_all                        # 全量门禁（含覆盖率 + 三档矩阵）
+.venv/bin/python -m src.python.tools.check_guards                      # 工程守护（18 项，含版本/依赖锁/归档）
 .venv/bin/python -m src.python.tools.check_perf                        # 耗时守卫
 .venv/bin/python -m src.python.tools.run_tests --fast                    # 测试编排（scripts/runTest.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数

@@ -5,8 +5,7 @@
     python -m src.python.tools.gen_folders --write    # 写回文档（正文段落不动）
 
 为什么要有它：目录树之前靠手改，搬文件时容易漏；统计数字（文件数/行数/用例数）
-更是每次都要重算。这里按 `git ls-files` 生成，文件说明取自模块文档串
-（`.py`）与下面的 `FILE_NOTE` / `DIR_NOTE` 表，改完布局跑一次即可。
+更是每次都要重算——现在 `--write` 两个都重算，只有「说明」列需要人写。
 """
 
 from __future__ import annotations
@@ -15,6 +14,7 @@ import ast
 import subprocess
 import sys
 import unicodedata
+from pathlib import Path
 
 from ._paths import ROOT
 
@@ -49,6 +49,7 @@ DIR_NOTE = {
     "docs": "文档",
     "docs/managements": "管理文档",
     "docs/manuals": "使用手册",
+    "docs/archive": "版本归档：旧版本台账整块搬入（规则见 README）",
 }
 
 FILE_NOTE = {
@@ -78,6 +79,10 @@ FILE_NOTE = {
     "data/demo/示例-通知2.png": "回归样例（通知版式）",
     "data/demo/示例-通知3.png": "回归样例（通知版式）",
     "docs/README.md": "文档索引与推荐阅读顺序",
+    "docs/archive/README.md": "归档规范：目录/命名、头部四项、搬运与编号不复用规则",
+    "docs/archive/v0.1.x/archived_plan.0.1.x.md": "计划归档：v0.1 系列（待首次发布搬入）",
+    "docs/archive/v0.1.x/archived_review-findings.0.1.x.md": "自检记录归档：v0.1 系列（待首次发布搬入）",
+    "docs/archive/v0.1.x/archived_changelog.0.1.x.md": "变更记录归档：v0.1 系列（待首次发布搬入）",
 }
 
 
@@ -124,6 +129,15 @@ def note_for(rel: str, name: str) -> str:
     return DIR_NOTE.get(parent, "")
 
 
+def dir_note(rel: str) -> str:
+    """目录说明：固定表优先，版本归档系列目录按名字生成。"""
+    if rel in DIR_NOTE:
+        return DIR_NOTE[rel]
+    if rel.startswith("docs/archive/v"):
+        return f"版本归档系列 {rel.rsplit('/', 1)[-1]}"
+    return ""
+
+
 def build_tree(files: list[str]) -> str:
     tree: dict = {}
     for path in files:
@@ -144,7 +158,7 @@ def build_tree(files: list[str]) -> str:
             rel = "/".join(path + (name,))
             label = name + ("/" if is_dir else "")
             line = f"{prefix}{'└── ' if last else '├── '}{label}"
-            note = DIR_NOTE.get(rel, "") if is_dir else note_for(rel, name)
+            note = dir_note(rel) if is_dir else note_for(rel, name)
             if note:
                 line += " " * max(2, 46 - dwidth(line)) + f"# {note}"
             out.append(line)
@@ -155,11 +169,12 @@ def build_tree(files: list[str]) -> str:
     return "\n".join(["ImageProcessing/", *render(tree)])
 
 
-def count_lines(files: list[str]) -> tuple[int, int]:
+def count_lines(files: list[str], root: Path | None = None) -> tuple[int, int]:
+    base = root if root is not None else ROOT
     total_files = total_lines = 0
     for rel in files:
         try:
-            text = (ROOT / rel).read_text(encoding="utf-8")
+            text = (base / rel).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
         total_files += 1
@@ -167,18 +182,115 @@ def count_lines(files: list[str]) -> tuple[int, int]:
     return total_files, total_lines
 
 
-def test_function_count(files: list[str]) -> int:
+def test_function_count(files: list[str], root: Path | None = None) -> int:
     """`def test_` 出现次数（与文档里的口径一致，比 pytest 收集数略少）。"""
+    base = root if root is not None else ROOT
     count = 0
     for rel in files:
         if not rel.endswith(".py"):
             continue
         try:
-            text = (ROOT / rel).read_text(encoding="utf-8")
+            text = (base / rel).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
         count += sum(1 for line in text.splitlines() if line.strip().startswith("def test_"))
     return count
+
+
+ROOT_FILES = {
+    "README.md",
+    "CLAUDE.md",
+    "pyproject.toml",
+    "constraints.txt",
+    "requirements.txt",
+    "requirements-dev.txt",
+    ".gitignore",
+}
+
+# 统计表的每一行：标签 → (文件谓词, 行数口径)。
+# text = 数实际行数；count = 数 `def test_`；binary = 不统计行数。
+STAT_SPEC: dict[str, tuple] = {
+    "主程序代码": (
+        lambda f: (
+            f.startswith("src/python/")
+            and f.endswith(".py")
+            and not f.startswith("src/python/tools/")
+        ),
+        "text",
+    ),
+    "测试代码": (lambda f: f.startswith("src/test/") and f.endswith(".py"), "text"),
+    "工程工具": (lambda f: f.startswith("src/python/tools/"), "text"),
+    "启动脚本": (lambda f: f.startswith("scripts/"), "text"),
+    "CI 与钩子": (lambda f: f.startswith((".github/", ".githooks/")), "text"),
+    "管理文档": (lambda f: f.startswith("docs/managements/"), "text"),
+    "归档文档": (lambda f: f.startswith("docs/archive/"), "text"),
+    "使用手册": (lambda f: f.startswith("docs/manuals/"), "text"),
+    "根文档与配置": (lambda f: f in ROOT_FILES, "text"),
+    "文档索引": (lambda f: f == "docs/README.md", "text"),
+    "示例图": (lambda f: f.startswith("data/demo/"), "binary"),
+}
+STAT_TOTAL_LABEL = "**合计（不含示例图）**"
+
+
+def stats_cells(files: list[str], root: Path | None = None) -> dict[str, tuple[str, str]]:
+    """算出每个统计行的（文件数, 行数）显示文本（合计行单独算）。"""
+    cells: dict[str, tuple[str, str]] = {}
+    for label, (predicate, kind) in STAT_SPEC.items():
+        selected = [f for f in files if predicate(f)]
+        if kind == "count":
+            cells[label] = ("—", f"{test_function_count(selected, root):,}")
+            continue
+        if kind == "binary":
+            cells[label] = (f"{len(selected):,}", "—")
+            continue
+        count, lines = count_lines(selected, root)
+        cells[label] = (f"{count:,}", f"{lines:,}")
+    demo = [f for f in files if f.startswith("data/demo/")]
+    others = [f for f in files if not f.startswith("data/demo/")]
+    total_files, total_lines = count_lines(others, root)
+    tests = [f for f in files if f.startswith("src/test/") and f.endswith(".py")]
+    _test_files, test_lines = count_lines(tests, root)
+    _main_files, main_lines = count_lines([f for f in files if STAT_SPEC["主程序代码"][0](f)], root)
+    cells["测试用例"] = ("—", f"{test_function_count(tests, root):,}")
+    ratio = test_lines / main_lines if main_lines else 0.0
+    cells[STAT_TOTAL_LABEL] = (
+        f"**{total_files:,}**",
+        f"**{total_lines:,}**"
+        f" | 主程序 : 测试 ≈ 1 : {ratio:.2f}；仓库共 {len(files)} 个跟踪文件"
+        f"（含示例图 {len(demo)} 个）",
+    )
+    return cells
+
+
+def refresh_stats(text: str, files: list[str], root: Path | None = None) -> str:
+    """重写「## 项目统计」表的数字列（说明列不动，合计行与尾巴一并重算）。"""
+    cells = stats_cells(files, root)
+    if not cells:
+        return text
+    start = text.index("## 项目统计")
+    end = text.index("## 目录树")
+    section = text[start:end]
+    out: list[str] = []
+    for line in section.splitlines(keepends=True):
+        stripped = line.rstrip("\n")
+        if not stripped.startswith("| "):
+            out.append(line)
+            continue
+        cols = stripped.split("|")
+        label = cols[1].strip()
+        if label not in cells or len(cols) < 6:
+            out.append(line)
+            continue
+        files_cell, lines_cell = cells[label]
+        cols[3] = f" {files_cell} "
+        if label == STAT_TOTAL_LABEL:
+            head, _, tail = lines_cell.partition(" | ")
+            cols[4] = f" {head} "
+            cols[5] = f" {tail} "
+        else:
+            cols[4] = f" {lines_cell} "
+        out.append("|".join(cols).rstrip() + "\n")
+    return text[:start] + "".join(out) + text[end:]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -195,12 +307,12 @@ def main(argv: list[str] | None = None) -> int:
         start = text.index(TREE_FENCE)
         end = text.index("```", start + len(TREE_FENCE))
         text = text[:start] + f"{TREE_FENCE}\n{tree}\n" + text[end:]
+        text = refresh_stats(text, files)
         DOC.write_text(text, encoding="utf-8")
         print(
-            f"已更新目录树：{len(files)} 个跟踪文件，测试 {test_files} 个文件 / {test_lines:,} 行 / "
-            f"{test_function_count(tests)} 个 test 函数"
+            f"已更新目录树与统计表：{len(files)} 个跟踪文件，"
+            f"测试 {test_files} 个文件 / {test_lines:,} 行 / {test_function_count(tests)} 个 test 函数"
         )
-        print("统计表里的数字如需同步，请按上面的读数手改（只改数字，不改说明）")
         return 0
     print(tree)
     print(

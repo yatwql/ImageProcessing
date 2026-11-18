@@ -17,6 +17,8 @@
   测试字体  用例不得硬编码 `ImageFont.truetype(FONT_CJK…, index=…)`，必须走 `cjk_font()`
   导入方向  `core` 不得导入 `cli/tui`，`cli` 与 `tui` 互不导入（`src/python/tools/check_import_surface.py`）
   文档索引  每份管理文档与手册都必须出现在 `docs/README.md` 的索引里
+  归档      `docs/archive/` 只有 `vX.Y.x/` 子目录，归档文件命名与四个头部字段固定；
+            三份台账都带 `## 归档` 索引，编号归档后不复用
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
   scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python`）
@@ -31,9 +33,9 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-try:                                    # 3.11+
+try:  # 3.11+
     import tomllib
-except ModuleNotFoundError:             # 3.10：用 tomli（dev 依赖，带平台标记）
+except ModuleNotFoundError:  # 3.10：用 tomli（dev 依赖，带平台标记）
     import tomli as tomllib
 
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
@@ -45,13 +47,32 @@ MAX_FILE_LINES = 1000
 LEGACY_ID = re.compile(r"\b(?:TD|P|F|N)-\d+\b")
 ROW_ID = re.compile(r"^\|\s*([A-Z]+-\d+)\s*\|")
 
+ARCHIVE = ROOT / "docs" / "archive"
+ARCHIVE_SERIES_DIR = re.compile(r"^v\d+\.\d+\.x$")
+ARCHIVE_FILE = re.compile(r"^archived_(plan|review-findings|changelog)\.(\d+\.\d+\.x)\.md$")
+ARCHIVE_META = ("归档时间：", "原始文件：", "涵盖版本：", "归档内容：")
+ARCHIVE_LEDGERS = ("plan.md", "review-findings.md", "changelog.md")
+ARCHIVE_HEADING = "## 归档"
+
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _id_number(rid: str) -> int:
+    """PLAN-12 → 12（排序用；解析不了就排到最前，不因脏数据抛异常）。"""
+    try:
+        return int(rid.split("-")[1])
+    except (IndexError, ValueError):
+        return -1
+
+
 def check_plan_ids() -> list[str]:
-    """plan.md 的任务编号必须是 PLAN-1..PLAN-N，连续且唯一。"""
+    """plan.md 的任务编号必须是 PLAN-x：唯一、递增，且不与归档里的编号重复。
+
+    归档会把已完成项整块搬走，主文件编号因此可能不再从 1 连续；「不复用」改由
+    「与 `docs/archive/` 里出现过的编号不得重复」保证（归档前仍要求从 1 连续）。
+    """
     path = DOCS / "plan.md"
     if not path.is_file():
         return ["缺少 docs/managements/plan.md"]
@@ -71,10 +92,30 @@ def check_plan_ids() -> list[str]:
             bad.append(rid)
     if bad:
         return [f"plan.md 出现非 PLAN- 编号：{', '.join(sorted(set(bad))[:5])}"]
-    if sorted(nums) != list(range(1, len(nums) + 1)):
-        dup = sorted({n for n in nums if nums.count(n) > 1})
-        return [f"plan.md 编号不连续或重复（重复：{dup or '无'}，共 {len(nums)} 条）"]
+    dups = sorted({n for n in nums if nums.count(n) > 1})
+    if dups:
+        return [f"plan.md 编号重复：{dups[:5]}"]
+    if nums != sorted(nums):
+        return ["plan.md 的编号没有按出现顺序递增"]
+    archived = _archived_ids("archived_plan", "PLAN")
+    reused = sorted({f"PLAN-{n}" for n in nums} & archived.keys(), key=_id_number)
+    if reused:
+        return [f"plan.md 复用了已归档编号 {', '.join(reused[:5])}（见 {archived[reused[0]]}）"]
+    if not archived and nums != list(range(1, len(nums) + 1)):
+        return [f"plan.md 编号不连续（共 {len(nums)} 条），归档前必须从 PLAN-1 起连续"]
     return []
+
+
+def _archived_ids(stem: str, prefix: str) -> dict[str, str]:
+    """归档文件里出现过的编号 → 归档文件相对路径（用于「编号不复用」核对）。"""
+    found: dict[str, str] = {}
+    if not ARCHIVE.is_dir():
+        return found
+    for path in sorted(ARCHIVE.rglob(f"{stem}.*.md")):
+        rel = path.relative_to(ROOT).as_posix()
+        for rid in set(re.findall(rf"\b{prefix}-\d+\b", _read(path))):
+            found.setdefault(rid, rel)
+    return found
 
 
 def check_rf_ids() -> list[str]:
@@ -93,6 +134,13 @@ def check_rf_ids() -> list[str]:
     legacy = sorted(set(LEGACY_ID.findall(text)))
     if legacy:
         return [f"review-findings.md 残留旧编号：{', '.join(legacy[:5])}"]
+    archived = _archived_ids("archived_review-findings", "RF")
+    reused = sorted({i for i in ids} & archived.keys(), key=_id_number)
+    if reused:
+        return [
+            f"review-findings.md 复用了已归档编号 {', '.join(reused[:5])}"
+            f"（见 {archived[reused[0]]}）"
+        ]
     return []
 
 
@@ -525,6 +573,52 @@ def check_docs_index() -> list[str]:
     return problems
 
 
+def _check_archive_file(path: Path, series: str) -> list[str]:
+    """单个归档文件：命名里的台账名与系列号要合法，头部四个字段不能少。"""
+    rel = path.relative_to(ROOT).as_posix()
+    m = ARCHIVE_FILE.fullmatch(path.name)
+    if m is None:
+        return [f"{rel} 命名应为 archived_<plan|review-findings|changelog>.<系列>.md"]
+    problems: list[str] = []
+    if m.group(2) != series:
+        problems.append(f"{rel} 的系列号与目录 v{series} 不一致")
+    text = _read(path)
+    missing = [key for key in ARCHIVE_META if f"> {key}" not in text]
+    if missing:
+        problems.append(f"{rel} 缺少归档头部「> {'」「> '.join(missing)}」")
+    return problems
+
+
+def check_archive_layout() -> list[str]:
+    """归档目录：只有 `vX.Y.x/` 子目录，归档文件命名与头部字段固定，三份台账都有归档索引。
+
+    规则见 `docs/archive/README.md`：旧版本的台账内容按版本系列整块搬进归档，
+    主文件只留当前开发版本的内容与索引；归档文件不改一字，也不参与版本号守护。
+    """
+    if not ARCHIVE.is_dir():
+        return ["缺少 docs/archive/（归档目录与规范）"]
+    problems: list[str] = []
+    readme = ARCHIVE / "README.md"
+    index = ROOT / "docs" / "README.md"
+    if not readme.is_file():
+        problems.append("缺少 docs/archive/README.md（归档规范）")
+    elif not index.is_file() or "archive/README.md" not in _read(index):
+        problems.append("docs/archive/README.md 未出现在 docs/README.md 索引里")
+    for series_dir in sorted(p for p in ARCHIVE.iterdir() if p.is_dir()):
+        if not ARCHIVE_SERIES_DIR.fullmatch(series_dir.name):
+            problems.append(f"docs/archive/{series_dir.name}/ 目录名应为 vX.Y.x（版本系列）")
+            continue
+        series = series_dir.name[1:]
+        for path in sorted(series_dir.iterdir()):
+            if not path.is_dir():  # 设计稿/中间稿按任务建子目录，名字不限
+                problems += _check_archive_file(path, series)
+    for name in ARCHIVE_LEDGERS:
+        ledger = DOCS / name
+        if ledger.is_file() and ARCHIVE_HEADING not in _read(ledger):
+            problems.append(f"docs/managements/{name} 缺 `{ARCHIVE_HEADING}` 索引段")
+    return problems
+
+
 def check_workflows() -> list[str]:
     """CI 工作流自检：run 块的 bash 语法、python -c 片段、audit 参数、release 作业。"""
     result = subprocess.run(
@@ -546,13 +640,22 @@ def check_workflows() -> list[str]:
 
 def check_platform_safety() -> list[str]:
     """跨平台安全：POSIX 路径 / 子进程编码 / POSIX-only 模块（守护第 17 项）。"""
-    result = subprocess.run([sys.executable, "-m", "src.python.tools.check_platform_safety"],
-                            cwd=str(ROOT), capture_output=True, text=True,
-                            encoding="utf-8", errors="replace", check=False)
+    result = subprocess.run(
+        [sys.executable, "-m", "src.python.tools.check_platform_safety"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
     if result.returncode == 0:
         return []
-    return [line.strip().removeprefix("[FAIL] ") for line in result.stdout.splitlines()
-            if line.startswith("[FAIL]")] or ["跨平台检查失败"]
+    return [
+        line.strip().removeprefix("[FAIL] ")
+        for line in result.stdout.splitlines()
+        if line.startswith("[FAIL]")
+    ] or ["跨平台检查失败"]
 
 
 CHECKS = [
@@ -568,6 +671,7 @@ CHECKS = [
     ("测试字体", check_test_font_usage),
     ("导入方向", check_import_surface),
     ("文档索引", check_docs_index),
+    ("归档", check_archive_layout),
     ("工作流", check_workflows),
     ("跨平台", check_platform_safety),
     ("依赖锁", check_constraints),

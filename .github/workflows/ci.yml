@@ -22,6 +22,12 @@ on:
   pull_request:
     branches: [main]
 
+# 同一分支连续推送时取消旧 run：runner 不排队空跑，失败反馈也不会被新提交掩盖。
+# 标签构建不取消（发布不能被打断）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -180,7 +186,41 @@ jobs:
       - name: 全量用例
         env:
           IMG_P_NO_AUTO_SETUP: "1"
-        run: python -m pytest src/test -q
+        shell: bash
+        run: |
+          mkdir -p reports
+          python -m pytest src/test -q --junitxml=reports/junit-windows.xml
+      # 失败时先给出"哪几条用例红"，不用翻整段日志（复盘模板要求一眼看到归类依据）
+      - name: 失败用例摘要
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path("reports/junit-windows.xml")
+          if not report.is_file():
+              print("没有 junit 报告（用例可能没跑到），跳过摘要")
+              raise SystemExit(0)
+          root = ET.parse(report).getroot()
+          bad = [
+              case
+              for case in root.iter("testcase")
+              if case.find("failure") is not None
+              or case.find("error") is not None
+          ]
+          print(f"失败/错误用例：{len(bad)}")
+          for case in bad:
+              print(f"- {case.get('classname')}::{case.get('name')}")
+          PY
+      - name: 上传 junit 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-junit
+          path: reports/junit-windows.xml
+          if-no-files-found: ignore
       - name: 类型检查
         run: python -m mypy
       - name: 工程守护

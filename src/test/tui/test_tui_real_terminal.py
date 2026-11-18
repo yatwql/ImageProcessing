@@ -43,7 +43,7 @@ class RealTerminalSmoke(unittest.TestCase):
             record = Path(tmp) / "typescript"
             # 保持 stdin 打开，过几秒再送 q：让界面画出至少一帧
             feeder = f"exec 3>{fifo}; sleep {seconds}; printf q >&3; sleep 1"
-            proc = subprocess.Popen(["sh", "-c", feeder])
+            proc = subprocess.Popen(["sh", "-c", feeder])  # platform-safe：本类已 skipUnless(posix)
             try:
                 subprocess.run(
                     [str(SCRIPT), "-qec", "./scripts/tui.sh data/demo", str(record)],
@@ -76,7 +76,7 @@ class RealTerminalSmoke(unittest.TestCase):
 
     def test_main_screen_really_renders(self):
         text = self.run_tui()
-        if "retype v" not in text:                 # pty 计时抖动：再试一次
+        if "retype v" not in text:  # pty 计时抖动：再试一次
             text = self.run_tui()
         self.assert_usable_terminal(text)
         self.assertIn("retype v", text, "标题栏没画出来")

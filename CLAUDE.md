@@ -29,6 +29,7 @@ src/test/                测试用例
   cli/  tui/             渠道与交互用例
 data/  data/output/      输入图片 / 默认输出
 docs/managements/  docs/manuals/   需求、技术设计 / 使用手册
+docs/archive/vX.Y.x/             已发布系列的台账旧内容（发布时整块搬入，规范见 docs/archive/README.md）
 src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把临时目录指向 /data/tmp
 ```
 
@@ -107,7 +108,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
      匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
   2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程与中断；
   3. **稳定**（跨档）：错误契约、幂等重跑、输出覆盖保护、缓存失效、异常不外溢。
-- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`src/python/tools/check_guards.py` 十项全过、
+- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`src/python/tools/check_guards.py` 十八项全过、
   `check-perf.py` 不超阈值、覆盖率不低于 `pyproject.toml` 的 `fail_under`。
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。
@@ -123,18 +124,30 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 需要 OCR 的用例用 `_support.patch_ocr()` 打桩，别在测试里加载 RapidOCR；
   需要窗口的用 `_support.FakeWin` + `TuiTestCase.drive()`，不要起真终端。
 
+## CI 红纪律
+
+- **红一次 = 补一条**：任何 CI 失败先在 `review-findings.md` 按「CI 红复盘模板」填一条
+  （现象 / 归类 / 处理 / **本地拦截** / 回归），再动代码；没写本地拦截的条目状态只能是 `待办`。
+- 同一类红第二次出现视为**门禁缺口**，必须补进守护规则或 CI 矩阵档，而不是再改用例口径了事。
+- 推送前跑 `.venv/bin/python -m src.python.tools.check_all`（含覆盖率、无字体、locale 与字体两档矩阵）；
+  发布前 `release.py check` 会强制过两档矩阵。
+
 ## 文档纪律
 
-- 发布走 `docs/managements/releasing.md` + `src/python/tools/release.py`（check → prepare → gate → build → tag → publish）；
+- 发布走 `docs/managements/releasing.md` + `src/python/tools/release.py`
+  （check → archive → prepare → gate → build → tag → publish）；
   文档索引在 `docs/README.md`，新增文档必须加进索引（守护第 15 项）。
-- 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`
-  （后者由 `.venv/bin/python -m src.python.tools.coverage_report --write` 生成，别手改数字）。
+- 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`  （后者由 `.venv/bin/python -m src.python.tools.coverage_report --write` 生成，别手改数字）。
 - 三份文档随实现同步：
 - `docs/managements/plan.md` 的任务编号一律 `PLAN-x`，`docs/managements/review-findings.md`
   的任务/缺陷编号一律 `RF-x`；两者连续编号、不复用，新增任务只在对应文件里追加。
   - `docs/managements/requirements.md`：功能/非功能需求（`FR-x`/`NFR-x`）与验收标准
   - `docs/managements/technical.md`：分层、模块表、算法与阈值、性能、测试文件对照表、扩展点
   - `docs/manuals/how-to-use.md`：安装、CLI/TUI 上手、参数、按键、FAQ、限制
+- **归档**：发布新版本时 `release.py archive --yes` 把三份台账（`plan.md` / `review-findings.md` / `changelog.md`）
+  的正文整块搬进 `docs/archive/vX.Y.x/archived_<台账>.<系列>.md`，主台账只留文件头与 `## 归档` 索引；
+  归档文件不手工编辑、不改一字，编号归档后仍占号不复用。完整规则见 `docs/archive/README.md`，
+  守护「归档」核对目录/命名/头部四项与三份台账的索引。
 - `README.md` 只保留简介 + 快速开始 + 文档索引，细节放上面三份里。
 - 改 CLI 参数 → 同步 `README`/`how-to-use` 与 `src/python/cli/main.py` 的 `--help`；
   改 TUI 按键 → 同步 `src/python/tui/ui.py` 的 `HELP`/`USAGE`/底部键位提示与 `how-to-use.md` 按键表。
@@ -167,6 +180,16 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - **`scripts/*.ps1` 必须存成 UTF-8 with BOM**：Windows PowerShell 5.1 读无 BOM 的脚本按 ANSI
   （GBK）解释，文件里的中文提示会变成「缂哄皯杩愯鐜」这类乱码，用户完全看不懂；
   `check-guards.py` 的「PS 编码」会拦。
+- **用例不要拿"本机事实"当断言**（windows 作业连续红的根因，守护「跨平台」已能本地拦）：
+  ① 字体家族名写死（Linux Noto CJK / Windows msyh）→ 从字体文件 `getname()` 反解或用与字体无关的比值；
+  ② 裸 `bash`/`sh`：windows-latest 的 `bash` 常是 WSL 存根（`bash -n` 退 1、stderr 为空）→ 走
+  `_support.bash_exe()` 真探测，`.sh` 的 LF 另用不依赖 bash 的用例查；
+  ③ 无平台守卫地碰 `fcntl`（Windows 没有该模块）→ `skipIf(getattr(audit, "fcntl", None) is None)`；
+  ④ 路径期望值用 `str(Path(...))` 算，别手写 `"/x/python"`；
+  ⑤ `assertGreater*(x_w, 111)` 这种绝对像素阈值改用两个测量值的比值；断言里别直接比
+  `sys.executable`/`sys.platform`。确认与平台无关的行尾标 `# platform-safe`。
+  本地三档矩阵：`check_all --font-matrix`（换字族/字重）、`--ci-matrix`（cp1252+C locale）、
+  无字体档；发布前 `release.py check` 强制过前两档。
 - 纯数字块容易被斜体字体凑上，`analyze` 会估倾斜并在正体时剔除 italic 候选。
 - 输出重名会自动编号，所以「同一个命令跑两次」会产生 `-1`/`-2` 文件，这是预期行为。
 

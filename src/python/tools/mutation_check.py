@@ -2,7 +2,7 @@
 """变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行。
 
     .venv/bin/python -m pip install mutmut
-    python tools/mutation_check.py                  # 默认试点 core/match.py
+    python tools/mutation_check.py                  # 默认试点：match + 跨平台守护规则
     python tools/mutation_check.py core/options.py
 
 没装 mutmut 就说明怎么装并退出 0（不阻塞日常门禁）。
@@ -18,7 +18,12 @@ import sys
 from ..stdio import ensure_utf8_stdio
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
-DEFAULT_TARGETS = ["src/python/core/match.py"]
+# core/match.py 逻辑密集；check_platform_safety.py 的规则失效是"静默放行"，
+# 光看覆盖率发现不了，所以一起变异。
+DEFAULT_TARGETS = [
+    "src/python/core/match.py",
+    "src/python/tools/check_platform_safety.py",
+]
 
 
 def main(argv: list[str] | None = None) -> int:

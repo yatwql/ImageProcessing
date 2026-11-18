@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """本地全量门禁：一条命令跑完 CI 跑的所有检查，绿了再推。
 
-    python tools/check_all.py              # 全量（含覆盖率与"无字体"复跑）
+    python tools/check_all.py              # 全量（含覆盖率、无字体复跑与两档矩阵）
     python tools/check_all.py --quick      # 快速：ruff / mypy / guards / perf / 用例
-    python tools/check_all.py --ci-matrix  # 额外跑"cp1252 控制台 + C locale"（Windows runner 的样子）
+    python tools/check_all.py --ci-matrix  # 额外跑“cp1252 控制台 + C locale”（Windows runner 的样子）
+    python tools/check_all.py --font-matrix  # 额外跑“换字族/字重”（断言依赖本机字体的用例）
     python tools/check_all.py -k mapping   # 其余参数透传给 pytest
 
 顺序是"越快越先"，失败即停：静态检查几十毫秒，用例一分钟。
@@ -43,7 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     quick = "--quick" in args
     no_font = "--no-font" in args
     matrix = "--ci-matrix" in args
-    extra = [a for a in args if a not in ("--quick", "--no-font", "--ci-matrix")]
+    font_matrix = "--font-matrix" in args
+    extra = [a for a in args if a not in ("--quick", "--no-font", "--ci-matrix", "--font-matrix")]
 
     steps: list[tuple[str, list[str], dict[str, str] | None]] = [
         ("ruff", [PY, "-m", "ruff", "check", "src/"], None),
@@ -115,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
             "pytest（模拟无中文字体）",
             [PY, "-m", "pytest", "src/test", "-q", "--no-header"],
             env={"IMG_P_TEST_NO_CJK_FONT": "1"},
+        ):
+            return 1
+
+    # 第三档：换字族/字重。Windows 用的是 msyh，Linux 是 Noto CJK——
+    # 断言里写死像素宽度/字体家族的用例，在这一档就能在本地红，不用等 windows 作业。
+    if font_matrix or matrix or not quick:
+        if not run(
+            "pytest（字体矩阵：换字族/字重，同 Windows 的度量差异）",
+            [PY, "-m", "pytest", "src/test", "-q", "--no-header"],
+            env={"IMG_P_TEST_FONT": "alt"},
         ):
             return 1
 

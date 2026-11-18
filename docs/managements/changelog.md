@@ -5,6 +5,110 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 质量门禁六项增强：把"本地绿、CI 红"堵在本地
+
+### 新增
+
+- **第三档 CI 矩阵**：`IMG_P_TEST_FONT=alt` 让 `_support` 把粗体槽换成常规体、常规槽换成粗体
+  （Linux 用 Noto CJK、Windows 用 msyh，度量本来不同）——写死像素/字体家族的断言在本地就红。
+  `check_all` 新增 `--font-matrix`，全量模式与 `--ci-matrix` 都带上它。
+- **发布预检前置矩阵**：`release.py check` 改跑 `check_all --quick --ci-matrix --font-matrix`，
+  "本地绿、CI 红"在发布前就被拦下。
+- **断言卫生两条规则**（守护「跨平台」）：`assertGreater*` 里写绝对像素阈值（只认名字像尺寸
+  且阈值 ≥ 20 的，`index >= 0` 这类上下界不误报）、断言里直接比 `sys.executable`/`sys.platform`；
+  豁免标记 `# platform-safe`，规则样本文件 `tools/test_platform_safety_rules.py` 整体豁免。
+- **统计表自动化**：`gen_folders --write` 现在连「项目统计」表一起重算（文件数/行数/用例数/示例图/
+  合计与比例），说明列不动——`tools/` 10→16、`data/demo/` 0→4 这类漂移不会再靠人眼发现。
+- **CI 红复盘模板**：`review-findings.md` 固定五字段（现象/归类/处理/**本地拦截**/回归），
+  `CLAUDE.md` 新增「CI 红纪律」：红一次补一条，同一类红第二次出现按门禁缺口处理。
+- **工具链关键分支表**：`testplan.md` §8.1 列出 `release archive` / `check` / `check_guards` /
+  `check_platform_safety` / `gen_folders` 的关键分支与对应用例（`tools/` 不进覆盖率，靠这张表兜底）；
+  `mutation_check` 默认目标加入 `check_platform_safety.py`（规则失效是静默放行，覆盖率看不出来）。
+
+### 用例
+
+- `src/test/tools/test_gen_folders_stats.py`（4 例）：统计单元的计数口径、合计不含示例图、比例、
+  只改数字不动说明与目录树。
+- `src/test/tools/test_platform_safety_rules.py` +8 例：绝对像素阈值、`sys.executable` 断言、
+  `IMG_P_TEST_FONT` 的默认/alt/指定文件/不存在四种候选选择。
+
+### CI 工程化（不增加 runner 分钟）
+
+- `windows` 作业：`pytest --junitxml=reports/junit-windows.xml` 上传 artifact（`windows-junit`），
+  并新增「失败用例摘要」步（`if: always()`，直接打印 `classname::name` 列表）——
+  复盘模板要的"归类依据"一眼可见，不用翻整段日志。
+- 工作流加 `concurrency`（`cancel-in-progress`，标签构建不取消）：同分支连续推送时旧 run 自动取消，
+  省排队与无效 runner 分钟，也避免"旧提交的红"盖住新提交的绿。
+
+### 验证
+
+- `pytest src/test -q` 665 passed；`IMG_P_TEST_FONT=alt` 复跑 665 passed；`--no-font` 536 passed / 129 skipped；
+  `ruff`/`mypy`/`guards 18/18`/`check_workflows` 全绿，覆盖率 96.69%。
+
+## 2026-11-18 — 连续五次 CI 红整改：用例不再拿本机事实当断言
+
+### 修复（windows 作业，5 次运行同一批红）
+
+- `src/test/core/layout/test_text_layout.py`：`test_replacement_keeps_wide_tracking` 原本拿
+  原图墨迹宽度当基准（`out_w >= 0.85 * src_w`），换字后的宽度取决于本机字体（Linux Noto / Windows msyh），
+  改为与「本机同一字体 + 同字号 + 反解字距」的排版宽度比，跨平台等价。
+- `src/test/cli/test_entry_smoke.py`：`bash -n` 用例改用 `_support.bash_exe()` 真探测（windows-latest 上
+  `bash` 是 WSL 存根，退 1 且 stderr 为空），路径改用 `as_posix()`；新增**不依赖 bash** 的
+  `ShellScriptsAreLf` 用例，CRLF 问题在本地就能红。
+- `src/test/core/test_coverage_gaps.py`：pip 参数断言改用 `str(Path("/x/python"))` 算，
+  Windows 上 `Path` 会给反斜杠。
+- `src/test/core/test_coverage_gaps4.py`：`fcntl.flock` 用例加 `skipIf(audit.fcntl is None)`；
+  字体 repr 用例不再断言 `"Noto"`，改为从字体文件 `getname()` 反解字族名。
+- `src/test/core/test_write_audit_log.py`：夹具字符串 `NotoSans` 改成中性的「示例字体」。
+
+### 新增
+
+- `src/python/tools/check_platform_safety.py`：新增三条用例卫生规则（本地即红，不等 CI）——
+  断言写死字体家族、裸 `bash`/`sh`、无平台守卫地碰 `fcntl`；豁免标记 `# platform-safe`。
+- `src/test/_support.py`：`bash_exe()` 真探测可执行的 bash（WSL 存根、PATH 缺失都返回 None，用例 skip）。
+- `src/test/tools/test_platform_safety_rules.py`（12 例）：守卫规则本身的自检 + `bash_exe()` 探测分支。
+
+### 验证
+
+- `check_guards` 18/18、`ruff`、`mypy`、`check_platform_safety` 全绿；
+  `pytest src/test -q` 641+ passed；`IMG_P_TEST_NO_CJK_FONT=1` 复跑 513 passed / 129 skipped。
+
+## 2026-11-18 — 归档目录与归档流程（`docs/archive/`）
+
+### 新增
+
+- `docs/archive/README.md`：归档规范——版本系列子目录 `vX.Y.x/`、归档文件
+  `archived_<plan|review-findings|changelog>.<系列>.md`、头部四项（归档时间 / 原始文件 / 涵盖版本 / 归档内容）、
+  整块搬运不改一字、编号归档后不复用、发布时的归档步骤与检索方式。
+- `docs/archive/v0.1.x/`：三份台账归档骨架（待 v0.1 发布时由脚本搬入）。
+- `src/python/tools/release.py` 新增 `archive` 子命令（发布第 2 步，在 `prepare` 之前）：三份台账的正文
+  整块搬进 `docs/archive/v<系列>/`，主台账重写为「文件头 + 重新生成的 `## 归档` 索引」；
+  不带 `--yes` 只预演；三份都空时幂等退出 0；同系列第二批追加 `## 归档批次` 段。
+- `src/python/tools/check_guards.py` 新增第 18 项「归档」：目录名只能是 `vX.Y.x`、归档文件命名与系列号一致、
+  头部四项齐全、`docs/archive/README.md` 被索引引用、三份台账都带 `## 归档` 索引。
+- `src/test/tools/test_release_archive.py`（9 例）：台账切开、整块搬运、主台账留头与索引、预演不落盘、
+  重复跑幂等、第二批追加、索引倒序与空占位。
+
+### 修改
+
+- 守护「编号-plan」「编号-review」：归档会把已完成项整块搬走，主台账编号不再从 1 连续，改为
+  「唯一 + 递增 + 不与 `docs/archive/` 里出现过的编号重复」；归档前仍要求从 1 连续。
+- `src/python/tools/gen_folders.py`：`dir_note()` 支持 `docs/archive/vX.Y.x/` 系列目录说明。
+- `plan.md` / `review-findings.md` / `changelog.md` 末尾新增 `## 归档` 索引段。
+
+### 文档
+
+- `docs/README.md`：新增 §7 归档、推荐阅读与维护规则补归档条目。
+- `docs/managements/releasing.md`：六步 → 七步（含 `archive`）、发布清单补归档项。
+- `docs/managements/technical.md`：目录结构补 `docs/archive/` 与 `src/test/tools/`、守护 18 项、
+  用例对照表补 `tools/test_release_archive.py`。
+- `docs/managements/folders.md`：目录树与统计重算（153 个跟踪文件）。
+- `README.md`、`CLAUDE.md`：发布步骤与文档纪律补归档规则。
+
+### 验证
+
+- `check_guards` 18/18 通过；`pytest src/test/tools -q` 9 passed。
+
 ## 2026-11-18 — 修 windows 的 bash 语法检查：新增 .gitattributes 固定换行符
 
 ### 修复
@@ -752,3 +856,13 @@
 
 - `ruff check --select E,F,B,I --ignore E501 src/ conftest.py`：零告警。
 - `pytest src/test -q`：188 passed，全部用例通过。
+
+## 归档
+
+> 已发布版本的旧内容整块搬进 `docs/archive/`，本文件只留当前开发版本的内容；
+> 目录与文件命名规则见[归档规范](../archive/README.md)。搬运无损、不改一字，
+> 编号归档后仍占号，不复用。
+
+| 系列 | 归档文件 | 涵盖版本 | 归档时间 |
+| --- | --- | --- | --- |
+| v0.1.x | [`archived_changelog.0.1.x.md`](../archive/v0.1.x/archived_changelog.0.1.x.md) | （待 v0.1 发布） | （待 v0.1 发布；由 `python -m src.python.tools.release archive --yes` 写入） |

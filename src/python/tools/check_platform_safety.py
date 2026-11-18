@@ -26,7 +26,28 @@ SUBprocess_TEXT = re.compile(r"subprocess\.(?:run|Popen|check_output)\(")
 IMPORT_POSIX = re.compile(
     r"^\s*(?:import (fcntl|pwd|grp|termios|tty)\b|from (fcntl|pwd|grp|termios|tty) import)"
 )
+# 用例里写死字体家族名：本机绿、别的平台红（Linux 是 Noto CJK、Windows 是 msyh）
+FONT_FAMILY = re.compile(
+    r'"(Noto[^"]*|Source Han[^"]*|Microsoft YaHei|msyh[^"]*|PingFang[^"]*|SimSun[^"]*|微软雅黑)'
+)
+# 裸 bash/sh：windows-latest 上的 `bash` 常是 WSL 存根，`bash -n` 退 1 且 stderr 为空
+BARE_SHELL = re.compile(r'"(?:bash|sh)"')
+# 直接碰 fcntl：Windows 没有这个模块，属性访问会 AttributeError
+FCNTL_ATTR = re.compile(r"\.fcntl\b")
+# 断言里写死绝对像素阈值（`assertGreaterEqual(out_w, 111)`）：换平台字体度量就变。
+# 只认「名字像尺寸的变量 + 阈值 >= 20」：`index >= 0`、`refresh_count >= 1` 这类
+# 是上下界检查，不是度量断言，别误报。
+ABSOLUTE_THRESHOLD = re.compile(
+    r"assertGreater(?:Equal)?\(\s*[\w.\[\]\-\+\s()]*(?:width|height|_w\b|_h\b|box|ink|px|size)"
+    r"[^,]*,\s*(\d+(?:\.\d+)?)\s*\)"
+)
+ABSOLUTE_THRESHOLD_MIN = 20.0
+# 断言里直接比解释器路径/平台串：Windows 上是反斜杠、平台串也不同
+RAW_RUNTIME = re.compile(r"assert[A-Za-z]*\([^)]*\bsys\.(?:executable|platform)\b")
 SAFE_MARK = "# platform-safe"
+# 规则样本文件：它天生就要写出违规写法（并断言规则能抓到），
+# 否则「规则本身失效」这件事没人发现。
+RULE_FIXTURE = "src/test/tools/test_platform_safety_rules.py"
 SKIP_MARK = ("skipIf(sys.platform", "skipUnless(sys.platform", "skipIf(POSIX", "skipUnless(POSIX")
 
 
@@ -39,6 +60,54 @@ def _iter_sources() -> list[Path]:
 def _has_platform_guard(lines: list[str]) -> bool:
     joined = "\n".join(lines)
     return any(mark in joined for mark in SKIP_MARK) or "POSIX" in joined
+
+
+def _is_big_threshold(text: str) -> bool:
+    """阈值够大才算"度量断言"（`>= 1`/`>= 0` 是上下界检查，不是像素阈值）。"""
+    try:
+        return float(text) >= ABSOLUTE_THRESHOLD_MIN
+    except ValueError:
+        return False
+
+
+def _check_test_hygiene(rel: str, lines: list[str]) -> list[str]:
+    """只对用例查的三类「本机绿、别的平台红」写法（`_support.py` 例外）。"""
+    joined = "\n".join(lines)
+    none_word = "None"
+    is_none = "is" + " " + none_word  # 拆开拼，避免提示文案被误当成 ``is None`` 比较
+    has_fcntl_guard = f"fcntl {is_none}" in joined or f'"fcntl", {none_word}' in joined
+    problems: list[str] = []
+    for lineno, line in enumerate(lines, 1):
+        if SAFE_MARK in line:
+            continue
+        family = FONT_FAMILY.search(line)
+        if family:
+            problems.append(
+                f"{rel}:{lineno} 断言里写死了字体家族 {family.group(1)!r}："
+                "换平台字族就变（Linux Noto CJK / Windows msyh），请从字体文件反解"
+            )
+        if BARE_SHELL.search(line) and "bash_exe" not in joined:
+            problems.append(
+                f"{rel}:{lineno} 直接用裸 bash/sh：Windows runner 上可能是 WSL 存根，"
+                "请走 _support.bash_exe()（不可用时 skip 而不是红）"
+            )
+        if FCNTL_ATTR.search(line) and not has_fcntl_guard:
+            problems.append(
+                f"{rel}:{lineno} 直接碰 fcntl：Windows 没有该模块，"
+                "请加 skipIf(fcntl is None) 等平台守卫"
+            )
+        metric = ABSOLUTE_THRESHOLD.search(line)
+        if metric and _is_big_threshold(metric.group(1)):
+            problems.append(
+                f"{rel}:{lineno} 断言里写死绝对像素阈值：换平台/换字体度量就变，"
+                "请改成两个测量值的比值（如 `>= 0.85 * expected_w`）"
+            )
+        if RAW_RUNTIME.search(line):
+            problems.append(
+                f"{rel}:{lineno} 断言里直接比 `sys.executable`/`sys.platform`："
+                "Windows 上路径与平台串都不同，请用 `Path` 或打桩后的值"
+            )
+    return problems
 
 
 def check_file(path: Path) -> list[str]:
@@ -57,6 +126,9 @@ def check_file(path: Path) -> list[str]:
             )
         if IMPORT_POSIX.match(line) and not _has_platform_guard(lines):
             problems.append(f"{rel}:{lineno} 直接依赖 POSIX-only 模块（加平台保护或打到 _support）")
+
+    if rel.startswith("src/test/") and path.name != "_support.py" and rel != RULE_FIXTURE:
+        problems += _check_test_hygiene(rel, lines)
 
     # 子进程调用必须显式编码：同一行或后续两行内出现 encoding=
     for lineno, line in enumerate(lines, 1):

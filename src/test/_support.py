@@ -8,6 +8,8 @@ from __future__ import annotations
 import contextlib
 import curses
 import os
+import shutil
+import subprocess
 import tempfile
 import unittest
 from collections.abc import Callable, Sequence
@@ -37,6 +39,30 @@ _CJK_REG_CANDIDATES = (
 )
 
 
+def font_mode() -> str:
+    """`IMG_P_TEST_FONT` 的取值：空 = 默认；`alt` = 换字族/字重；其它 = 指定字体文件名。"""
+    return os.environ.get("IMG_P_TEST_FONT", "").strip().lower()
+
+
+def font_candidates(regular: bool, mode: str | None = None) -> tuple[str, ...]:
+    """按模式给出候选顺序（`font_candidates(False)` 是粗体槽）。
+
+    `alt` 档把粗体槽与常规槽对调（跨字重/字族）：Linux 默认用 `NotoSansCJK-Bold`，
+    alt 档换成 Regular 文件——度量不同，正好把“断言依赖本机字体”的用例挑出来，
+    不必等 windows 作业。
+    指定文件名（如 `msyh.ttc`）但本机没有时返回空：字体用例 skip，而不是假装跑过。
+    """
+    mode = font_mode() if mode is None else mode.strip().lower()
+    primary = _CJK_REG_CANDIDATES if regular else _CJK_BOLD_CANDIDATES
+    secondary = _CJK_BOLD_CANDIDATES if regular else _CJK_REG_CANDIDATES
+    if not mode:
+        return primary
+    if mode == "alt":
+        return secondary + primary
+    wanted = mode if mode.endswith((".ttc", ".ttf", ".otf")) else f"{mode}.ttc"
+    return tuple(p for p in (*primary, *secondary) if p.rsplit("/", 1)[-1].lower() == wanted)
+
+
 def _first_loadable(paths: Sequence[str], fallback: str) -> str:
     """挑第一个真的能加载的字体文件；都不可用时返回原路径（has_cjk_font 会为 False）。"""
     for path in paths:
@@ -48,8 +74,12 @@ def _first_loadable(paths: Sequence[str], fallback: str) -> str:
     return fallback
 
 
-FONT_CJK = _first_loadable(_CJK_BOLD_CANDIDATES, _CJK_BOLD_CANDIDATES[0])
-FONT_CJK_REG = _first_loadable(_CJK_REG_CANDIDATES, _CJK_REG_CANDIDATES[0])
+FONT_CJK = _first_loadable(
+    font_candidates(False) or _CJK_BOLD_CANDIDATES[:1], _CJK_BOLD_CANDIDATES[0]
+)
+FONT_CJK_REG = _first_loadable(
+    font_candidates(True) or _CJK_REG_CANDIDATES[:1], _CJK_REG_CANDIDATES[0]
+)
 
 
 def ocr_available() -> bool:
@@ -100,6 +130,19 @@ def cjk_font(size: int, *, regular: bool = False) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(path, size, index=index)
 
 
+def cjk_family_name() -> str:
+    """当前平台实际选中的 CJK 字体家族名（找不到字体时返回空串）。
+
+    用例要断言「日志/报告里的字体名」时别写死 "Noto"：Windows 上选中的是 msyh。
+    """
+    try:
+        path, index = cjk_font_spec()
+        family = ImageFont.truetype(path, 12, index=index).getname()
+    except (OSError, unittest.SkipTest):
+        return ""
+    return (family[0] or "") if family else ""
+
+
 def has_cjk_font() -> bool:
     """是否有可用的 CJK 字体（就地试加载，索引也试过）。"""
     if FORCE_NO_FONT:
@@ -109,6 +152,30 @@ def has_cjk_font() -> bool:
     except unittest.SkipTest:
         return False
     return True
+
+
+def bash_exe() -> str | None:
+    """能真正执行的 bash；Windows runner 上的 `bash` 常是 WSL 存根（一跑就退）。
+
+    只 `shutil.which("bash")` 不够：windows-latest 上它指向 WSL 入口，
+    `bash -n foo.sh` 直接返回 1 且 stderr 为空——用例看不到任何线索。
+    """
+    exe = shutil.which("bash")
+    if not exe:
+        return None
+    try:
+        proc = subprocess.run(
+            [exe, "-c", "exit 0"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return exe if proc.returncode == 0 else None
 
 
 def regions(*texts_and_rects):
@@ -128,8 +195,8 @@ class FakeWin:
         self.cols = cols
         self.screen = [""] * rows
         self.timeout_ms = -1
-        self.refresh_count = 0          # 真的调过 refresh 才 +1（黑屏就是没刷新）
-        self.cell_count = 0             # addch 次数（边框走 addch，用来断言线框画了）
+        self.refresh_count = 0  # 真的调过 refresh 才 +1（黑屏就是没刷新）
+        self.cell_count = 0  # addch 次数（边框走 addch，用来断言线框画了）
 
     def getmaxyx(self):
         return self.rows, self.cols

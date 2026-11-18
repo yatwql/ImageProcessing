@@ -105,14 +105,40 @@
 - 差异点必须抽象成可打桩用例：无中文字体（`IMG_P_TEST_NO_CJK_FONT=1`）、
   `curses.ACS_*` 为 int、路径长度、平台默认目录、venv 解释器路径。
 - 文本 I/O 一律显式 `encoding="utf-8"`（守卫检查）；`.ps1` 必须 UTF-8 with BOM。
+- **不要拿本机事实当断言**（本轮 windows 作业四条红都是这一类，现已由守护拦下）：
+  ① 字体家族名不能写死（Linux 是 Noto CJK、Windows 是 msyh）——从字体文件 `getname()` 反解，
+  或改成与字体无关的比值；
+  ② 不要用裸 `bash`/`sh`：windows-latest 上的 `bash` 常是 WSL 存根（`bash -n` 退 1 且 stderr 为空），
+  统一走 `_support.bash_exe()`（真探测能不能跑，不能就 skip）；脚本的 LF 另用不依赖 bash 的用例查；
+  ③ 不要在无平台守卫时碰 `fcntl`（Windows 无此模块，属性访问直接 `AttributeError`）；
+  ④ 路径期望值用 `str(Path(...))` 算，不要手写 `"/x/python"`（Windows 是反斜杠）。
 - 换行符由 `.gitattributes` 固定：`*.sh` 必须 LF（CRLF 会让 Windows 上的 `bash -n` 直接报错），
   `*.ps1` 用 CRLF；守护「跨平台」会核对这条规则存在。
+- 守护「跨平台」的三条用例卫生规则（会在本地直接红，不等 CI）：写死字体家族 /
+  裸 `bash`/`sh` / 无平台守卫的 `fcntl`；豁免写在行尾 `# platform-safe`（如 POSIX-only 的 `script(1)` 冒烟）。
 - Windows 上无法用 `script(1)`：真终端冒烟自动 skip，由 ACS int 模拟 + windows 作业兜底。
-- **本地 CI 矩阵**（`python -m src.python.tools.check_all --ci-matrix`，全量模式默认包含）：
+- **本地 CI 矩阵**（全量模式默认全跑；`--ci-matrix` / `--font-matrix` 可单开）：
   ① 无中文字体（`IMG_P_TEST_NO_CJK_FONT=1`）；
   ② cp1252 控制台 + C locale（`PYTHONIOENCODING=cp1252 LC_ALL=C LANG=C`）——
-  专治"子进程/打印按 cp1252 解码"这类只在 Windows runner 炸的问题。
+  专治"子进程/打印按 cp1252 解码"这类只在 Windows runner 炸的问题；
+  ③ **换字族/字重**（`IMG_P_TEST_FONT=alt`：粗体槽用常规体、常规槽用粗体）——
+  Windows 用 msyh、Linux 用 Noto CJK，度量本来不同；写死像素/字体家族的断言在这一档就红。
   入口冒烟因此改为**本进程内跑**（`runpy` + 重定向），不经子进程管道。
+- 断言卫生（守护「跨平台」本地拦，不等 CI）：不许写死字体家族名、不许裸 `bash`/`sh`、
+  不许无守卫碰 `fcntl`、不许在 `assertGreater*` 里写绝对像素阈值（名字像尺寸且阈值 ≥20 才报，
+  `index >= 0` 这类上下界检查不误报）、不许在断言里直接比 `sys.executable`/`sys.platform`。
+  豁免：行尾 `# platform-safe`（人工确认与平台无关）；规则样本文件
+  `tools/test_platform_safety_rules.py` 整体豁免——它天生要写违规写法来验证规则还活着。
+
+### 8.1 工具链关键分支（`src/python/tools/` 不计覆盖率，靠这张表兜底）
+
+| 工具 | 关键分支 | 用例 |
+| --- | --- | --- |
+| `release.py archive` | 预演不落盘 / 整块搬运 / 主台账留头+索引 / 重复跑幂等 / 同系列第二批追加 | `tools/test_release_archive.py` |
+| `release.py check` | 矩阵前置（locale + 字体）失败即红 | `testplan` §8 + CI `release` 作业 |
+| `check_guards`「归档」/「编号」 | 目录命名、头部四项、索引存在；编号唯一/递增/不复用 | `tools/test_platform_safety_rules.py`、`check_guards --ci` |
+| `check_platform_safety` | 五条用例卫生规则 × `# platform-safe` 豁免 | `tools/test_platform_safety_rules.py` |
+| `gen_folders` | 目录树生成、统计表数字重算、`alt`/指定字体模式 | `tools/test_gen_folders_stats.py` |
 
 ## 9. 质量报告与产物
 
@@ -122,6 +148,7 @@
 | 覆盖率与分组统计（本仓文档） | `src/python/tools/coverage_report.py --write` | `docs/managements/test-coverage.md` |
 | 性能读数 | `src/python/tools/check_perf.py` | 终端输出（超限即红） |
 | CI 环境指纹 | CI `环境指纹` 步骤 | artifact `ci-env/`（python / platform / pip freeze / 字体清单） |
+| windows 失败用例清单 | CI `全量用例` / `失败用例摘要` 步 | artifact `windows-junit/`（junit XML）+ 作业日志里的 `classname::name` 列表 |
 | 界面快照 | `UPDATE_SNAPSHOTS=1 pytest src/test/tui/test_screen_snapshots.py` | `src/test/snapshots/tui.json` |
 
 ## 10. 合并前检查清单

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停。
 
-    python tools/release.py check                 # 工作区干净 + 版本一致 + 快速门禁
+    python tools/release.py check                 # 工作区干净 + 版本一致 + 快速门禁（含两档 CI 矩阵）
+    python tools/release.py archive --yes         # 把三份台账的旧内容整块搬进 docs/archive/vX.Y.x/
     python tools/release.py prepare --version 0.2 # 改 version.py 与 changelog 标题
     python tools/release.py gate                  # 全量门禁（= check_all）
     python tools/release.py build                 # 打 wheel/sdist + SHA256SUMS
@@ -26,14 +27,31 @@ from ..stdio import ensure_utf8_stdio
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
 VERSION_FILE = ROOT / "src" / "python" / "version.py"
-CHANGELOG = ROOT / "docs" / "managements" / "changelog.md"
+DOCS = ROOT / "docs"
+CHANGELOG = DOCS / "managements" / "changelog.md"
 DIST = ROOT / "dist"
 PY = sys.executable
 
+# 归档：三份过程台账，旧版本内容整块搬进 docs/archive/v<系列>/（规则见 docs/archive/README.md）
+ARCHIVE_HEADING = "## 归档"
+ARCHIVE_DOCS = [
+    ("plan.md", "archived_plan", "计划归档"),
+    ("review-findings.md", "archived_review-findings", "自检记录归档"),
+    ("changelog.md", "archived_changelog", "变更记录归档"),
+]
+HEADER_KEYS = ("归档时间", "原始文件", "涵盖版本", "归档内容")
+
 
 def sh(cmd: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", check=check)
+    return subprocess.run(
+        cmd,
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=check,
+    )
 
 
 def read_version() -> tuple[str, str]:
@@ -56,14 +74,29 @@ def cmd_check() -> int:
         problems.append(f"UPDATED={updated} 与 src/ 最后提交 {commit_date} 不一致")
     if not re.fullmatch(r"\d+\.\d+", version):
         problems.append(f"版本号格式应为 MAJOR.MINOR，收到 {version!r}")
-    quick = sh([PY, "-m", "src.python.tools.check_all", "--quick"], check=False)
+    # 发布预检不只跑“本机默认环境”：把两档 CI 矩阵一起过（字族/控制台差异）。
+    # 这是“本地绿、CI 红”在发布前最后一次拦截点。
+    quick = sh(
+        [
+            PY,
+            "-m",
+            "src.python.tools.check_all",
+            "--quick",
+            "--ci-matrix",
+            "--font-matrix",
+        ],
+        check=False,
+    )
     if quick.returncode != 0:
-        problems.append("check_all --quick 未通过")
+        problems.append("check_all --quick --ci-matrix --font-matrix 未通过")
     if problems:
         for item in problems:
             print(f"[FAIL] {item}")
         return 1
-    print(f"[ok] 预检通过：版本 {version}（{updated}），工作区干净，quick 门禁全绿")
+    print(
+        f"[ok] 预检通过：版本 {version}（{updated}），工作区干净，"
+        "quick 门禁 + CI 矩阵（locale / 字体）全绿"
+    )
     return 0
 
 
@@ -89,6 +122,146 @@ def cmd_prepare(version: str) -> int:
         CHANGELOG.write_text("\n".join(lines) + "\n", encoding="utf-8")
         print(f"[ok] changelog 已插入 {head}（记得补内容）")
     print("下一步：补 changelog 内容 → python tools/release.py gate")
+    return 0
+
+
+def series_of(version: str) -> str:
+    """`0.1` → `0.1.x`：归档目录与归档文件名都按版本系列分。"""
+    return f"{version}.x"
+
+
+def split_doc(text: str) -> tuple[str, str, str | None]:
+    """把一份台账切成（文件头 / 正文 / 归档索引段）。
+
+    文件头 = 第一个 `## ` 标题之前的说明块（含 `> 版本：` 行，守护会核对它）；
+    正文 = 第一个 `## ` 到 `## 归档` 之前，也就是要搬进归档的全部内容；
+    归档索引 = `## 归档` 到文件末尾，由脚本重新生成，没有则为 None。
+    """
+    lines = text.splitlines()
+    head_end = next((i for i, ln in enumerate(lines) if ln.startswith("## ")), len(lines))
+    arch_start = next((i for i, ln in enumerate(lines) if ln.strip() == ARCHIVE_HEADING), None)
+    head = "\n".join(lines[:head_end]).rstrip() + "\n"
+    body_end = arch_start if arch_start is not None else len(lines)
+    body = "\n".join(lines[head_end:body_end]).strip()
+    tail = None if arch_start is None else "\n".join(lines[arch_start:])
+    return head, body, tail
+
+
+def archive_header(title: str, series: str, source_rel: str, version: str, today: str) -> str:
+    """新建归档文件的固定头部：四个字段由守护「归档」逐项核对。"""
+    return (
+        f"# {title} — v{series}\n\n"
+        f"> 归档时间：{today}（v{version} 发布，本系列首份）\n"
+        f"> 原始文件：`{source_rel}`\n"
+        f"> 涵盖版本：v{version}\n"
+        f"> 归档内容：由 `python -m src.python.tools.release archive` 整块搬运，未改一字\n\n"
+        "---\n"
+    )
+
+
+def batch_heading(version: str, today: str) -> str:
+    return f"\n## 归档批次 v{version}（{today}）\n"
+
+
+def parse_meta(text: str) -> tuple[str, str]:
+    """从归档文件头部取出（涵盖版本, 归档时间），取不到就给占位符。"""
+    covered = re.search(r"^> 涵盖版本：(.+)$", text, re.MULTILINE)
+    when = re.search(r"^> 归档时间：(.+)$", text, re.MULTILINE)
+    return (covered.group(1).strip() if covered else "—", when.group(1).strip() if when else "—")
+
+
+def _series_key(name: str) -> tuple[int, ...]:
+    m = re.match(r"v(\d+(?:\.\d+)*)", name)
+    return tuple(int(part) for part in m.group(1).split(".")) if m else (0,)
+
+
+def build_index(archive_root: Path, stem: str) -> str:
+    """生成 `## 归档` 索引段：列出该台账在各版本系列下的归档文件。
+
+    链接按「从 docs/managements/ 出发」的相对路径算（`../archive/…`）。
+    """
+    rows: list[str] = []
+    if archive_root.is_dir():
+        series_dirs = sorted(
+            (p for p in archive_root.iterdir() if p.is_dir()),
+            key=lambda p: _series_key(p.name),
+            reverse=True,
+        )
+        for series_dir in series_dirs:
+            for path in sorted(series_dir.glob(f"{stem}.*.md")):
+                series = path.name.removeprefix(f"{stem}.").removesuffix(".md")
+                covered, when = parse_meta(path.read_text(encoding="utf-8"))
+                rel = f"../archive/{series_dir.name}/{path.name}"
+                rows.append(f"| v{series} | [`{path.name}`]({rel}) | {covered} | {when} |")
+    block = [
+        ARCHIVE_HEADING,
+        "",
+        "> 已发布版本的旧内容整块搬进 `docs/archive/`，本文件只留当前开发版本的内容；",
+        "> 目录与文件命名规则见[归档规范](../archive/README.md)。搬运无损、不改一字，",
+        "> 编号 `PLAN-x` / `RF-x` 归档后仍占号，不复用。",
+        "",
+    ]
+    if rows:
+        block += [
+            "| 系列 | 归档文件 | 涵盖版本 | 归档时间 |",
+            "| --- | --- | --- | --- |",
+            *rows,
+            "",
+        ]
+    else:
+        block += ["（暂无归档文件：本系列首次发布后由 `release.py archive` 写入。）", ""]
+    return "\n".join(block)
+
+
+def cmd_archive(version: str, yes: bool, docs: Path | None = None) -> int:
+    """把三份台账的正文整块搬进 `docs/archive/v<系列>/`，主文件只留文件头与归档索引。"""
+    docs_dir = docs if docs is not None else DOCS
+    archive_root = docs_dir / "archive"
+    series = series_of(version)
+    today = dt.date.today().isoformat()
+    targets: list[tuple[Path, str, str, str, str]] = []
+    for name, stem, title in ARCHIVE_DOCS:
+        main_path = docs_dir / "managements" / name
+        head, body, _tail = split_doc(main_path.read_text(encoding="utf-8"))
+        targets.append((main_path, stem, title, head, body))
+    if all(not body for _p, _s, _t, _h, body in targets):
+        print(f"[ok] 三份台账都没有待归档正文（当前系列 v{series}）")
+        return 0
+    for main_path, stem, title, head, body in targets:
+        shown = main_path.relative_to(ROOT) if main_path.is_relative_to(ROOT) else main_path
+        target = archive_root / f"v{series}" / f"{stem}.{series}.md"
+        shown_target = target.relative_to(ROOT) if target.is_relative_to(ROOT) else target
+        rel_source = (
+            main_path.relative_to(ROOT).as_posix()
+            if main_path.is_relative_to(ROOT)
+            else main_path.as_posix()
+        )
+        state = "追加批次" if target.is_file() else "新建归档"
+        print(
+            f"[plan] {shown.as_posix()} → {shown_target.as_posix()}"
+            f"（{state}，正文 {len(body.splitlines())} 行）"
+        )
+        if not yes:
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_file():
+            old = target.read_text(encoding="utf-8").rstrip() + "\n"
+            target.write_text(
+                old + batch_heading(version, today) + "\n" + body + "\n", encoding="utf-8"
+            )
+        else:
+            header = archive_header(title, series, rel_source, version, today)
+            target.write_text(header + "\n" + body + "\n", encoding="utf-8")
+        index = build_index(archive_root, stem)
+        main_path.write_text(
+            head + ("" if head.endswith("\n\n") else "\n") + index, encoding="utf-8"
+        )
+    if not yes:
+        print(
+            "[plan] 以上为预演；加 --yes 才会真的搬（先确认工作区干净、changelog 已写完本版内容）"
+        )
+        return 0
+    print("[ok] 归档完成；下一步：gen_folders --write 同步目录树，再 prepare → gate")
     return 0
 
 
@@ -157,13 +330,17 @@ def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdio()
     version, _updated = read_version()
     ap = argparse.ArgumentParser(description="retype 发布流程")
-    ap.add_argument("command", choices=["check", "prepare", "gate", "build", "tag", "publish"])
+    ap.add_argument(
+        "command", choices=["check", "archive", "prepare", "gate", "build", "tag", "publish"]
+    )
     ap.add_argument("--version", default=version, help=f"目标版本（当前 {version}）")
     ap.add_argument("--yes", action="store_true", help="真的执行有副作用的步骤")
     args = ap.parse_args(sys.argv[1:] if argv is None else argv)
 
     if args.command == "check":
         return cmd_check()
+    if args.command == "archive":
+        return cmd_archive(args.version, args.yes)
     if args.command == "prepare":
         return cmd_prepare(args.version)
     if args.command == "gate":

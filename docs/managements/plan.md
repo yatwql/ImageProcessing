@@ -131,3 +131,17 @@
 | PLAN-97 | 跨平台守护 | 新增 `check_platform_safety.py`（POSIX 路径 / 子进程编码 / POSIX-only 导入），并入守护第 17 项；修 7 处 `subprocess text=True` 缺 encoding 的隐患与两处 Windows 用例 | 完成 |
 | PLAN-98 | CI 矩阵本地化 | 入口冒烟改本进程（runpy）避免子进程编码问题；`check_all --ci-matrix` 在本地复现"cp1252 控制台 + C locale"与"无中文字体"两档；pty 冒烟在非 UTF-8 终端跳过 | 完成 |
 | PLAN-99 | 换行符规则 | 新增 `.gitattributes`（.sh/.py/.md 等 LF，.ps1 CRLF，png binary）；守护「跨平台」校验该规则存在；修 Windows 上 `bash -n` 因 CRLF 报错 | 完成 |
+
+| PLAN-100 | 归档 | 建立 `docs/archive/`：按版本系列归档三份过程台账，`release.py archive` 整块搬运，守护「归档」核对目录/命名/头部 | 归档目录与规范、`v0.1.x/` 骨架、`archive` 子命令与 9 条用例、六份文档同步 | 完成 |
+| PLAN-101 | 质量门禁 | 连续 5 次 CI 红（全部是 windows 作业）逐条整改：用例不再拿本机事实当断言，守护「跨平台」新增三条本地拦截规则 | 字体家族改写/裸 bash 走 `bash_exe()`/fcntl 加平台守卫、路径期望用 `Path` 计算；新增 `tools/test_platform_safety_rules.py`（12 例）与 `.sh` LF 用例 | 完成 |
+| PLAN-102 | 质量门禁 | 把「本地绿、CI 红」堵在本地：字体矩阵档、发布预检矩阵、断言卫生规则、统计表自动化、CI 红复盘模板、工具链关键分支表 | `--font-matrix` 档与 alt 字体模式、`release check` 前置矩阵、两条断言规则、`gen_folders` 重算统计、复盘模板与 §8.1 分支表、`tools` 新增 12 例 | 完成 |
+| PLAN-103 | CI 工程化 | windows 失败可读性 + 排队浪费：失败用例清单落 artifact、同分支连续推送取消旧 run | junit XML 上传 + 摘要步（`if: always()`）、`concurrency` 但标签构建不取消；`check_workflows` 仍全过 | 完成 |
+## 归档
+
+> 已发布版本的旧内容整块搬进 `docs/archive/`，本文件只留当前开发版本的内容；
+> 目录与文件命名规则见[归档规范](../archive/README.md)。搬运无损、不改一字，
+> 编号归档后仍占号，不复用。
+
+| 系列 | 归档文件 | 涵盖版本 | 归档时间 |
+| --- | --- | --- | --- |
+| v0.1.x | [`archived_plan.0.1.x.md`](../archive/v0.1.x/archived_plan.0.1.x.md) | （待 v0.1 发布） | （待 v0.1 发布；由 `python -m src.python.tools.release archive --yes` 写入） |

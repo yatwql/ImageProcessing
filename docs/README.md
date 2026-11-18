@@ -14,6 +14,7 @@
 | 要改界面/交互 | [技术设计](managements/technical.md) §6.2 → [契约](managements/contracts.md) §2.4 → [使用手册](manuals/how-to-use.md) 按键表 |
 | 要发版 | [发布流程](managements/releasing.md) → [测试计划](managements/testplan.md) §2 门禁 → [变更记录](managements/changelog.md) |
 | 排查历史问题 | [自检记录](managements/review-findings.md)（RF-x）→ [计划](managements/plan.md)（PLAN-x）→ [变更记录](managements/changelog.md) |
+| 查已发布版本的旧内容 | [归档规范](archive/README.md) → 对应系列目录 `archive/vX.Y.x/` |
 
 ## 1. 入口
 
@@ -59,11 +60,20 @@
 | --- | --- |
 | [目录结构](managements/folders.md) | 项目统计、整仓目录树与每个文件的职责（守护逐文件核对） |
 
+## 7. 归档
+
+| 文档 | 内容 |
+| --- | --- |
+| [归档规范](archive/README.md) | `docs/archive/` 的目录与文件命名、归档文件头四项、整块搬运与「编号不复用」规则、发布时的归档步骤 |
+| `archive/vX.Y.x/archived_*.md` | 每个已发布系列的 `plan` / `review-findings` / `changelog` 旧内容（发布时由 `release.py archive` 写入） |
+
 ## 维护规则
 
 1. 新增/重命名文档：同步本索引（守护「文档索引」会拦）、同步 `folders.md` 的目录树与统计。
 2. 文档开头保留 `> 版本：vX.Y` 行（守护「版本号」核对与 `version.py` 一致）。
 3. 能由脚本生成的表格不手改：覆盖率/分组用 `python -m src.python.tools.coverage_report --write`，
-   目录树用 `python -m src.python.tools.gen_folders --write`（统计数字照它打印的读数改）。
+   目录树与项目统计表的数字都用 `python -m src.python.tools.gen_folders --write`（说明列自己写）。
 4. 历史段落（`plan.md` / `review-findings.md` / `changelog.md` 的旧条目）保持原样，
    不要为了"看起来一致"去改历史记录；当前状态以上面的设计/契约/质量文档为准。
+5. 发布新版本时，三份台账的旧内容整块搬进 `docs/archive/vX.Y.x/`（`release.py archive`，规则见
+   [归档规范](archive/README.md)）；归档文件不手工编辑，编号归档后仍占号、不复用。

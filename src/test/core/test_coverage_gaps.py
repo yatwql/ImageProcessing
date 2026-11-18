@@ -29,10 +29,12 @@ from src.test._support import FONT_CJK, FakeWin, TuiTestCase, has_cjk_font, patc
 
 class BootstrapGaps(unittest.TestCase):
     def test_pip_install_calls_pip_in_repo_root(self):
+        # `str(Path)` 在 Windows 上给反斜杠，期望值也用 Path 算，不能写死 "/x/python"
+        expected_py = str(Path("/x/python"))
         with mock.patch.object(bootstrap.subprocess, "run") as run:
             bootstrap.pip_install(Path("/x/python"), "-r", "requirements.txt")
         args, kwargs = run.call_args
-        self.assertEqual(args[0][:4], ["/x/python", "-m", "pip", "install"])
+        self.assertEqual(args[0][:4], [expected_py, "-m", "pip", "install"])
         self.assertEqual(kwargs["cwd"], str(bootstrap.ROOT))
         self.assertTrue(kwargs["check"])
 

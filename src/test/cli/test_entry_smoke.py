@@ -11,15 +11,17 @@ from __future__ import annotations
 import contextlib
 import io
 import runpy
-import shutil
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 
+from src.test._support import bash_exe
+
 ROOT = Path(__file__).resolve().parents[3]
 PY = sys.executable
-BASH = shutil.which("bash")      # Windows runner 不一定把 Git Bash 放进 PATH
+# Windows runner 上的 `bash` 可能是 WSL 存根（跑起来就退 1、stderr 还是空的），必须真探测
+BASH = bash_exe() or ""
 
 
 def call(module: str, argv: list[str]) -> tuple[int, str, str]:
@@ -41,7 +43,8 @@ def call(module: str, argv: list[str]) -> tuple[int, str, str]:
 
 def venv_exists() -> bool:
     return (ROOT / ".venv" / "bin" / "python").exists() or (
-        ROOT / ".venv" / "Scripts" / "python.exe").exists()
+        ROOT / ".venv" / "Scripts" / "python.exe"
+    ).exists()
 
 
 class EntryPoints(unittest.TestCase):
@@ -88,7 +91,17 @@ class EntryPoints(unittest.TestCase):
                 self.assertTrue(out.strip(), "工具的 --help 应当打印用法")
 
 
-@unittest.skipUnless(BASH, "需要 bash（Windows runner 上可能没有）")
+class ShellScriptsAreLf(unittest.TestCase):
+    """`.sh` 必须是 LF：CRLF 的脚本在 Git Bash 里 `bash -n` 直接报语法错（不依赖 bash 也能查）。"""
+
+    def test_shell_scripts_use_lf(self):
+        for path in sorted((ROOT / "scripts").glob("*.sh")):
+            with self.subTest(script=path.name):
+                raw = path.read_bytes()
+                self.assertNotIn(b"\r\n", raw, f"{path.name} 含 CRLF（应 LF，见 .gitattributes）")
+
+
+@unittest.skipUnless(BASH, "需要能真正执行的 bash（Windows runner 上可能是 WSL 存根）")
 class ScriptLaunchers(unittest.TestCase):
     """shell 薄壳只在真进程里有意义：只看语法与退出码，不看输出。"""
 
@@ -96,16 +109,27 @@ class ScriptLaunchers(unittest.TestCase):
         for path in sorted((ROOT / "scripts").glob("*.sh")):
             with self.subTest(script=path.name):
                 proc = subprocess.run(
-                    ["bash", "-n", str(path)], capture_output=True, text=True,
-                    encoding="utf-8", errors="replace", check=False,
+                    [BASH, "-n", path.as_posix()],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    check=False,
                 )
                 self.assertEqual(proc.returncode, 0, proc.stderr)
 
     @unittest.skipUnless(sys.platform != "win32", "POSIX shell 才有 --help 行为")
     def test_cli_shell_help(self):
-        proc = subprocess.run(["bash", str(ROOT / "scripts" / "cli.sh"), "--help"],
-                              cwd=str(ROOT), capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=180, check=False)
+        proc = subprocess.run(
+            [BASH, (ROOT / "scripts" / "cli.sh").as_posix(), "--help"],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=180,
+            check=False,
+        )
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
 

@@ -2,7 +2,7 @@
 # 全量用例 + 报告。编排在 tools/run_tests.py；这里只找系统 Python 转交。
 # 首次运行会自动准备环境（缺 pytest 时连测试依赖一起装）。
 #
-#   ./scripts/test.sh [--fast] [-k 关键字]
+#   ./scripts/runTest.sh [--fast] [-k 关键字]
 set -uo pipefail
 cd "$(dirname "$0")/.."
 

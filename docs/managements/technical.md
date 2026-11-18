@@ -34,8 +34,8 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
   tui.sh / tui.ps1           交互入口      → python -m src.python.tui
   setup.sh / setup.ps1       环境引导      → python -m src.python.bootstrap（ps1 支持 -Dev）
-  test.sh / test.ps1         测试 + 报告   → tools/run_tests.py（ps1 支持 -Fast）
-  log-query.py               日志查询      → python -m src.python.cli.log_query
+  runTest.sh / runTest.ps1   测试 + 报告   → tools/run_tests.py（ps1 支持 -Fast）
+  log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
 tools/                       工程工具（不进运行时包）
   check_guards.py            工程守护（10 项）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
@@ -366,7 +366,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 
 ## 10. 测试策略
 
-- 门禁（与 CI 同源，`./scripts/test.sh` 之外单独可跑）：
+- 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
   渠道/用例/脚本放宽）、`python tools/check_guards.py`（编号/分层/文件长度/显式编码/
   测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 11 项）、`python tools/check_perf.py`（耗时守卫）。
@@ -419,7 +419,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 
 ## 10.0 测试报告脚本
 
-`scripts/test.sh` 是唯一的测试入口：跑 `src/test` 全量用例，生成
+`scripts/runTest.sh` 是唯一的测试入口：跑 `src/test` 全量用例，生成
 `/test-reports/{junit.xml,test-report.html,coverage/index.html,summary.md}`（`--fast` 跳过覆盖率与 HTML）；
 目录不可写时退回 `./reports`。测试中间文件统一写 `/data/tmp`（`PYTHONPYCACHEPREFIX`、`TMPDIR`、
 `COVERAGE_FILE` 都指过去），脚本结束时清掉仓库里的 `__pycache__` / `.pytest_cache`。
@@ -430,12 +430,12 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 ```bash
 ./scripts/setup.sh                                            # 建环境（或者已有 .venv；等价 pip install -e ".[dev]"）
 sh .githooks/install-hooks.sh                                 # 启用提交前门禁（ruff + guards + 用例）
-./scripts/test.sh                                             # 全量用例 + 测试报告
+./scripts/runTest.sh                                             # 全量用例 + 测试报告
 .venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
 .venv/bin/python -m mypy                                      # 类型检查，守 core
 .venv/bin/python tools/check_guards.py                      # 工程守护（8 项，含版本/依赖锁）
 .venv/bin/python tools/check_perf.py                        # 耗时守卫
-.venv/bin/python tools/run_tests.py --fast                    # 测试编排（scripts/test.sh 的实现）
+.venv/bin/python tools/run_tests.py --fast                    # 测试编排（scripts/runTest.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数
 ./scripts/cli.sh data/demo --list                              # OCR 是否正常（示例图）
 ./scripts/cli.sh data/demo --map "2023=2024" --dry-run          # 批量预演

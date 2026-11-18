@@ -14,7 +14,7 @@
   名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
-  scripts   `scripts/` 只放薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
+  scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
 """
 
 from __future__ import annotations
@@ -297,14 +297,20 @@ LAUNCHER_MAX_LINES = 40
 
 
 def check_scripts_are_launchers() -> list[str]:
-    """`scripts/` 只放启动脚本：业务逻辑进 `src/python`，工程工具进 `tools/`。
+    """`scripts/` 只放 .sh/.ps1 启动脚本：业务逻辑进 `src/python`，工程工具进 `tools/`。
 
     判断标准是"薄"：单个脚本不超过 40 行。超过说明逻辑堆在这里了，
     要么挪进 `src/python/<渠道>`，要么挪进 `tools/`。
     """
     problems = []
     for path in sorted((ROOT / "scripts").iterdir()):
-        if not path.is_file() or path.suffix not in (".sh", ".ps1", ".py"):
+        if not path.is_file():
+            continue
+        if path.suffix not in (".sh", ".ps1"):
+            problems.append(
+                f"{path.relative_to(ROOT)} 不是 .sh/.ps1：scripts/ 只放启动脚本，"
+                "逻辑请移到 src/python 或 tools/"
+            )
             continue
         n = len(path.read_text(encoding="utf-8").splitlines())
         if n > LAUNCHER_MAX_LINES:

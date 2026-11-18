@@ -6,7 +6,7 @@
     python -m src.python.cli.log_query --json              # 机器可读
 
 查询逻辑在 `core.audit.read_entries` / `summarize`，这里只做参数与排版。
-`scripts/log-query.py` 只是薄壳入口（与 cli.sh / tui.sh 同样的定位）。
+`scripts/log-query.sh` / `log-query.ps1` 只是薄壳入口（与 cli.sh / tui.sh 同样的定位）。
 """
 
 from __future__ import annotations

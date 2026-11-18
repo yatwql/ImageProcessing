@@ -99,3 +99,5 @@
 | PLAN-65 | 测试保真 | `FakeWin.addstr` 只收 str、`refresh/addch` 计数；新增 `RefreshFlush`、`BorderDrawing` | 完成 |
 | PLAN-66 | 真终端冒烟 | `test_tui_real_terminal.py`：`script(1)` 伪终端跑真 curses，断言标题/表头/边框字符出现 | 完成 |
 | PLAN-67 | Windows 覆盖 | CI 新增 `windows` 作业（windows-latest：全量用例 + mypy + guards + perf）；`windows-curses==2.4.2` 锁进 constraints；新增 `WindowsStyleAcs` 用例（把 ACS 常量换成 int 模拟 Windows 构建） | 完成 |
+| PLAN-68 | scripts 只留 .sh/.ps1 | 删 `scripts/log-query.py`，新增 `log-query.sh` / `log-query.ps1`；守护「scripts 薄壳」收紧为只允许 .sh/.ps1 | 完成 |
+| PLAN-69 | 更名 runTest | `scripts/test.{sh,ps1}` → `scripts/runTest.{sh,ps1}`，全仓库引用与文档同步；CI windows 安装步骤改 `shell: bash`（修 `Directory '\'`） | 完成 |

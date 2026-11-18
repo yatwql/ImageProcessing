@@ -5,6 +5,18 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — scripts/ 只留 .sh/.ps1；test 更名 runTest
+
+### 变更
+
+- `scripts/` 里不留 `.py`：`scripts/log-query.py` 删除，改由 `scripts/log-query.sh` /
+  `log-query.ps1` 调用 `python -m src.python.launch log-query`（逻辑仍在 `src/python/cli/log_query.py`）。
+- `scripts/test.sh` / `test.ps1` 更名为 `scripts/runTest.sh` / `runTest.ps1`（实际执行的是
+  `tools/run_tests.py`，避免"脚本名=测试框架名"的误导）。
+- 守护 `scripts 薄壳` 收紧：`scripts/` 只允许 `.sh` / `.ps1`，出现 `.py` 直接报错。
+- CI windows 作业的安装步骤改用 `shell: bash`：Windows 默认 PowerShell 把反斜杠续行当成参数，
+  会报 `Directory '\' is not installable`。
+
 ## 2026-11-18 — Windows 覆盖
 
 ### 新增
@@ -147,7 +159,7 @@
 ### 变更
 
 - `tools/`（新增）：`check_guards.py`（原 `scripts/check-guards.py`）、`check_perf.py`
-  （原 `scripts/check-perf.py`）、`run_tests.py`（从 `scripts/test.sh` 抽出的编排逻辑）。
+  （原 `scripts/check-perf.py`）、`run_tests.py`（从 `scripts/runTest.sh` 抽出的编排逻辑）。
 - `src/python/cli/log_query.py`（新增）：日志查询实现，`scripts/log-query.py` 变薄壳。
 - `src/python/bootstrap.py`（新增）：环境引导（建 venv、按 constraints 装依赖、写默认配置），
   只用标准库，可被系统 Python 直接调用。
@@ -159,7 +171,7 @@
 ### 验证
 
 - `ruff` 零告警、`mypy` 75 文件零错误、`check_guards.py` 10/10、`run_tests.py` 与两个薄壳
-  入口手工跑通（`./scripts/test.sh --fast -k test_version_display` → 8 passed + 摘要）。
+  入口手工跑通（`./scripts/runTest.sh --fast -k test_version_display` → 8 passed + 摘要）。
 
 ## 2026-11-17 — Windows 脚本乱码修复
 
@@ -332,7 +344,7 @@
 
 ### 新增
 
-- `scripts/setup.ps1`（支持 `-Dev`）、`scripts/cli.ps1`、`scripts/tui.ps1`、`scripts/test.ps1`（支持 `-Fast`），
+- `scripts/setup.ps1`（支持 `-Dev`）、`scripts/cli.ps1`、`scripts/tui.ps1`、`scripts/runTest.ps1`（支持 `-Fast`），
   与 `.sh` 版功能对齐：UTF-8 控制台、参数原样透传、非终端拒绝 TUI、测试报告汇总复用同一段 Python。
 - `requirements.txt`：`windows-curses; sys_platform == "win32"`，Windows 上 TUI 才能跑起来。
 

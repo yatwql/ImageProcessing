@@ -280,10 +280,10 @@ TUI 里同一张图反复按 `r` 是覆盖**本次会话生成的**那个文件�
 查日志不用手翻 JSON：
 
 ```bash
-.venv/bin/python scripts/log-query.py                    # 最近日志的汇总 + 明细
-.venv/bin/python scripts/log-query.py --src 报告          # 只看这个原图被换过什么
-.venv/bin/python scripts/log-query.py --date 20261110     # 只看某一天
-.venv/bin/python scripts/log-query.py --channel tui --json  # 渠道过滤 + 机器可读
+.venv/bin/./scripts/log-query.sh                    # 最近日志的汇总 + 明细
+.venv/bin/./scripts/log-query.sh --src 报告          # 只看这个原图被换过什么
+.venv/bin/./scripts/log-query.sh --date 20261110     # 只看某一天
+.venv/bin/./scripts/log-query.sh --channel tui --json  # 渠道过滤 + 机器可读
 ```
 
 坏行（被外部截断/手工改坏）会被跳过，不会让整份日志读不出来。
@@ -373,9 +373,9 @@ A：不会。输出固定写到 `data/output/`（或你指定的目录），原�
 ## 9. 自动测试
 
 ```bash
-./scripts/test.sh              # 跑全部用例并生成测试报告
-./scripts/test.sh --fast       # 只跑用例，不算覆盖率、不出 HTML
-./scripts/test.sh -k 映射规则   # 其余参数原样透传给 pytest
+./scripts/runTest.sh              # 跑全部用例并生成测试报告
+./scripts/runTest.sh --fast       # 只跑用例，不算覆盖率、不出 HTML
+./scripts/runTest.sh -k 映射规则   # 其余参数原样透传给 pytest
 ```
 
 报告产物在 `/test-reports/`（建不出来时退回 `./reports`）：

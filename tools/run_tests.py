@@ -5,7 +5,7 @@
     .venv/bin/python tools/run_tests.py --fast     # 只跑用例
     .venv/bin/python tools/run_tests.py -k 关键字   # 其余参数透传给 pytest
 
-`scripts/test.sh` / `scripts/test.ps1` 只是薄壳，逻辑都在这里，
+`scripts/runTest.sh` / `scripts/runTest.ps1` 只是薄壳，逻辑都在这里，
 省得两个平台各维护一份 130 行脚本。
 """
 

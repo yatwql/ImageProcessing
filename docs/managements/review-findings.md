@@ -172,6 +172,14 @@
 | RF-81 | 测试盲区 | CI 只有 ubuntu 作业：Windows 上 `windows-curses` 的行为（ACS 常量是 int、路径/编码差异）从未被验证，而黑屏正是在这类差异里发生 | CI 新增 `windows-latest` 作业（全量用例 + mypy + guards + perf）；`constraints.txt` 锁 `windows-curses==2.4.2` | 已修 |
 | RF-82 | 回归覆盖 | 没有断言"ACS 常量是 int 时布局仍能画"的用例 | 新增 `WindowsStyleAcs`：临时把 `curses.ACS_*` 换成 int，断言布局正常、边框确实经 `addch` 画出、无绘制错误 | 已修 |
 
+## 2026-11-18 脚本目录与命名
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-83 | 一致性 | `scripts/` 里还留着一个 `.py` 薄壳（`log-query.py`），与"只放 .sh/.ps1 启动脚本"的约定不符；守护也没拦 | 删 `.py`，改为 `log-query.sh` / `log-query.ps1`；守护「scripts 薄壳」收紧为只允许 `.sh`/`.ps1` | 已修 |
+| RF-84 | 可读性 | `scripts/test.sh` 名字像"测试框架"，实际只是 `tools/run_tests.py` 的壳 | 更名 `runTest.sh` / `runTest.ps1`，全仓库引用与文档同步 | 已修 |
+| RF-85 | CI 缺陷（Windows） | windows 作业里用反斜杠续行写 pip 安装，PowerShell 把 `\` 当路径参数，报 `Directory '\' is not installable` | 该步骤显式 `shell: bash`（与 Ubuntu 作业同款写法），并保留注释说明原因 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

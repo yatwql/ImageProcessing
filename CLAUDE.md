@@ -8,7 +8,7 @@ retype（图片文字替换）：把图片里指定的一些字换成别的字�
 新文字自动沿用原文字的字体、字号、字重、字色、字距与位置，原图永不覆盖。
 
 ```text
-scripts/                 只放薄壳启动脚本（.sh/.ps1 + log-query.py 壳；超 40 行守护会拦）
+scripts/                 只放 .sh/.ps1 薄壳启动脚本（cli/tui/setup/runTest/log-query）
 tools/                   工程工具：check_guards.py / check_perf.py / run_tests.py
 .githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
 .github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf /
@@ -54,7 +54,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 .venv/bin/python tools/check_perf.py                                # 耗时守卫
 .venv/bin/python scripts/log-query.py --src 报告                        # 查写盘记录
 .venv/bin/python -m pytest src/test -q                                # 全部用例
-./scripts/test.sh                                                     # 全量用例 + 报告
+./scripts/runTest.sh                                                     # 全量用例 + 报告
 ./scripts/cli.sh data --list                                          # OCR 是否正常
 ./scripts/cli.sh data --map "2023=2024" --dry-run                      # 批量预演
 ```

@@ -144,10 +144,12 @@ class WriteConfig(unittest.TestCase):
             self.assertIn("/mine", config.read_text(encoding="utf-8"))
 
     def test_unwritable_dir_is_reported_not_raised(self):
+        # 用打桩而不是依赖 /proc：Windows 上 /proc 可能真的建得出来
         with (
-            mock.patch.object(bootstrap, "CONF_DIR", Path("/proc/nope")),
-            mock.patch.object(bootstrap, "EXAMPLE", Path("/proc/nope/e.json")),
-            mock.patch.object(bootstrap, "CONFIG", Path("/proc/nope/c.json")),
+            mock.patch.object(bootstrap, "CONF_DIR", Path("/nope/config")),
+            mock.patch.object(bootstrap, "EXAMPLE", Path("/nope/config/e.json")),
+            mock.patch.object(bootstrap, "CONFIG", Path("/nope/config/c.json")),
+            mock.patch.object(Path, "mkdir", side_effect=OSError("denied")),
             mock.patch("builtins.print") as fake_print,
         ):
             bootstrap.write_config()

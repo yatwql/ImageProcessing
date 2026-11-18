@@ -82,15 +82,26 @@ FILE_NOTE = {
 
 
 def tracked_files() -> list[str]:
-    raw = subprocess.run(["git", "-c", "core.quotepath=false", "ls-files", "-z"],
-                         cwd=str(ROOT), capture_output=True, text=True).stdout
-    return [p for p in raw.split("\0")
-            if p and not p.startswith(("data/output/", "logs/", "reports/", "test-reports/"))]
+    raw = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "ls-files", "-z"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    ).stdout
+    return [
+        p
+        for p in raw.split("\0")
+        if p and not p.startswith(("data/output/", "logs/", "reports/", "test-reports/"))
+    ]
 
 
 def dwidth(text: str) -> int:
-    return sum(0 if unicodedata.combining(ch) else
-               (2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1) for ch in text)
+    return sum(
+        0
+        if unicodedata.combining(ch)
+        else (2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1)
+        for ch in text
+    )
 
 
 def docstring_line(rel: str) -> str:
@@ -185,13 +196,17 @@ def main(argv: list[str] | None = None) -> int:
         end = text.index("```", start + len(TREE_FENCE))
         text = text[:start] + f"{TREE_FENCE}\n{tree}\n" + text[end:]
         DOC.write_text(text, encoding="utf-8")
-        print(f"已更新目录树：{len(files)} 个跟踪文件，测试 {test_files} 个文件 / {test_lines:,} 行 / "
-              f"{test_function_count(tests)} 个 test 函数")
+        print(
+            f"已更新目录树：{len(files)} 个跟踪文件，测试 {test_files} 个文件 / {test_lines:,} 行 / "
+            f"{test_function_count(tests)} 个 test 函数"
+        )
         print("统计表里的数字如需同步，请按上面的读数手改（只改数字，不改说明）")
         return 0
     print(tree)
-    print(f"\n跟踪文件 {len(files)}；测试 {test_files} 个文件 / {test_lines:,} 行 / "
-          f"{test_function_count(tests)} 个 test 函数")
+    print(
+        f"\n跟踪文件 {len(files)}；测试 {test_files} 个文件 / {test_lines:,} 行 / "
+        f"{test_function_count(tests)} 个 test 函数"
+    )
     return 0
 
 

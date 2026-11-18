@@ -21,8 +21,13 @@ def run(*args: str, timeout: int = 90) -> subprocess.CompletedProcess[str]:
     # 那会让"入口坏了"和"控制台编码不支持"混为一谈
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     return subprocess.run(
-        [PY, *args], cwd=str(ROOT), capture_output=True, text=True,
-        timeout=timeout, check=False, env=env,
+        [PY, *args],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+        env=env,
     )
 
 
@@ -61,8 +66,10 @@ class EntryPoints(unittest.TestCase):
         self.assertEqual(proc.returncode, 2)
 
     def test_bootstrap_check_is_quiet_and_successful(self):
-        if not (ROOT / ".venv" / "bin" / "python").exists() and not (
-                ROOT / ".venv" / "Scripts" / "python.exe").exists():
+        if (
+            not (ROOT / ".venv" / "bin" / "python").exists()
+            and not (ROOT / ".venv" / "Scripts" / "python.exe").exists()
+        ):
             self.skipTest("没有 .venv（CI 用系统解释器装依赖），--check 期望失败")
         proc = run("-m", "src.python.bootstrap", "--check")
         self.assertEqual(proc.returncode, 0, output(proc))

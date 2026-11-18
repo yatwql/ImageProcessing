@@ -27,7 +27,7 @@ COVERAGE = ROOT / "reports" / "coverage.xml"
 JUNIT = ROOT / "reports" / "junit.xml"
 OUTPUT = ROOT / "docs" / "managements" / "test-coverage.md"
 
-# 覆盖率下限与 tools/check_coverage.py 保持一致
+# 覆盖率下限与 src/python/tools/check_coverage.py 保持一致
 MODULE_MIN = {
     "core/match.py": 0.90,
     "core/options.py": 0.90,
@@ -195,11 +195,11 @@ def build() -> str:
         "",
         "> 版本：v0.1",
         "",
-        "本文件由 `tools/coverage_report.py --write` 生成，数据取自 `reports/coverage.xml` 与",
-        "`reports/junit.xml`（`tools/check_all.py` 全量模式产出）。改完用例或实现后重新生成即可，",
+        "本文件由 `python -m src.python.tools.coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与",
+        "`reports/junit.xml`（`python -m src.python.tools.check_all` 全量模式产出）。改完用例或实现后重新生成即可，",
         "不要手改数字。",
         "",
-        f"> 生成时间：{now}　|　命令：`.venv/bin/python tools/check_all.py`",
+        f"> 生成时间：{now}　|　命令：`.venv/bin/python -m src.python.tools.check_all`",
         "",
         "## 1. 总览",
         "",
@@ -285,11 +285,11 @@ def build() -> str:
         "## 8. 怎么更新",
         "",
         "```bash",
-        ".venv/bin/python tools/check_all.py                 # 跑全量用例并生成 coverage.xml / junit.xml",
-        ".venv/bin/python tools/coverage_report.py --write    # 重新生成本文件",
+        ".venv/bin/python -m src.python.tools.check_all                # 跑全量用例并生成 coverage.xml / junit.xml",
+        ".venv/bin/python -m src.python.tools.coverage_report --write  # 重新生成本文件",
         "```",
         "",
-        "覆盖率门槛由 `tools/check_coverage.py` 把关（总量、9 个高风险模块、skip 比例），",
+        "覆盖率门槛由 `src/python/tools/check_coverage.py` 把关（总量 96%、16 个高风险模块、skip ≤15%），",
         "所以本文件里的 ❌ 会同时让 `check_all` 变红。",
         "",
     ]

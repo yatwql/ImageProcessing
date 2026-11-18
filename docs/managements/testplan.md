@@ -12,8 +12,8 @@
 | 编号 | 目标 | 判定方式 | 门槛 |
 | --- | --- | --- | --- |
 | QG-1 | 静态质量 | `ruff check src/ tools/` + `mypy`（全树） | 零告警 / 零错误 |
-| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 13 项全过 |
-| QG-3 | 行覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 96%（实测 96%） |
+| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 16 项全过 |
+| QG-3 | 行覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 96%（实测 97%） |
 | QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%；edit/render/image/audit/ui_draw/bootstrap/launch/ui/cli-main/cli-log_query ≥85~90%；app/ui_actions/ui_base/ui_input ≥80%） | 逐项达标 |
 | QG-5 | 跳过率 | 同上（正常模式，即机器上有中文字体） | ≤ 15% |
 | QG-6 | 行为正确性 | 全量用例（功能/交互/跨平台/稳定性/入口冒烟/快照/属性） | 0 失败 |
@@ -30,7 +30,7 @@
 | --- | --- | --- | --- |
 | P0 提交前 | `git commit` → `.githooks/pre-commit` | `check_all.py --quick`：ruff → mypy → guards → perf → 全量用例 | 拒绝提交 |
 | P1 推送前 | `git push` → `.githooks/pre-push` | `check_all.py` 全量：再加覆盖率门禁 + 无字体复跑 | 拒绝推送 |
-| P2 CI | push / PR | 七个作业：test（3.10/3.12/3.13）、lint、typecheck、guards、perf、windows、audit | 红则不合入 |
+| P2 CI | push / PR | 八个常驻作业：test（3.10/3.12/3.13）、lint、typecheck、guards、perf、windows、audit（release 只在打 tag 时跑） | 红则不合入 |
 | 手工 | 改界面/改依赖后 | `UPDATE_SNAPSHOTS=1` 重生成快照、`src/python/tools/update_constraints.py --write` | 快照/锁文件 diff 随提交 |
 
 **例外**：`IMG_P_SKIP_HOOK=1` 可跳过 P0/P1，但**不允许**跳过 P2；跳过后必须在推送前手动跑
@@ -71,7 +71,7 @@
 
 ## 5. 覆盖率标准
 
-- 总量 ≥ 96%（实测 96%）；9 个高风险模块单独设限（见 `src/python/tools/check_coverage.py` 的 `MODULE_MIN`）。
+- 总量 ≥ 96%（实测 97%）；16 个高风险模块单独设限（见 `src/python/tools/check_coverage.py` 的 `MODULE_MIN`）。
   剩余未覆盖行集中在平台分支（msvcrt 锁）与防御性 `except`，逐条在 `review-findings.md` 记录。
 - 新增模块：若属于"判断密集/出错代价高"的类别，必须同时加进 `MODULE_MIN`。
 - 现有门槛（贴实测下沿，防止回落）：`core/{match,options}` 90%，`core/{edit,render,image,audit}`、

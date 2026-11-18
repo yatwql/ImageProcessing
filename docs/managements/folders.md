@@ -15,7 +15,7 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 30 | 4,259 | `src/python/**/*.py`（不含测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 60 | 7,873 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试代码 | Python | 60 | 7,882 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
 | 测试用例 | — | — | 631 | `git grep -c "def test_"` 行数口径 |
 | 工程工具 | Python | 10 | 1,754 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
@@ -33,10 +33,10 @@ ImageProcessing/
 ├── .githooks/                                # git 钩子（core.hooksPath 指向这里）
 │   ├── install-hooks.sh                      # 启用/关闭仓库钩子
 │   ├── pre-commit                            # 提交前门禁：check_all --quick
-│   └── pre-push                              # git 钩子（core.hooksPath 指向这里）
+│   └── pre-push                              # 推送前门禁：check_all 全量
 ├── .github/
 │   └── workflows/                            # CI 流水线
-│       └── ci.yml                            # CI：test×3 / lint / typecheck / guards / perf / windows
+│       └── ci.yml                            # CI：test×3 / lint / typecheck / guards / perf / windows / audit / release
 ├── data/
 │   └── demo/                                 # 回归样例图
 │       ├── 示例-报告.png                     # 回归样例（报告版式）
@@ -57,14 +57,14 @@ ImageProcessing/
 │   │   └── testplan.md                       # 管理文档
 │   ├── manuals/                              # 使用手册
 │   │   └── how-to-use.md                     # 使用手册
-│   └── README.md                             # 文档
+│   └── README.md                             # 文档索引与推荐阅读顺序
 ├── scripts/                                  # 只放 .sh/.ps1 薄壳
 │   ├── cli.ps1                               # → launch cli（Windows）
 │   ├── cli.sh                                # → launch cli
 │   ├── log-query.ps1                         # → launch log-query（Windows）
 │   ├── log-query.sh                          # → launch log-query
-│   ├── runTest.ps1                           # → tools/run_tests.py（Windows）
-│   ├── runTest.sh                            # → tools/run_tests.py
+│   ├── runTest.ps1                           # → src.python.tools.run_tests（Windows）
+│   ├── runTest.sh                            # → src.python.tools.run_tests
 │   ├── setup.ps1                             # → src.python.bootstrap（Windows）
 │   ├── setup.sh                              # → src.python.bootstrap
 │   ├── tui.ps1                               # → launch tui（Windows）
@@ -89,7 +89,7 @@ ImageProcessing/
 │   │   │   ├── options.py                    # 运行选项与颜色解析
 │   │   │   ├── render.py                     # 文字排版渲染：行渲染、字符横向区间、绘制到画布
 │   │   │   └── style.py                      # 版式分析：字迹 mask、字色、笔画粗细、字体/字号/字距反解
-│   │   ├── tools/
+│   │   ├── tools/                            # 开发工具（不进发行包、不计覆盖率）
 │   │   │   ├── __init__.py                   # 开发工具（不进发行包）：守护、覆盖率、测试编排、发布等
 │   │   │   ├── _paths.py                     # 工具共用的路径常量：仓库根
 │   │   │   ├── check_all.py                  # 本地全量门禁：一条命令跑完 CI 跑的所有检查，绿了再推
@@ -99,7 +99,8 @@ ImageProcessing/
 │   │   │   ├── check_perf.py                 # 耗时守卫：把最热的几步钉住，退化即红
 │   │   │   ├── check_workflows.py            # CI 工作流自检：把"只在 runner 上才炸"的脚本错误搬到本地
 │   │   │   ├── ci_env.py                     # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
-│   │   │   ├── coverage_report.py            # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统计
+│   │   │   ├── coverage_report.py            # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统
+│   │   │   ├── gen_folders.py                # 重新生成 `docs/managements/folders.md` 的两个"机器可算"部分：目录树与项
 │   │   │   ├── mutation_check.py             # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
 │   │   │   ├── release.py                    # 发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停
 │   │   │   ├── run_tests.py                  # 测试入口：跑全量用例并生成 junit / html / 覆盖率报告与摘要
@@ -116,7 +117,7 @@ ImageProcessing/
 │   │   │   └── ui_input.py                   # TUI 输入层：按键序列解析与单行输入
 │   │   ├── __init__.py                       # retype：图片文字替换。core=核心逻辑，cli=命令行渠道，tui=交互渠道
 │   │   ├── bootstrap.py                      # 环境引导：建 `.venv`、按 `constraints.txt` 装依赖、写默认配置
-│   │   ├── config.py                         # 全局路径与配置：默认读 <配置目录>/retype.json（旧 img-p.json 仍兼容），图片在 /da
+│   │   ├── config.py                         # 全局路径与配置：默认读 <配置目录>/retype.json（旧 img-p.json 仍兼容），图片在
 │   │   ├── launch.py                         # 统一启动器：先确认环境就绪（必要时自动装依赖），再把控制权交给真正的入口
 │   │   ├── stdio.py                          # 控制台编码：保证中文提示在非 UTF-8 的终端（Windows cp936/cp1252）上也能打印
 │   │   └── version.py                        # 程序名称与版本号：全仓库唯一来源
@@ -129,7 +130,7 @@ ImageProcessing/
 │   │   │   ├── test_demo_assets.py           # 用仓库自带示例图（data/demo）跑真实图片流程：读取、单图替换、批量、日志
 │   │   │   ├── test_entry_smoke.py           # 入口冒烟：每个对外入口都能起来、给出正确退出码（不需要真终端）
 │   │   │   ├── test_launch_env.py            # 启动器与环境引导：首次运行自动装依赖，设 `IMG_P_NO_AUTO_SETUP=1` 才退回手动
-│   │   │   ├── test_log_query_cli.py         # 日志查询入口（`src/python/cli/log_query.py`）：过滤、`--json`、坏参数
+│   │   │   ├── test_log_query_cli.py         # 日志查询入口（`src/python/cli/log_query.py`）：过滤、`--json`、坏参
 │   │   │   └── test_single_image.py          # CLI 单图流程测试：--list、输出位置、dry-run、样式覆盖、失败提示
 │   │   ├── core/                             # 核心层用例
 │   │   │   ├── background/                   # 背景类型用例
@@ -175,8 +176,8 @@ ImageProcessing/
 │   │   │   ├── test_stdio.py                 # 控制台编码：中文提示在非 UTF-8 终端（Windows cp936）上不能崩
 │   │   │   ├── test_version_display.py       # 版本号：唯一来源、界面可见、每次运行都报、写盘日志记录、文档开头一致
 │   │   │   └── test_write_audit_log.py       # 写盘日志：真实保存图片后必须留下一条可追溯的记录
-│   │   ├── snapshots/
-│   │   │   └── tui.json
+│   │   ├── snapshots/                        # 界面快照数据
+│   │   │   └── tui.json                      # 界面快照数据
 │   │   ├── tui/                              # 交互用例
 │   │   │   ├── __init__.py                   # tui 场景测试
 │   │   │   ├── test_apply_and_batch.py       # TUI 执行流程测试：替换当前图、批量确认、重名与覆盖保护

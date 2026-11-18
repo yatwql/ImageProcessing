@@ -39,13 +39,14 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   runTest.sh / runTest.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
-  check_guards.py            工程守护（10 项）
+  check_guards.py            工程守护（16 项）
+  gen_folders.py             重新生成 folders.md 的目录树与统计读数
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
   pre-commit                 提交前：ruff + guards + 全量用例
   install-hooks.sh           启用 / --off 关闭
-.github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf / windows / audit
+.github/workflows/ci.yml     CI：test×3 / lint / typecheck / guards / perf / windows / audit（+ release 仅在打 tag 时）
 pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
 constraints.txt              锁定的依赖组合（pip -c 使用；升级须跑全量用例）
 
@@ -384,8 +385,8 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
   渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/依赖锁/PS 脚本编码/scripts 薄壳/名称，共 13 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
-  覆盖率阈值 `fail_under = 75`（实测约 84%）。
+  测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流，共 16 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
+  覆盖率阈值 `fail_under = 96`（实测约 97%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。
 - 核心层：合成图（已知字体/字号/颜色）→ 断言 `fit_font` 选回原字体与字号、`analyze` 取回原字色。
@@ -401,7 +402,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
   这是"改界面要留证据"的门槛。
 - 属性测试：`src/test/core/test_properties.py`（hypothesis）验证 `norm_map` 下标可回溯、
   `cut/pad` 不超预算、`parse_color` 只有两种结果、`unique_path` 不吞扩展名、`plan_jobs` 的 span 精准。
-- 覆盖率门禁：`src/python/tools/check_coverage.py` 校验总量 75%、9 个高风险模块 80~90%、skip ≤15%。
+- 覆盖率门禁：`src/python/tools/check_coverage.py` 校验总量 96%、16 个高风险模块 80~90%、skip ≤15%。
 - 入口冒烟：`src/test/cli/test_entry_smoke.py` 逐个跑 `--version/--help` 与 `launch` 的错误码。
 - 变异测试（opt-in）：`src/python/tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
 - 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），

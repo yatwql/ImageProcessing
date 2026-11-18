@@ -22,20 +22,22 @@ from ..version import NAME, UPDATED, VERSION
 from .errors import CoreError
 from .options import Options
 
-try:                                    # POSIX
+try:  # POSIX
     import fcntl
-except ImportError:                     # pragma: no cover - 只在 Windows 上发生
-    fcntl = None                        # type: ignore[assignment]
+except ImportError:  # pragma: no cover - 只在 Windows 上发生
+    fcntl = None  # type: ignore[assignment]
+
 
 def _winlock() -> Any:
     """Windows 的 msvcrt 模块（非 Windows 返回 None），只在用到时才导入。"""
     try:
         return importlib.import_module("msvcrt")
-    except ImportError:                 # 平台差异：非 Windows 没有 msvcrt
+    except ImportError:  # 平台差异：非 Windows 没有 msvcrt
         return None
 
+
 LOG_PREFIX = "image-writes-"
-LOG_KEEP_DAYS = 30                       # 只保留最近 30 天，避免日志无限增长
+LOG_KEEP_DAYS = 30  # 只保留最近 30 天，避免日志无限增长
 ACTION_REPLACE = "替换文字并保存图片"
 ACTION_DEBUG = "写出调试图"
 
@@ -52,8 +54,9 @@ def log_path(log_dir: str, when: dt.datetime | None = None) -> str:
     return os.path.join(log_dir, f"{LOG_PREFIX}{day}.log")
 
 
-def prune_logs(log_dir: str, keep_days: int = LOG_KEEP_DAYS,
-               today: dt.date | None = None) -> list[str]:
+def prune_logs(
+    log_dir: str, keep_days: int = LOG_KEEP_DAYS, today: dt.date | None = None
+) -> list[str]:
     """删掉超过保留期的按天日志，返回被删掉的文件名（失败静默跳过）。"""
     if keep_days <= 0:
         return []
@@ -67,7 +70,7 @@ def prune_logs(log_dir: str, keep_days: int = LOG_KEEP_DAYS,
         if not (name.startswith(LOG_PREFIX) and name.endswith(".log")):
             continue
         try:
-            day = dt.datetime.strptime(name[len(LOG_PREFIX):-4], "%Y%m%d").date()
+            day = dt.datetime.strptime(name[len(LOG_PREFIX) : -4], "%Y%m%d").date()
         except ValueError:
             continue
         if day >= cutoff:
@@ -86,11 +89,11 @@ def _lock(fd: int) -> bool:
         fcntl.flock(fd, fcntl.LOCK_EX)
         return True
     win = _winlock()
-    if win is not None:                  # Windows 分支（用 msvcrt 锁首字节）
+    if win is not None:  # Windows 分支（用 msvcrt 锁首字节）
         os.lseek(fd, 0, os.SEEK_SET)
         win.locking(fd, win.LK_LOCK, 1)
         return True
-    return False                         # 其它平台：没有 msvcrt
+    return False  # 其它平台：没有 msvcrt
 
 
 def _unlock(fd: int, locked: bool) -> None:
@@ -101,7 +104,7 @@ def _unlock(fd: int, locked: bool) -> None:
             fcntl.flock(fd, fcntl.LOCK_UN)
         else:
             win = _winlock()
-            if win is None:              # 其它平台：没有 msvcrt
+            if win is None:  # 其它平台：没有 msvcrt
                 return
             os.lseek(fd, 0, os.SEEK_SET)
             win.locking(fd, win.LK_UNLCK, 1)
@@ -164,9 +167,16 @@ def app_updated() -> str:
     return UPDATED
 
 
-def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
-                action: str = ACTION_REPLACE, channel: str = "cli",
-                options: object | None = None, when: dt.datetime | None = None) -> dict[str, Any]:
+def build_entry(
+    src: str,
+    dst: str,
+    report: Sequence[Mapping[str, Any]] = (),
+    *,
+    action: str = ACTION_REPLACE,
+    channel: str = "cli",
+    options: object | None = None,
+    when: dt.datetime | None = None,
+) -> dict[str, Any]:
     """组装一条写盘记录（不落盘，便于测试与外部复用）。"""
     stamp = when or dt.datetime.now().astimezone()
     pixels = _pixels_of(dst)
@@ -195,10 +205,17 @@ def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
     return entry
 
 
-def record_write(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
-                 log_dir: str, action: str = ACTION_REPLACE, channel: str = "cli",
-                 options: object | None = None,
-                 when: dt.datetime | None = None) -> str:
+def record_write(
+    src: str,
+    dst: str,
+    report: Sequence[Mapping[str, Any]] = (),
+    *,
+    log_dir: str,
+    action: str = ACTION_REPLACE,
+    channel: str = "cli",
+    options: object | None = None,
+    when: dt.datetime | None = None,
+) -> str:
     """追加一条写盘记录，返回写入的日志文件路径。
 
     when: 记录时间与落哪个按天文件，默认取当前时间（测试与补录历史时显式传入）。
@@ -206,8 +223,9 @@ def record_write(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *
     """
     when = when or dt.datetime.now().astimezone()
     path = log_path(log_dir, when)
-    entry = build_entry(src, dst, report, action=action, channel=channel,
-                        options=options, when=when)
+    entry = build_entry(
+        src, dst, report, action=action, channel=channel, options=options, when=when
+    )
     line = json.dumps(entry, ensure_ascii=False) + "\n"
     try:
         os.makedirs(log_dir, exist_ok=True)
@@ -216,9 +234,9 @@ def record_write(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *
         raise CoreError(f"无法写入日志 {path}: {e}") from e
     locked = False
     try:
-        locked = _lock(fd)                 # 多进程串行写，避免超长行交错
+        locked = _lock(fd)  # 多进程串行写，避免超长行交错
         os.write(fd, line.encode("utf-8"))
-        os.fsync(fd)                       # 断电也不丢最后一条
+        os.fsync(fd)  # 断电也不丢最后一条
     except OSError as e:
         raise CoreError(f"无法写入日志 {path}: {e}") from e
     finally:
@@ -228,8 +246,9 @@ def record_write(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *
     return path
 
 
-def read_entries(log_dir: str, day: dt.date | None = None, src: str | None = None,
-                 channel: str | None = None) -> list[dict[str, Any]]:
+def read_entries(
+    log_dir: str, day: dt.date | None = None, src: str | None = None, channel: str | None = None
+) -> list[dict[str, Any]]:
     """读回写盘记录（新→旧顺序不重要，按文件与写入顺序返回）。
 
     day: 只读某一天（None = 该目录下所有按天日志）。
@@ -255,14 +274,17 @@ def read_entries(log_dir: str, day: dt.date | None = None, src: str | None = Non
                         continue
                     if not isinstance(entry, dict):
                         continue
-                    if src and src not in str(entry.get("src_file", "")) \
-                            and src not in str(entry.get("src_path", "")):
+                    if (
+                        src
+                        and src not in str(entry.get("src_file", ""))
+                        and src not in str(entry.get("src_path", ""))
+                    ):
                         continue
                     if channel and entry.get("channel") != channel:
                         continue
                     entries.append(entry)
         except FileNotFoundError:
-            continue                      # 那天没有日志：当成"没有记录"，不是错误
+            continue  # 那天没有日志：当成"没有记录"，不是错误
         except OSError as e:
             raise CoreError(f"无法读取日志 {path}: {e}") from e
     return entries

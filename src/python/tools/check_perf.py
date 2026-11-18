@@ -33,6 +33,22 @@ LIMITS = {
 }
 TOTAL_LIMIT = 6.0
 
+# Windows runner 的 fsync 比 Linux 慢一个量级（日志追加×300 实测 3.5s vs 上限 1.0s）。
+# 这里只放大"落盘相关"的那一步与总上限：其余步骤在两平台上本来就同量级，
+# 放大它们等于把门禁调松，挡不住真实退化。
+WINDOWS_SCALE = {"日志追加×300": 5.0}
+WINDOWS_TOTAL_SCALE = 4.0
+
+
+def limits_for(is_windows: bool) -> tuple[dict[str, float], float]:
+    limits = dict(LIMITS)
+    total = TOTAL_LIMIT
+    if is_windows:
+        for name, factor in WINDOWS_SCALE.items():
+            limits[name] = round(limits[name] * factor, 2)
+        total = round(total * WINDOWS_TOTAL_SCALE, 2)
+    return limits, total
+
 
 def _noise_mask(w: int, h: int) -> np.ndarray:
     rng = np.random.default_rng(7)
@@ -103,6 +119,7 @@ def main(argv: Sequence[str] = ()) -> int:
         return 0
     quiet = "--ci" in args
     env_dir = os.environ.get("IMG_P_TMP_DIR")
+    limits, total_limit = limits_for(os.name == "nt")
     checks: list[tuple[str, Callable[[Path], None]]] = [
         ("soft_iou×50", lambda _t: bench_soft_iou()),
         ("erase(2000×1500)", bench_erase),
@@ -114,7 +131,7 @@ def main(argv: Sequence[str] = ()) -> int:
     with tempfile.TemporaryDirectory(dir=env_dir) as raw:
         tmp = Path(raw)
         for name, fn in checks:
-            limit = LIMITS[name]
+            limit = limits[name]
             spent = _measure(fn, tmp, limit)
             if spent is None:
                 failed.append(f"{name} 执行失败")
@@ -126,16 +143,16 @@ def main(argv: Sequence[str] = ()) -> int:
             if not quiet:
                 print(f"[{verdict:4}] {name}: {spent:.2f}s / {limit:.1f}s")
 
-    if total > TOTAL_LIMIT:
-        failed.append(f"合计 {total:.2f}s（上限 {TOTAL_LIMIT:.1f}s）")
+    if total > total_limit:
+        failed.append(f"合计 {total:.2f}s（上限 {total_limit:.1f}s）")
     if quiet:
         status = "FAIL" if failed else "ok"
         print(
-            f"perf: {status} 合计 {total:.2f}s / {TOTAL_LIMIT:.1f}s"
+            f"perf: {status} 合计 {total:.2f}s / {total_limit:.1f}s"
             + (f"（{failed[0]}）" if failed else "")
         )
     else:
-        print(f"合计 {total:.2f}s / 上限 {TOTAL_LIMIT:.1f}s")
+        print(f"合计 {total:.2f}s / 上限 {total_limit:.1f}s")
         for msg in failed:
             print(f"[FAIL] {msg}")
     return 1 if failed else 0

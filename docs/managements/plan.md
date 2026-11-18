@@ -21,6 +21,7 @@
 | PLAN-106 | 门禁 | windows 作业「工程守护」红：四个工具缺 `ensure_utf8_stdio()`、五个工具子进程 `text=True` 缺 `encoding=` | 全部补齐；守护「跨平台」新增 stdio 规则并把子进程编码检查改成整次调用判定；+3 例 | 完成 |
 | PLAN-107 | 门禁 | windows 作业「工程守护」红：`check_workflows` 直接 `bash -n`，在 WSL 存根上逐条报语法错误 | 先探测 `bash -c "exit 0"`（`BASH_OK`），不可用则跳过 bash 检查；汇总到日志说明；+5 例（含 heredoc 禁令） | 完成 |
 | PLAN-108 | 流程 | 每轮 push 都重跑 7 分钟全量门禁，反馈太慢 | 新增 `gate_stamp`（跟踪文件指纹戳）并在 `pre-push` 前置检查；`check_all` 全量通过后自动写戳 | 完成 |
+| PLAN-109 | 门禁 | windows 作业「耗时守卫」红：`日志追加×300` 实测 3.5s / 上限 1.0s（fsync 慢一档） | 新增平台档 `limits_for`：Windows 只放大落盘步骤（×5）与总上限（×4），其余不动；3 例用例 | 完成 |
 ## 归档
 
 > 已发布版本的旧内容整块搬进 `docs/archive/`，本文件只留当前开发版本的内容；

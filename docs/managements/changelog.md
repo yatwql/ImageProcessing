@@ -38,6 +38,12 @@
   是 WSL 存根（退 1、stderr 空），于是逐条报"bash 语法错误"。改为先探测 `bash -c "exit 0"`
   （`BASH_OK`），不可用时跳过 bash 检查，只保留 YAML 与 `python -c` 片段校验。
 
+### 修复（windows 作业「耗时守卫」红）
+
+- `src/python/tools/check_perf.py`：`日志追加×300` 在 windows runner 上实测 3.5s（上限 1.0s）——fsync 慢一个量级。
+  新增平台档 `limits_for(is_windows)`：Windows 只把**落盘那一步**放大 5 倍、总上限放大 4 倍，其余步骤保持基准
+  （无条件放大等于把门禁调松）；`tools/test_perf_limits.py`（3 例）钉住这条口径。
+
 ### 新增（流程提速）
 
 - `src/python/tools/gate_stamp.py` + `src/test/tools/test_gate_stamp.py`（8 例）：全量门禁通过后按

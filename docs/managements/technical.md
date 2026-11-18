@@ -468,6 +468,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tools/test_platform_safety_rules.py` | 守护「跨平台」的规则自检：写死字体家族 / 裸 bash / 无守卫 fcntl /
 绝对像素阈值 / 断言里比 `sys.executable`，以及 `bash_exe()` 探测、字体矩阵候选顺序与换行符规则 |
 | `tools/test_release_versions.py` | 版本策略：`0.3-dev`→`0.3` 定版、跨版本拒绝、`devbump` 切下个开发版、开发版不能打标签 |
+| `tools/test_perf_limits.py` | 耗时守卫平台档：POSIX 用基准上限，Windows 只放大落盘步骤与总上限，且容得下实测 3.5s |
 | `tools/test_gate_stamp.py` | 门禁戳：写/读/损坏戳、指纹随跟踪文件变化、未跟踪文件不影响、命令行退出码 |
 | `tools/test_workflow_checks.py` | 工作流自检：bash 不可用时跳过语法检查、heredoc 禁令、合法 `python -m` 放行 |
 | `tools/test_junit_summary.py` | CI 失败摘要：`class::name` 列表、失败+错误、报告缺失不报错、用法提示 |

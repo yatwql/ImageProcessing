@@ -19,6 +19,7 @@ import re
 import sys
 from pathlib import Path
 
+from ..stdio import ensure_utf8_stdio
 from ._paths import ROOT
 
 POSIX_PATH = re.compile(r'"(/(?:tmp|proc|usr|data|dev)/[^"]*)"')
@@ -142,6 +143,26 @@ def check_file(path: Path) -> list[str]:
     return problems
 
 
+def check_tool_stdio(root: Path | None = None) -> list[str]:
+    """`tools/` 下带 `main()` 的工具必须调用 `ensure_utf8_stdio()`。
+
+    Windows 控制台按 cp1252 编码，`print` 中文直接 `UnicodeEncodeError`
+    （本轮 windows 作业的「工程守护」步就是这么红的）——中文报错反而成了崩溃。
+    """
+    base = (root if root is not None else ROOT) / "src" / "python" / "tools"
+    if not base.is_dir():
+        return []
+    problems: list[str] = []
+    for path in sorted(base.glob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        if "def main(" in text and "ensure_utf8_stdio()" not in text:
+            problems.append(
+                f"{path.relative_to(base.parents[3]).as_posix() if root is None else path.name}"
+                " 的 main() 未调用 ensure_utf8_stdio()（Windows 控制台打印中文会 UnicodeEncodeError）"
+            )
+    return problems
+
+
 def check_line_endings() -> list[str]:
     """`.gitattributes` 必须把 `.sh` 钉成 LF。
 
@@ -158,11 +179,13 @@ def check_line_endings() -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
+
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)
         return 0
-    problems: list[str] = check_line_endings()
+    problems: list[str] = [*check_line_endings(), *check_tool_stdio()]
     for path in _iter_sources():
         problems += check_file(path)
     if problems:

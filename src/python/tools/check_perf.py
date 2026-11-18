@@ -22,6 +22,7 @@ import numpy as np
 
 from src.python.core import audit, edit, image  # noqa: E402
 from src.python.core.style import soft_iou  # noqa: E402
+from src.python.stdio import ensure_utf8_stdio
 
 # 单步上限（秒）。CI 机器比开发机慢，留足余量。
 LIMITS = {
@@ -93,6 +94,8 @@ def _measure(fn: Callable[[Path], None], tmp: Path, limit: float) -> float | Non
 
 
 def main(argv: Sequence[str] = ()) -> int:
+    ensure_utf8_stdio()
+
     # 用空序列而不是 None 表示"没传参"，顺带避开 `x is None` 这类静态规则的噪音
     args = list(argv) if argv else sys.argv[1:]
     if "-h" in args or "--help" in args:

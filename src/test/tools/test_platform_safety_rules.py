@@ -7,7 +7,9 @@
 from __future__ import annotations
 
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from src.python.tools import check_platform_safety as cps
@@ -98,6 +100,37 @@ class FontModeSelections(unittest.TestCase):
 
     def test_unknown_named_font_yields_no_candidate(self):
         self.assertEqual(_support.font_candidates(False, "不存在的字体.ttf"), ())
+
+
+class ToolStdioRule(unittest.TestCase):
+    """`tools/*.py` 里有 main() 就必须调 ensure_utf8_stdio()（Windows 控制台 cp1252）。"""
+
+    def test_tool_without_stdio_call_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "src/python/tools").mkdir(parents=True)
+            (root / "src/python/tools/bad.py").write_text(
+                "def main() -> int:\n    print(\"中文\")\n    return 0\n", encoding="utf-8"
+            )
+            problems = cps.check_tool_stdio(root)
+        self.assertTrue(problems)
+        self.assertIn("ensure_utf8_stdio", problems[0])
+
+    def test_tool_with_stdio_call_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "src/python/tools").mkdir(parents=True)
+            (root / "src/python/tools/good.py").write_text(
+                "def main() -> int:\n    ensure_utf8_stdio()\n    return 0\n", encoding="utf-8"
+            )
+            self.assertEqual(cps.check_tool_stdio(root), [])
+
+    def test_module_without_main_is_ignored(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "src/python/tools").mkdir(parents=True)
+            (root / "src/python/tools/_paths.py").write_text("ROOT = 1\n", encoding="utf-8")
+            self.assertEqual(cps.check_tool_stdio(root), [])
 
 
 class LineEndingRule(unittest.TestCase):

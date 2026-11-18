@@ -2,7 +2,7 @@
 
 > 版本：v0.1
 
-> 范围：`img-p`（PNG 文字替换）。本文件只列任务与验收口径，不写实现细节；
+> 范围：`retype`（图片文字替换）。本文件只列任务与验收口径，不写实现细节；
 > 实现细节进 `technical.md`，结果进 `changelog.md`，问题进 `review-findings.md`。
 > **编号约定**：本文件的任务一律 `PLAN-x`（连续编号，按出现顺序递增，不复用）；
 > `review-findings.md` 里的任务一律 `RF-x`。
@@ -31,7 +31,7 @@
 | PLAN-13 | 交互 | TUI 日志面板（`l` 查看当天写盘记录、按图名过滤） | 待办 |
 | PLAN-14 | 交互 | TUI 批量执行进度 + 中途取消（Esc） | 待办 |
 | PLAN-15 | 图片处理 | 多行段落整体替换（跨行排版连续） | 待办 |
-| PLAN-16 | 工程 | 配置文件 `/data/config/img-p.json`、测试临时目录 `/data/tmp`、报告目录 `/test-reports` | 完成 |
+| PLAN-16 | 工程 | 配置文件 `/data/config/retype.json`、测试临时目录 `/data/tmp`、报告目录 `/test-reports` | 完成 |
 | PLAN-17 | 测试/文档 | 用 `data/demo/` 真图做用例与文档示例（含示例图清单） | 完成 |
 | PLAN-18 | 交互 | 数据目录浏览：进子目录 / 回上级 / 选中图片；默认目录 `/data`（可 `IMG_P_DATA_DIR` 覆盖） | 完成 |
 
@@ -72,7 +72,7 @@
 | PLAN-38 | 日志查询 | `core.audit.read_entries/summarize` + `scripts/log-query.py`（按原图/日期/渠道、`--json`） | 完成 |
 | PLAN-39 | 环境脚本健壮性 | venv 迁移后 `.venv/bin/pip` 的 shebang 会失效：安装依赖统一走 `.venv/bin/python -m pip` | 完成 |
 | PLAN-40 | 版本号单一来源 | `src/python/version.py` 定义 `VERSION`，`pyproject.toml` 用 dynamic 读取，`__init__` 再导出为 `__version__` | 完成 |
-| PLAN-41 | 运行时报版本 | CLI 每次运行先打印 `img-p 0.1` 到 stderr；TUI 进 curses 前打印同一行 | 完成 |
+| PLAN-41 | 运行时报版本 | CLI 每次运行先打印 `retype 0.1` 到 stderr；TUI 进 curses 前打印同一行 | 完成 |
 | PLAN-42 | 界面显示版本 | TUI 标题栏 `文字替换 v0.1`、帮助页首行带版本 | 完成 |
 | PLAN-43 | 日志记版本 | 每条写盘日志新增 `app_version` 字段 | 完成 |
 | PLAN-44 | 文档与守护 | 8 份文档开头统一 `> 版本：v0.1`；`check-guards.py` 新增版本一致性检查（第 7 项） | 完成 |
@@ -87,3 +87,10 @@
 | PLAN-53 | 用具覆盖启动链路 | 新增 `src/test/cli/test_launch_env.py`（12 用例）：渠道分派、参数校验、自动安装开关、缺依赖探测、`--check` 不改环境 | 完成 |
 | PLAN-54 | 空目录可启动 | TUI 不再因"目录里没有图片"退出：照样进界面并提示放图片后按 `Ctrl-R`；新增 `App.rescan()`（保留选中项）与 `Ctrl-R`/`F5` 绑定 | 完成 |
 | PLAN-55 | 配置目录分平台 | `bootstrap`/`config` 的默认配置目录按平台取（Windows 用仓库 `data/config`），`IMG_P_CONFIG_DIR` 相对路径按仓库根解析，不再抛"需要绝对路径" | 完成 |
+| PLAN-56 | 统一名称 | 全程序改名 `retype`：`version.NAME` 为唯一来源，CLI 横幅/`--version`、TUI 标题、写盘日志 `app` 字段、pyproject 包名与控制台脚本、文档标题全部一致；守护新增「名称」检查 | 完成 |
+| PLAN-57 | 配置文件改名 | 配置默认读 `retype.json`（模板 `retype.example.json`），旧 `img-p.json` 仍兼容读取；字体缓存目录改为 `~/.cache/retype` | 完成 |
+| PLAN-58 | TUI 进阶美化 | 外框+标题/页码、双栏竖线、底部三行（详情/状态/键位）、批量进度条、8 组配色；窄屏三档自适应（44/60 列断点）并给 `[宽x高]` 标记 | 完成 |
+| PLAN-59 | 布局用例 | `FakeWin.addstr` 改为按显示列模拟，新增 `ResponsiveLayout`（32~130 列不溢出、关键信息不丢） | 完成 |
+| PLAN-60 | 技术债清理 | `App` 的目录扫描抽到 `tui/browse.py`（纯函数）；去掉 `run_tests.py` 里的死条件与 `ui_draw._row` 空壳；面板分发改查表 | 完成 |
+| PLAN-61 | 架构核查 | 按 CLAUDE.md 逐条自检：core 无 argparse/curses/sys.exit、cli/tui 无替换逻辑副本、入口都先产出 Job、不覆盖原图、alpha 两路、单文件 <1000 行、文本 I/O 显式编码 | 完成 |
+| PLAN-62 | 文档补对照表 | `technical.md` 新增「用例对照表」：测试文件 → 需求/约束 | 完成 |

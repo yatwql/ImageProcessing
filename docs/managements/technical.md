@@ -2,7 +2,7 @@
 
 > 版本：v0.1
 
-- 项目：img-p / PNG 文字替换
+- 项目：retype / PNG 文字替换
 - 版本：1.0
 - 对应需求：`docs/managements/requirements.md`
 
@@ -53,7 +53,7 @@ constraints.txt              锁定的依赖组合（pip -c 使用；升级须�
   `IMG_P_NO_AUTO_SETUP=1` 关闭自动安装（CI/离线/想手动控制时用），只提示不改环境。
 src/
   python/                    程序代码
-    config.py                路径约定 + /data/config/img-p.json 配置读取
+    config.py                路径约定 + /data/config/retype.json 配置读取
     bootstrap.py             环境引导（建 venv、按 constraints 装依赖、写默认配置、--check 探测）
     launch.py                统一启动器：缺环境先自动装，再 exec 到真正的入口
     core/                    核心层（CLI 与 TUI 共用）
@@ -205,7 +205,7 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 
 ### 6.0 配置文件（`src/python/config.py`）
 
-- 位置：`/data/config/img-p.json`（`IMG_P_CONFIG` 可换文件名）；`scripts/setup.sh` 首次会写一份默认值。
+- 位置：`/data/config/retype.json`（`IMG_P_CONFIG` 可换文件名）；`scripts/setup.sh` 首次会写一份默认值。
 - 键：`data_dir` `out_dir` `log_dir` `font` `size` `color` `align` `fit_width` `tracking` `max_fonts` `quality`。
 - 优先级：命令行/界面显式设置 > 环境变量（`IMG_P_DATA_DIR`/`IMG_P_OUT_DIR`/`IMG_P_LOG_DIR`）> 配置文件 > 内置默认。
 - JSON 解析失败打一句提示后忽略；未知键忽略；`apply_to_options()` 只填「还没设置」的项。
@@ -221,6 +221,17 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 - `--quality N` 透传给 `save_image`；`--log-dir` 覆盖日志目录。
 
 ### 6.2 TUI（`src/python/tui`）
+
+**布局**（`ui_draw.py`）：外圈一圈 ACS 边框，标题在左上、页码在右上；
+主体按宽度分档——`w >= 60` 双栏（左图右字，中间竖线），`24 <= w < 60` 单栏 +
+右上角 `[宽x高]`，`w < 24` 或 `h < 10` 走「太窄了」提示页。
+底部固定三行：详情（当前块与新文字的对照）/ 状态（输出目录、已保存、批量进度条）/
+键位提示；键位提示按 `w < 40`、`w < 60`、其余三档给不同长度。
+配色 8 组：title / sel / dim / ok / warn / err / accent / frame（`ui_base.PAIR`）。
+
+**响应式约束**：所有文字走 `put()`（按显示列裁剪，中文占两列），
+边框走 `addch`；`_support.FakeWin.addstr` 同样按显示列模拟，
+所以 `test_layout_rendering.ResponsiveLayout` 能在 32~130 列之间断言"不溢出、不丢关键信息"。
 
 `App` 是一个不碰 curses 的状态层：图片列表、块列表、映射表、样式选项与执行动作都在这里，
 `ui.py` 只负责绘制与按键。为避免核心层的 `print(stderr)` 冲花 curses 界面，`App` 初始化时
@@ -363,6 +374,39 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
   CLI 拒绝覆盖）、写盘日志（字段/追加/预演不记/日志失败不毁结果）、TUI 按键归一（转义序列/方向键/数字跳图/单 Esc 不退出）。
 - 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-cov、pytest-html、ruff、mypy）；
   `requirements.txt` = `-e .`、`requirements-dev.txt` = `-e .[dev]`，只为兼容既有脚本。
+
+### 10.0.1 用例对照表（测试文件 → 需求/约束）
+
+| 测试文件 | 守的是什么 |
+| --- | --- |
+| `core/test_mapping_rules.py` | FR-2 匹配规则：整行 / 行内子串 / 模糊兜底 |
+| `core/primitives/test_style_analysis.py` | FR-3 样式沿用：字色、字重、倾斜反解 |
+| `core/primitives/test_rendering_primitives.py` | FR-3 渲染与字距（`render_line`/`char_spans`/`solve_tracking`） |
+| `core/primitives/test_erasing_and_drawing.py` | FR-2 擦除重绘、行内区间 |
+| `core/primitives/test_inpaint_radius.py` | 自适应擦除半径（粗笔画不被糊） |
+| `core/layout/test_text_layout.py` | FR-3 多行排版与对位 |
+| `core/font/test_font_pool.py` | FR-3 字体发现、缓存路径、ttc 展开 |
+| `core/color/test_alpha_channel.py`、`test_text_colors.py` | NFR 透明通道两路修正、字色反解 |
+| `core/format/test_image_read_write.py` | FR-6 输出格式表、元数据、质量、覆盖保护 |
+| `core/background/test_background_types.py` | FR-2 纯色 / 渐变 / 照片底图擦除 |
+| `core/pipeline/test_replace_pipeline.py` | FR-2 端到端 + memo 幂等 |
+| `core/test_config_file.py` | FR-9 配置文件读取、容错、优先级 |
+| `core/test_error_contract.py` | NFR-6 错误契约（`CoreError` 不外溢） |
+| `core/test_ocr_contract.py` | FR-1 OCR 契约与缺依赖提示 |
+| `core/test_write_audit_log.py` | FR-7 写盘日志字段 / 追加 / 并发 / 预演不记 |
+| `core/test_log_query.py` | FR-11 日志查询与汇总 |
+| `core/test_cancel_pipeline.py` | FR-10.4 单块级中断 |
+| `core/test_version_display.py` | FR-12 版本号贯穿（横幅/标题/日志/文档） |
+| `cli/test_arguments.py`、`test_single_image.py`、`test_batch_directory.py` | FR-4 参数、单图、批量与坏图跳过 |
+| `cli/test_demo_assets.py` | 回归样例：`data/demo/` 真图 |
+| `cli/test_launch_env.py` | 启动器渠道分派与自动安装开关 |
+| `tui/test_keys_and_navigation.py` | FR-5 按键归一、目录浏览 |
+| `tui/test_key_dispatch.py` | FR-5 三块面板逐键 + 中断 + 非 ASCII 数字 |
+| `tui/test_layout_rendering.py` | FR-5 宽/窄屏响应式布局（32~130 列） |
+| `tui/test_mapping_panel.py`、`test_settings_panel.py` | FR-5 映射表 / 样式面板编辑 |
+| `tui/test_apply_and_batch.py` | FR-5、FR-10 替换、批量、进度与取消 |
+| `tui/test_session_state.py` | FR-5 会话状态与缓存 |
+| `tui/test_directory_browsing.py` | FR-5 目录进/退、选中记忆 |
 
 ## 10.0 测试报告脚本
 

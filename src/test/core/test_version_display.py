@@ -40,7 +40,7 @@ class VersionIsPrinted(TuiTestCase):
             contextlib.suppress(SystemExit),
         ):
             cli_main.main(["--version"])
-        self.assertIn(f"img-p {version_mod.VERSION}", out.getvalue() + err.getvalue())
+        self.assertIn(f"{version_mod.NAME} {version_mod.VERSION}", out.getvalue() + err.getvalue())
 
     @unittest.skipUnless(ocr_available(), "需要可用的 OCR 依赖（onnxruntime）")
     def test_cli_banner_goes_to_stderr_so_listing_stays_clean(self):
@@ -51,7 +51,7 @@ class VersionIsPrinted(TuiTestCase):
             contextlib.suppress(SystemExit),
         ):
             cli_main.main(["--list", "data/demo"])
-        self.assertIn(f"img-p {version_mod.VERSION}", err.getvalue())
+        self.assertIn(f"{version_mod.NAME} {version_mod.VERSION}", err.getvalue())
         self.assertTrue(out.getvalue().startswith("== "), "stdout 只能是清单内容")
 
     def test_tui_title_bar_shows_version(self):

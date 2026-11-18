@@ -152,6 +152,28 @@ class MainPanelKeys(TuiTestCase):
         self.addCleanup(lambda: os.path.exists("map.json") and os.remove("map.json"))
 
 
+class NonAsciiDigits(TuiTestCase):
+    """`str.isdigit()` 对上标「²」也返回 True，但 int("²") 会抛 ValueError。
+
+    这类字符在中文输入法/排版文本里并不罕见，按键分发必须按 ASCII 白名单判断，
+    否则一次误触就让整个界面报错退出。
+    """
+
+    def test_superscript_digit_is_ignored_instead_of_crashing(self):
+        app = self.make_app(count=2)
+        win = FakeWin([], rows=28, cols=100)
+        before = app.sel_row
+        ui.handle(app, win, "²")              # 上标：isdigit() 为真，int() 会炸
+        self.assertEqual(app.sel_row, before, "非 ASCII 数字键应当被忽略")
+
+    def test_ascii_digits_still_jump(self):
+        app = self.make_app(count=3)
+        app.img_rows = 10
+        win = FakeWin([], rows=28, cols=100)
+        ui.handle(app, win, "3")
+        self.assertIn("第 3 张", app.message)
+
+
 class MapPanelKeys(TuiTestCase):
     def setUp(self):
         super().setUp()

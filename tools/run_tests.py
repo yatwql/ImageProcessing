@@ -66,7 +66,7 @@ def build_args(report_dir: Path, fast: bool, extra: list[str]) -> list[str]:
     ]
     if fast:
         return args
-    if shutil.which("true") and has_module("pytest_cov") and has_module("pytest_html"):
+    if has_module("pytest_cov") and has_module("pytest_html"):
         args += [
             "--cov=src/python",
             "--cov-report=term-missing:skip-covered",
@@ -81,9 +81,12 @@ def build_args(report_dir: Path, fast: bool, extra: list[str]) -> list[str]:
 
 
 def has_module(name: str) -> bool:
-    return subprocess.run(
-        [sys.executable, "-c", f"import {name}"], capture_output=True, check=False
-    ).returncode == 0
+    return (
+        subprocess.run(
+            [sys.executable, "-c", f"import {name}"], capture_output=True, check=False
+        ).returncode
+        == 0
+    )
 
 
 def cleanup_repo() -> None:

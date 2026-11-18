@@ -10,9 +10,10 @@ import contextlib
 import curses
 import unicodedata
 
-from ..version import VERSION
+from ..version import NAME, TITLE, VERSION
 
-PAIR = {"title": 1, "sel": 2, "dim": 3, "ok": 4, "warn": 5, "err": 6}
+PAIR = {"title": 1, "sel": 2, "dim": 3, "ok": 4, "warn": 5, "err": 6,
+        "accent": 7, "frame": 8}
 USAGE = """\
 用法: tui.sh [图片或目录 ...] [选项]
 
@@ -33,7 +34,7 @@ USAGE = """\
 """
 
 HELP = f"""\
-PNG 文字替换 v{VERSION} —— 操作说明
+{NAME} v{VERSION} · {TITLE} —— 操作说明
 
 左栏「图片」                     右栏「识别到的文字」
   ↑↓ / j k   选图片               1..9 / 0   直接跳到第 1..10 张
@@ -117,6 +118,8 @@ def init_colors() -> None:
         curses.init_pair(PAIR["ok"], curses.COLOR_GREEN, -1)
         curses.init_pair(PAIR["warn"], curses.COLOR_YELLOW, -1)
         curses.init_pair(PAIR["err"], curses.COLOR_RED, -1)
+        curses.init_pair(PAIR["accent"], curses.COLOR_MAGENTA, -1)
+        curses.init_pair(PAIR["frame"], curses.COLOR_BLUE, -1)
     except Exception:                                   # 无颜色/未初始化时退化成黑白
         return
 
@@ -129,9 +132,80 @@ def attr(name: str, extra: int = 0) -> int:
 
 
 def put(win, y: int, x: int, text: str, cols: int, a: int = 0) -> None:
+    """在 (y, x) 写一段文本，最多占 cols 列；再按窗口宽度兜底裁剪。
+
+    调用方给的 cols 可能超出窗口右边界（例如 x=2、cols=w-2），
+    这里统一收紧到"x 到窗口右侧"，任何布局都不会画出界。
+    """
     if cols <= 0:
         return
     with contextlib.suppress(curses.error):
+        _h, win_w = win.getmaxyx()
+        cols = min(cols, max(0, win_w - x))
+        if cols <= 0:
+            return
         win.addstr(y, x, pad(text, cols), a)
 
 
+
+
+# --------------------------------------------------------------------------- 边框与分栏
+#
+# curses 的 ACS_* 是线框字符；FakeWin/无颜色终端里退化成 ASCII。
+# 所有边框都用 addch 画（不进 FakeWin 的屏幕快照），文字仍走 put()。
+
+
+def _acs(name: str, fallback: str) -> str:
+    return getattr(curses, name, fallback)
+
+
+def hline(win, y: int, x: int, cols: int, a: int = 0) -> None:
+    if cols <= 0:
+        return
+    with contextlib.suppress(curses.error):
+        win.addstr(y, x, _acs("ACS_HLINE", "-") * cols, a)
+
+
+def vline(win, x: int, top: int, bottom: int, a: int = 0) -> None:
+    ch = _acs("ACS_VLINE", "|")
+    for y in range(top, bottom + 1):
+        with contextlib.suppress(curses.error):
+            win.addch(y, x, ch, a)
+
+
+def box(win, h: int, w: int, title: str = "", a: int = 0) -> None:
+    """画一圈边框；title 覆盖在上边框左侧（不含两端）。"""
+    if h < 3 or w < 4:
+        return
+    corners = {
+        (0, 0): _acs("ACS_ULCORNER", "+"),
+        (0, w - 1): _acs("ACS_URCORNER", "+"),
+        (h - 1, 0): _acs("ACS_LLCORNER", "+"),
+        (h - 1, w - 1): _acs("ACS_LRCORNER", "+"),
+    }
+    for (y, x), ch in corners.items():
+        with contextlib.suppress(curses.error):
+            win.addch(y, x, ch, a)
+    hline(win, 0, 1, w - 2, a)
+    hline(win, h - 1, 1, w - 2, a)
+    vline(win, 0, 1, h - 2, a)
+    vline(win, w - 1, 1, h - 2, a)
+    if title and w > 6:
+        put(win, 0, 2, f" {title} ", min(w - 4, dwidth(title) + 2), a)
+
+
+def divider(win, y: int, x: int, cols: int, a: int = 0, tee: str = "sep") -> None:
+    """横向分隔线；tee="sep" 时在与竖线交叉处画竖接头。"""
+    hline(win, y, x, cols, a)
+    if tee == "sep":
+        with contextlib.suppress(curses.error):
+            win.addch(y, x, _acs("ACS_LTEE", "+"), a)
+        with contextlib.suppress(curses.error):
+            win.addch(y, x + cols - 1, _acs("ACS_RTEE", "+"), a)
+
+
+def progress_bar(fraction: float, width: int) -> str:
+    """纯文本进度条（curses 里画方块比逐格填色可靠）。"""
+    width = max(3, width)
+    filled = int(round(max(0.0, min(1.0, fraction)) * width))
+    return "█" * filled + "░" * (width - filled)

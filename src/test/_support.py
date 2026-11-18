@@ -123,8 +123,19 @@ class FakeWin:
         pass
 
     def addstr(self, y, x, text, _attr=0):
-        if 0 <= y < self.rows:
-            self.screen[y] = (self.screen[y] + " " * x)[:x] + text
+        """按**显示列**写，而不是按字符下标——真 curses 就是按列算的。
+
+        中文一个字占两列：如果按字符切片，混合中英文的行会越写越宽，
+        布局测试就查不出真实的溢出。
+        """
+        if not 0 <= y < self.rows:
+            return
+        from src.python.tui.ui_base import cut, dwidth
+
+        line = self.screen[y]
+        left = cut(line, x)
+        left += " " * max(0, x - dwidth(left))
+        self.screen[y] = left + cut(text, max(0, self.cols - x))
 
     def addch(self, *_args):
         pass

@@ -20,6 +20,8 @@ import venv
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
 def default_conf_dir() -> Path:
     """配置目录默认值：Linux/macOS 用 /data/config；Windows 没有 /data，用仓库内 data/config。"""
     if sys.platform == "win32":
@@ -34,13 +36,13 @@ def _conf_dir() -> Path:
         return default_conf_dir()
     path = Path(raw).expanduser()
     if not path.is_absolute():
-        path = ROOT / path                      # 相对路径视为相对仓库根，不再直接报错
+        path = ROOT / path  # 相对路径视为相对仓库根，不再直接报错
     return path.resolve()
 
 
 CONF_DIR = _conf_dir()
-EXAMPLE = CONF_DIR / "img-p.example.json"
-CONFIG = CONF_DIR / "img-p.json"
+EXAMPLE = CONF_DIR / "retype.example.json"
+CONFIG = CONF_DIR / "retype.json"
 
 DEFAULT_CONFIG = {
     "data_dir": "/data",
@@ -153,8 +155,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.check:
         py = venv_python()
-        ready = ensure_dependencies(py, need_dev=args.dev,
-                                    auto=os.environ.get("IMG_P_NO_AUTO_SETUP") != "1")
+        ready = ensure_dependencies(
+            py, need_dev=args.dev, auto=os.environ.get("IMG_P_NO_AUTO_SETUP") != "1"
+        )
         return 0 if ready else 1
 
     py = ensure_venv()

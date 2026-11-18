@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "img-p"
+name = "retype"
 dynamic = ["version"]
 description = "PNG 文字替换：换掉指定文字，其余内容与排版一像素不动"
 readme = "README.md"
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-img-p = "src.python.cli.main:main"
+retype = "src.python.cli.main:main"
 
 # 版本号只在 src/python/__init__.py 里维护，打包时从这里读，避免两处不一致。
 [tool.setuptools.dynamic]

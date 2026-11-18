@@ -39,7 +39,7 @@ class FontDiscoveryPaths(unittest.TestCase):
         with mock.patch.object(fonts.os, "name", "nt"), \
                 mock.patch.dict(fonts.os.environ, {"LOCALAPPDATA": local}):
             path = fonts.cache_file()
-        self.assertEqual(path, os.path.join(local, "img-p", "fonts.json"))
+        self.assertEqual(path, os.path.join(local, "retype", "fonts.json"))
 
 
 class FontFaceIdentity(unittest.TestCase):

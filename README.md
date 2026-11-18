@@ -1,4 +1,4 @@
-# PNG 文字替换
+# retype · 图片文字替换
 
 > 版本：v0.1
 
@@ -26,7 +26,7 @@ Windows（PowerShell）用同名 `.ps1`：
 .\scripts\tui.ps1                                    # 依赖 windows-curses，已随依赖安装
 ```
 
-配置在 `/data/config/img-p.json`（模板 `/data/config/img-p.example.json`）。示例图在 `data/demo/`，
+配置在 `<配置目录>/retype.json`（模板 `retype.example.json`；旧名 `img-p.json` 仍兼容）。示例图在 `data/demo/`，
 自己的图片放 `data/`（或 `/data`），结果写 `data/output/`；每次真实写盘都会在 `logs/` 留一条 JSON 记录
 （源/目标文件名与大小、替换了哪些字、时间、输出哈希）。命令行与交互界面共用同一套替换逻辑。
 

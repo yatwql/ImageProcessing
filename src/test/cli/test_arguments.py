@@ -134,13 +134,13 @@ class VersionFlag(unittest.TestCase):
         import io
 
         from src.python.cli.main import main
-        from src.python.version import VERSION
+        from src.python.version import NAME, VERSION
 
         out = io.StringIO()
         with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as ctx:
             main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
-        self.assertIn(f"img-p {VERSION}", out.getvalue())
+        self.assertIn(f"{NAME} {VERSION}", out.getvalue())
 
 
 if __name__ == "__main__":

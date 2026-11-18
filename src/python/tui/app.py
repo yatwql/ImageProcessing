@@ -12,7 +12,6 @@ from collections.abc import Callable
 
 from ..config import apply_to_options, default_out_dir, log_dir
 from ..core import (
-    IMG_EXTS,
     CoreError,
     Job,
     build_font_pool,
@@ -28,6 +27,8 @@ from ..core import (
     save_image,
 )
 from ..core.options import Options, parse_color
+from . import browse
+from .browse import scan_rows
 
 Progress = Callable[[str], None]
 
@@ -144,31 +145,11 @@ class App:
     # ---- 目录浏览
 
     def _scan_rows(self, path: str) -> tuple[list[ImageItem], list[tuple[str, str]]]:
-        """扫描一个目录：父目录入口 + 子目录 + 图片，隐藏项与非图片文件跳过。"""
-        rows: list[tuple[str, str]] = []
-        parent = os.path.dirname(path)
-        if parent and parent != path:
-            rows.append(("parent", parent))
-        try:
-            names = sorted(os.listdir(path))
-        except OSError as e:
-            self.message = f"无法读取目录 {path}: {e}"
-            names = []
-        images: list[ImageItem] = []
-        for name in names:
-            if name.startswith("."):
-                continue
-            full = os.path.join(path, name)
-            if os.path.isdir(full):
-                rows.append(("dir", full))
-        for name in names:
-            if name.startswith(".") or not name.lower().endswith(IMG_EXTS):
-                continue
-            full = os.path.join(path, name)
-            if os.path.isfile(full):
-                rows.append(("img", full))
-                images.append(ImageItem(full))
-        return images, rows
+        """扫描目录（父目录入口 + 子目录 + 图片）；规则在 `browse.scan_rows`。"""
+        rows, image_paths, error = scan_rows(path)
+        if error:
+            self.message = error
+        return [ImageItem(p) for p in image_paths], rows
 
     def _load_dir(self, path: str) -> bool:
         path = os.path.abspath(path)
@@ -223,10 +204,7 @@ class App:
         return self._load_dir(path)
 
     def first_image_row(self) -> int:
-        for i, (kind, _path) in enumerate(self.rows):
-            if kind == "img":
-                return i
-        return 0
+        return browse.first_image_row(self.rows)
 
     def row_kind(self, row: int | None = None) -> str | None:
         row = self.sel_row if row is None else row

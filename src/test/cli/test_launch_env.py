@@ -51,9 +51,11 @@ class AutoSetupSwitch(unittest.TestCase):
     def test_refuses_to_exec_when_setup_disabled_and_env_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
             missing = Path(tmp) / "no-python"
-            with mock.patch.object(bootstrap, "venv_python", return_value=missing), \
-                    mock.patch.dict(os.environ, {"IMG_P_NO_AUTO_SETUP": "1"}), \
-                    mock.patch("sys.stderr"):
+            with (
+                mock.patch.object(bootstrap, "venv_python", return_value=missing),
+                mock.patch.dict(os.environ, {"IMG_P_NO_AUTO_SETUP": "1"}),
+                mock.patch("sys.stderr"),
+            ):
                 self.assertEqual(launch.main(["cli", "--version"]), 1)
 
 
@@ -85,9 +87,11 @@ class BootstrapEntry(unittest.TestCase):
         self.assertIn(expected, path.parts)
 
     def test_check_mode_never_installs_when_disabled(self):
-        with mock.patch.dict(os.environ, {"IMG_P_NO_AUTO_SETUP": "1"}), \
-                mock.patch.object(bootstrap, "ensure_dependencies", return_value=False) as spy, \
-                mock.patch("sys.stderr"):
+        with (
+            mock.patch.dict(os.environ, {"IMG_P_NO_AUTO_SETUP": "1"}),
+            mock.patch.object(bootstrap, "ensure_dependencies", return_value=False) as spy,
+            mock.patch("sys.stderr"),
+        ):
             self.assertEqual(bootstrap.main(["--check"]), 1)
         self.assertFalse(spy.call_args.kwargs["auto"])
 

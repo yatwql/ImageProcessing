@@ -29,7 +29,7 @@ from ..core import (
     unique_path,
 )
 from ..core.image import IMG_EXTS
-from ..version import VERSION
+from ..version import NAME, VERSION
 
 USAGE = """\
 示例
@@ -90,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--log-dir", metavar="DIR",
                     help="写盘日志目录，默认仓库根 logs/（环境变量 IMG_P_LOG_DIR 可覆盖）")
     ap.add_argument("--quiet", action="store_true")
-    ap.add_argument("--version", action="version", version=f"img-p {VERSION}")
+    ap.add_argument("--version", action="version", version=f"{NAME} {VERSION}")
     return ap
 
 
@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def announce_version() -> None:
     """每次运行先报版本（走 stderr，不污染 --list / --report 的正常输出）。"""
-    print(f"img-p {VERSION}", file=sys.stderr)
+    print(f"{NAME} {VERSION}", file=sys.stderr)
 
 
 def _run(argv: list[str] | None = None) -> int:

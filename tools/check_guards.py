@@ -11,6 +11,7 @@
   编码      文本 I/O 必须显式 `encoding=`（二进制模式除外）
   用例目录  `src/test` 下不得留只有 `__init__.py` 的空包，且目录要出现在 technical.md
   版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
+  名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
   scripts   `scripts/` 只放薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
@@ -236,6 +237,30 @@ def current_version() -> str:
     return m.group(1)
 
 
+def current_name() -> str:
+    """从 version.py 读出程序名（唯一来源）。"""
+    text = _read(SRC / "python" / "version.py")
+    m = re.search(r'^NAME\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    if not m:
+        raise ValueError('src/python/version.py 里没有 NAME = "…"')
+    return m.group(1)
+
+
+def check_name_consistency() -> list[str]:
+    """程序名：version.NAME 是唯一来源，打包名与入口脚本名必须与之一致。"""
+    name = current_name()
+    problems = []
+    pyproject = _read(ROOT / "pyproject.toml")
+    if re.search(rf'^name\s*=\s*"{re.escape(name)}"', pyproject, re.MULTILINE) is None:
+        problems.append(f"pyproject.toml 的 [project].name 不是 {name!r}")
+    if re.search(rf'^{re.escape(name)}\s*=\s*"', pyproject, re.MULTILINE) is None:
+        problems.append(f"pyproject.toml 缺控制台脚本 {name} = \"...\"")
+    audit = _read(SRC / "python" / "core" / "audit.py")
+    if '"app": NAME' not in audit:
+        problems.append("写盘日志没有记录 app 字段（core/audit.build_entry）")
+    return problems
+
+
 def check_version_consistency() -> list[str]:
     """版本号：代码是唯一来源，打包配置与各文档开头必须与之一致。"""
     version = current_version()
@@ -298,6 +323,7 @@ CHECKS = [
     ("显式编码", check_explicit_encoding),
     ("测试目录", check_test_layout),
     ("版本号", check_version_consistency),
+    ("名称", check_name_consistency),
     ("依赖锁", check_constraints),
     ("PS 编码", check_windows_scripts),
     ("scripts 薄壳", check_scripts_are_launchers),

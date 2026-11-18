@@ -167,14 +167,14 @@ class VersionBanner(unittest.TestCase):
         import io
 
         from src.python.cli.main import main
-        from src.python.version import VERSION
+        from src.python.version import NAME, VERSION
 
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             with contextlib.suppress(SystemExit):
                 main(["data/demo", "--list"])
-        self.assertIn(f"img-p {VERSION}", err.getvalue())
-        self.assertNotIn(f"img-p {VERSION}", out.getvalue())
+        self.assertIn(f"{NAME} {VERSION}", err.getvalue())
+        self.assertNotIn(f"{NAME} {VERSION}", out.getvalue())
 
 
 if __name__ == "__main__":

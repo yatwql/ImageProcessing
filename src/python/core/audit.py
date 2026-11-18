@@ -18,7 +18,7 @@ from typing import Any
 
 from PIL import Image
 
-from ..version import VERSION
+from ..version import NAME, VERSION
 from .errors import CoreError
 from .options import Options
 
@@ -167,6 +167,7 @@ def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
     pixels = _pixels_of(dst)
     entry: dict[str, Any] = {
         "time": stamp.isoformat(timespec="seconds"),
+        "app": NAME,
         "app_version": app_version(),
         "channel": channel,
         "action": action,

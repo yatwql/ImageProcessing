@@ -1,10 +1,10 @@
-# CLAUDE.md
+# CLAUDE.md · retype
 
 > 版本：v0.1
 
 ## 项目
 
-PNG 文字替换：把图片里指定的一些字换成别的字，其余文字的内容与排版一个像素不动；
+retype（图片文字替换）：把图片里指定的一些字换成别的字，其余文字的内容与排版一个像素不动；
 新文字自动沿用原文字的字体、字号、字重、字色、字距与位置，原图永不覆盖。
 
 ```text
@@ -41,7 +41,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳；
   版本组合由 `constraints.txt` 锁定，安装与 CI 都要带 `-c constraints.txt`。
 - 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`），`IMG_P_SKIP_HOOK=1` 临时跳过。
-- 配置文件：`/data/config/img-p.json`（模板见 `/data/config/img-p.example.json`，可用 `IMG_P_CONFIG` 指定）；
+- 配置文件：`/data/config/retype.json`（模板见 `/data/config/retype.example.json`，可用 `IMG_P_CONFIG` 指定）；
   测试中间文件写 `/data/tmp`，测试报告写 `/test-reports`。
 - 入口：`./scripts/cli.sh`（= `python -m src.python.cli`）、`./scripts/tui.sh`（= `python -m src.python.tui`）；
   Windows 用 `scripts\cli.ps1` / `tui.ps1` / `setup.ps1` / `test.ps1`，虚拟环境解释器在 `.venv\Scripts\python.exe`。

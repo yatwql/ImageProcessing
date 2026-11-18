@@ -57,8 +57,8 @@ def main(argv: list[str] | None = None) -> int:
     cmd = [str(py), *entry, *forward]
     os.chdir(ROOT)
     try:
-        os.execv(str(py), cmd)               # 交给真正的入口，本进程不再返回
-    except OSError as exc:                   # execv 失败（极少见）就退化成子进程
+        os.execv(str(py), cmd)  # 交给真正的入口，本进程不再返回
+    except OSError as exc:  # execv 失败（极少见）就退化成子进程
         print(f"启动失败：{exc}", file=sys.stderr)
         return 1
 

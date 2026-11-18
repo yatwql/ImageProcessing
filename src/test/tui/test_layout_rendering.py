@@ -11,6 +11,7 @@ import unittest
 
 import src.python.tui.ui as ui
 import src.python.tui.ui_draw as ui_draw
+from src.python.tui.ui_base import dwidth
 from src.test._support import FakeWin, TuiTestCase
 
 
@@ -65,6 +66,67 @@ class LayoutRendering(TuiTestCase):
         finally:
             ui_draw.draw_wide = original
         self.assertIn("界面绘制出错", app.message)
+
+
+class ResponsiveLayout(TuiTestCase):
+    """宽屏（电脑）与窄屏（手机）都要排得下：不溢出、不丢关键信息。"""
+
+    DESKTOP = [(100, 30), (130, 40), (80, 24)]
+    PHONE = [(44, 22), (36, 20), (32, 18)]
+
+    def render(self, app, cols: int, rows: int) -> FakeWin:
+        win = FakeWin([], rows=rows, cols=cols)
+        ui.draw_frame(win, app)
+        return win
+
+    def test_no_line_exceeds_the_window_width(self):
+        app = self.make_app()
+        for cols, rows in self.DESKTOP + self.PHONE:
+            with self.subTest(size=f"{cols}x{rows}"):
+                win = self.render(app, cols, rows)
+                for line in win.screen:
+                    self.assertLessEqual(dwidth(line), cols, f"{cols} 列下溢出: {line!r}")
+
+    def test_desktop_shows_both_panels_and_page_position(self):
+        app = self.make_app()
+        text = "\n".join(self.render(app, 100, 30).screen)
+        self.assertIn("① 图片", text)
+        self.assertIn("② 识别到的文字", text)
+        self.assertIn("张", text)                     # 右上角的 "N/M 张"
+
+    def test_phone_shows_single_panel_with_size_marker(self):
+        app = self.make_app()
+        text = "\n".join(self.render(app, 44, 22).screen)
+        self.assertIn("Tab→文字", text)
+        self.assertIn("[44x22]", text)
+        self.assertNotIn("② 识别到的文字", text, "窄屏只画当前一栏")
+
+    def test_very_narrow_phone_uses_compact_header(self):
+        app = self.make_app()
+        text = "\n".join(self.render(app, 36, 20).screen)
+        self.assertIn("图片 1/", text)
+        self.assertNotIn("Tab→文字", text, "32~43 列放不下切换提示，只留计数")
+
+    def test_phone_keeps_key_hints_short_enough(self):
+        app = self.make_app()
+        for cols, rows in self.PHONE:
+            with self.subTest(size=f"{cols}x{rows}"):
+                text = "\n".join(self.render(app, cols, rows).screen)
+                self.assertIn("替换", text, "最常用的替换键必须在提示里")
+
+    def test_wide_screen_key_hints_are_complete(self):
+        app = self.make_app()
+        text = "\n".join(self.render(app, 120, 30).screen)
+        for hint in ("R 全部", "Ctrl-R", "? 帮助"):
+            self.assertIn(hint, text)
+
+    def test_selected_row_is_marked_in_both_layouts(self):
+        app = self.make_app()
+        for cols, rows in ((100, 30), (44, 22)):
+            with self.subTest(size=f"{cols}x{rows}"):
+                text = "\n".join(self.render(app, cols, rows).screen)
+                self.assertIn("第0行文字", text, "当前块内容要能看到")
+                self.assertIn("选：", text, "详情行必须存在")
 
 
 if __name__ == "__main__":

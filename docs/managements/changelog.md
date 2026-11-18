@@ -5,6 +5,47 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-17 — 技术债清理与架构核查
+
+### 变更
+
+- 新增 `src/python/tui/browse.py`：目录扫描/首张图定位抽成纯函数，`App` 从 637 行降到 615 行且只留状态与动作。
+- `tools/run_tests.py`：删掉 `shutil.which("true")` 死条件；`ui_draw` 删掉 `_row` 空壳转发。
+- `ui_actions`：面板分发改 `PANEL_HANDLERS` 查表（表在模块末尾定义）。
+- 修缺陷：数字键判断从 `str.isdigit()` 改为 ASCII 白名单——上标「²」会通过 `isdigit()` 但
+  `int("²")` 抛异常，一次误触就能把界面打崩；补回归用例。
+- `technical.md` 补「用例对照表」：28 个测试文件 → 需求/约束。
+
+### 架构核查（逐条对 CLAUDE.md）
+
+- core 无 `argparse` / `curses` / `sys.exit`（守护第 3 项）；替换逻辑只在 core（`cli`/`tui` 无副本，
+  已 grep `inpaint`/`fit_font`/`render_line`/`soft_iou` 零命中）。
+- 新入口都先产出 `Job` 再走 `replace_image`；`launch`/`bootstrap`/`log_query` 不含替换逻辑。
+- 不覆盖原图、默认输出 `data/output`、alpha 两路修正、单文件 <1000 行、文本 I/O 显式编码：均有守护或用例。
+
+### 验证
+
+- `ruff` 零告警、`mypy` 78 文件零错误、`check_guards.py` 11/11、全量用例全绿。
+
+## 2026-11-17 — 更名 retype + TUI 进阶美化
+
+### 变更
+
+- 全程序更名 `retype`：`src/python/version.py` 的 `NAME` 为唯一来源，CLI 横幅与 `--version`、
+  TUI 标题（`retype v0.1 · 图片文字替换`）、写盘日志 `app` 字段、pyproject 包名与控制台脚本
+  `retype`、文档标题统一引用；守护新增「名称」检查。
+- 配置默认读 `retype.json` / `retype.example.json`，旧 `img-p.json` 仍兼容；
+  字体缓存目录改为 `~/.cache/retype`；环境变量保留 `IMG_P_*`，新增 `RETYPE_CONFIG`。
+- TUI 界面重做：ACS 外框 + 左上标题 + 右上页码；双栏之间竖线；底部三行
+  （详情 / 状态（输出目录、已保存、批量进度条）/ 键位提示）；8 组配色。
+  窄屏三档自适应：`< 60` 单栏、`< 44` 表头只留计数、`< 40` 最短键位提示，并显示 `[宽x高]`。
+- `_support.FakeWin.addstr` 改为按显示列写，布局用例能查出中文真实溢出。
+
+### 验证
+
+- 新增 7 个响应式布局用例（32~130 列不溢出、窄屏断点、键位提示长度）；
+  `ruff` 零告警、`mypy` 78 文件零错误、`check_guards.py` 11/11、全量用例全绿。
+
 ## 2026-11-17 — 空目录可启动、配置目录分平台
 
 ### 新增
@@ -101,7 +142,7 @@
 
 - `src/python/version.py`：`VERSION = "0.1"` 为唯一来源；`__init__` 再导出为 `__version__`；
   `pyproject.toml` 改为 `dynamic = ["version"]` + `attr = "src.python.version.VERSION"`。
-- CLI：每次运行先往 stderr 打印 `img-p 0.1`（`--version` 同步改为 `img-p <版本>`）。
+- CLI：每次运行先往 stderr 打印 `retype 0.1`（`--version` 同步改为 `retype <版本>`）。
 - TUI：进 curses 前打印同一行；标题栏显示 `文字替换 v0.1`，帮助页首行带版本。
 - 写盘日志：每条记录新增 `app_version` 字段。
 - 8 份文档（README、CLAUDE.md、三份管理文档、手册）开头统一 `> 版本：v0.1`。
@@ -149,7 +190,7 @@
 
 ### 新增
 
-- 配置文件：`/data/config/img-p.json`、示例 `/data/config/img-p.example.json`（都在配置目录里，
+- 配置文件：`/data/config/retype.json`、示例 `/data/config/retype.example.json`（都在配置目录里，
   由 `setup.sh`/`setup.ps1` 生成，`IMG_P_CONFIG` 可覆盖实际读取的文件）；
   `config.load_config()` / `option_defaults()` / `apply_to_options()`，优先级为
   命令行/界面 > 环境变量 > 配置文件 > 内置默认；`setup.sh`/`setup.ps1` 首次写默认值。

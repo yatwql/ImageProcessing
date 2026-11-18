@@ -2,7 +2,7 @@
 
 > 版本：v0.1
 
-- 项目：img-p / PNG 文字替换
+- 项目：retype / PNG 文字替换
 - 版本：1.0
 - 更新：随代码同步维护
 
@@ -149,7 +149,7 @@
 
 | 编号 | 需求 | 验收标准 |
 | --- | --- | --- |
-| FR-9.1 | 配置文件位置 | 默认 `/data/config/img-p.json`，模板 `/data/config/img-p.example.json`，`IMG_P_CONFIG` 可指定其它文件 |
+| FR-9.1 | 配置文件位置 | 默认 `/data/config/retype.json`，模板 `/data/config/retype.example.json`，`IMG_P_CONFIG` 可指定其它文件 |
 | FR-9.2 | 可配置项 | `data_dir`/`out_dir`/`log_dir` 与样式默认值（字体、字号、字色、对齐、字距、贴合宽度、字体上限、JPEG 质量） |
 | FR-9.3 | 优先级 | 命令行/界面显式设置 > 环境变量 > 配置文件 > 内置默认 |
 | FR-9.4 | 容错 | 文件缺失/JSON 非法/键名未知都不影响运行，最多提示一句 |
@@ -179,7 +179,7 @@
 | 编号 | 需求 | 验收标准 |
 | --- | --- | --- |
 | FR-12.1 | 单一来源 | 版本只在 `src/python/version.py` 定义，`pyproject.toml` 动态读取，文档与代码不会各自漂移 |
-| FR-12.2 | 每次运行都报 | CLI 每次运行先往 stderr 打印 `img-p <版本>`（不污染 `--list`/`--report` 的 stdout）；TUI 在进 curses 前打印同一行 |
+| FR-12.2 | 每次运行都报 | CLI 每次运行先往 stderr 打印 `retype <版本>`（不污染 `--list`/`--report` 的 stdout）；TUI 在进 curses 前打印同一行 |
 | FR-12.3 | 界面可见 | TUI 标题栏显示 `文字替换 v0.1`，帮助页首行同样带版本 |
 | FR-12.4 | 日志可追溯 | 每条写盘日志带 `app_version` 字段，事后能判断是哪个版本写的 |
 | FR-12.5 | 文档一致 | README、CLAUDE.md、三份管理文档与手册开头都有 `> 版本：v0.1`，与代码一致（`check-guards.py` 校验） |

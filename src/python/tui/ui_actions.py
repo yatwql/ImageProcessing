@@ -92,15 +92,15 @@ def edit_inline(app: App, win) -> None:
 # --------------------------------------------------------------------------- 按键
 
 
+def _dismiss_help(app: App, _win, _key) -> None:
+    """帮助页：任意键返回主界面。"""
+    app.panel = "main"
+
+
 def handle(app: App, win, key) -> None:
-    if app.panel == "help":
-        app.panel = "main"
-        return
-    if app.panel == "map":
-        handle_map(app, win, key)
-        return
-    if app.panel == "settings":
-        handle_settings(app, win, key)
+    handler = PANEL_HANDLERS.get(app.panel)
+    if handler is not None:
+        handler(app, win, key)
         return
 
     if key in ("q", "Q"):
@@ -125,7 +125,8 @@ def handle(app: App, win, key) -> None:
         app.move(10)
     elif key in ("KEY_PPAGE", "\x02"):
         app.move(-10)
-    elif key.isdigit() and len(key) == 1:
+    elif len(key) == 1 and key in "0123456789":
+        # 只认 ASCII 数字：str.isdigit() 对上标「²」也返回 True，int() 会直接抛 ValueError
         digit = 10 if key == "0" else int(key)
         if app.select_by_digit(digit):
             app.message = f"已选中第 {app.image_position()} 张图片"
@@ -268,3 +269,12 @@ def handle_map(app: App, win, key) -> None:
         app.move(1)
     elif key in ("k", "KEY_UP"):
         app.move(-1)
+
+
+# 面板 → 按键处理；"main" 不在表里，由 handle() 的主界面分支处理。
+# 放在模块末尾：表里引用的 handle_map / handle_settings 这时才存在。
+PANEL_HANDLERS = {
+    "help": _dismiss_help,
+    "map": handle_map,
+    "settings": handle_settings,
+}

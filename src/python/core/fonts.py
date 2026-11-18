@@ -97,7 +97,7 @@ def cache_file() -> str:
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
     else:
         base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
-    return os.path.join(base, "img-p", "fonts.json")
+    return os.path.join(base, "retype", "fonts.json")
 
 
 def _file_signature(files: list[str]) -> str:

@@ -1,4 +1,4 @@
-"""全局路径与配置：默认读 /data/config/img-p.json，图片在 /data，结果写 /data/output。"""
+"""全局路径与配置：默认读 <配置目录>/retype.json（旧 img-p.json 仍兼容），图片在 /data。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,8 @@ LOG_DIR = os.path.join(ROOT, "logs")
 CONFIG_DIR = (
     os.path.join(ROOT, "data", "config") if sys.platform == "win32" else "/data/config"
 )
-CONFIG_NAME = "img-p.json"
+CONFIG_NAME = "retype.json"
+LEGACY_CONFIG_NAME = "img-p.json"
 
 # 配置文件里允许的键（其余忽略）
 CONFIG_KEYS = (
@@ -37,8 +38,18 @@ CONFIG_KEYS = (
 
 
 def config_file() -> str:
-    """配置文件路径：IMG_P_CONFIG > CONFIG_DIR/img-p.json。"""
-    return os.environ.get("IMG_P_CONFIG") or os.path.join(CONFIG_DIR, CONFIG_NAME)
+    """配置文件路径：IMG_P_CONFIG / RETYPE_CONFIG > <配置目录>/retype.json。
+
+    旧版本用的是 img-p.json：新文件不存在而旧文件在时，继续读旧文件（不静默丢配置）。
+    """
+    explicit = os.environ.get("RETYPE_CONFIG") or os.environ.get("IMG_P_CONFIG")
+    if explicit:
+        return explicit
+    new = os.path.join(CONFIG_DIR, CONFIG_NAME)
+    legacy = os.path.join(CONFIG_DIR, LEGACY_CONFIG_NAME)
+    if not os.path.exists(new) and os.path.exists(legacy):
+        return legacy
+    return new
 
 
 def load_config() -> dict[str, object]:

@@ -14,19 +14,19 @@
 
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
-| 主程序代码 | Python | 31 | 4,311 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 69 | 8,992 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 697 | `git grep -c "def test_"` 行数口径 |
+| 主程序代码 | Python | 31 | 4,333 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
+| 测试代码 | Python | 71 | 9,171 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 702 | `git grep -c "def test_"` 行数口径 |
 | 工程工具 | Python | 18 | 3,268 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 353 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
-| 管理文档 | Markdown | 10 | 1,818 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
+| 管理文档 | Markdown | 10 | 1,858 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
 | 归档文档 | Markdown | 4 | 1,468 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
-| 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
+| 使用手册 | Markdown | 1 | 423 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 479 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **158** | **21,433** | 主程序 : 测试 ≈ 1 : 2.09；仓库共 162 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **160** | **21,679** | 主程序 : 测试 ≈ 1 : 2.12；仓库共 164 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -184,6 +184,7 @@ ImageProcessing/
 │   │   │   ├── test_ocr_contract.py          # OCR 封装测试：结果结构、区域裁剪、引擎缺失时的错误契约
 │   │   │   ├── test_platform_stability.py    # 跨平台兼容与稳定性：路径/配置/环境变量、异常契约、幂等与规模
 │   │   │   ├── test_properties.py            # 属性测试（hypothesis）：用生成的大量输入验证"永远成立的性质"
+│   │   │   ├── test_report_inline_fragment.py  # 行内替换的报告/日志字段：`old` 是整行、`new` 只是片段，必须再记下命中的子串与区间
 │   │   │   ├── test_stdio.py                 # 控制台编码：中文提示在非 UTF-8 终端（Windows cp936）上不能崩
 │   │   │   ├── test_version_display.py       # 版本号：唯一来源、界面可见、每次运行都报、写盘日志记录、文档开头一致
 │   │   │   └── test_write_audit_log.py       # 写盘日志：真实保存图片后必须留下一条可追溯的记录
@@ -214,7 +215,8 @@ ImageProcessing/
 │   │   │   ├── test_tui_real_terminal.py     # 真终端冒烟：在伪终端里跑一次真 curses，确认"屏幕上真的有东西"
 │   │   │   └── test_ui_shell.py              # TUI 外壳：参数解析、入口分支、主循环异常处理与基础绘制件
 │   │   ├── __init__.py                       # 测试用例包：统一仓库根路径与测试临时目录
-│   │   └── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口
+│   │   ├── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口
+│   │   └── conftest.py                       # pytest 全局钩子：用例不许往仓库真实产物目录（`data/output/`）写文件
 │   └── __init__.py                           # 项目源码包：src.python 为程序代码，src.test 为测试用例
 ├── .gitattributes                            # 仓库根
 ├── .gitignore                                # 忽略虚拟环境 / 缓存 / 输出 / 日志

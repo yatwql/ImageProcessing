@@ -134,6 +134,11 @@ def replace_image(
             tracking = opts.tracking
         color = parse_color(opts.color) if opts.color else info["text_color"]
 
+        # 行内命中：记下命中的子串与它在整行里的字符区间（整行替换时为 None）。
+        # 必须用 job.span（进循环时的原值），不能等下面按 char_spans 定位失败后置空的 span。
+        hit = job.span
+        fragment = job.src[hit[0] : hit[1]] if hit and job.src and hit[1] <= len(job.src) else None
+
         o_l, o_t, o_r, o_b = info["ink_box"]
         span = job.span
         box = (float(o_l), float(o_r), float(o_t), float(o_b))
@@ -195,6 +200,8 @@ def replace_image(
             {
                 "old": job.src,
                 "new": job.new,
+                "fragment": fragment,
+                "span": list(hit) if hit else None,
                 "rect": list(job.rect),
                 "mode": "行内" if span else "整行",
                 "font": face.name,

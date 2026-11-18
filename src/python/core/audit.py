@@ -45,7 +45,22 @@ ACTION_REPLACE = "替换文字并保存图片"
 ACTION_DEBUG = "写出调试图"
 
 # 报告里需要落到日志中的字段
-OP_FIELDS = ("old", "new", "mode", "rect", "font", "size", "tracking", "color", "align", "iou")
+# fragment/span 只对行内替换有值：old 永远是整行、new 只是片段，补上「命中的是哪个子串、
+# 在整行里的字符区间」，日志里的新旧文字才不会看起来不对等（旧日志没有这两个字段，取到 None）。
+OP_FIELDS = (
+    "old",
+    "new",
+    "fragment",
+    "span",
+    "mode",
+    "rect",
+    "font",
+    "size",
+    "tracking",
+    "color",
+    "align",
+    "iou",
+)
 
 # Options 里代表「用户显式指定过」的样式项
 OPTION_FIELDS = ("font", "size", "color", "align", "fit_width", "tracking", "max_fonts")

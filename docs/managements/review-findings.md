@@ -33,3 +33,12 @@
 | RF-152 | 门禁缺口 | windows 作业「工程守护」红两处：① 四个工具 `main()` 没调 `ensure_utf8_stdio()`，cp1252 控制台打印中文 `UnicodeEncodeError`；② 五个工具 `subprocess.run(text=True)` 缺 `encoding=`，解码炸后 `stdout` 变 None 再 `AttributeError` | 全部补齐；守护「跨平台」加 stdio 规则、子进程编码改按整次调用判断；3 例用例覆盖 | 已修 |
 | RF-153 | 门禁缺口 | `check_workflows` 在工作流自检里直接 `bash -n`：windows 上的 `bash` 是 WSL 存根，于是每个 run 块都被判"语法错误"（守护假红，掩盖本来就红的那条） | 先探测能否执行 `bash -c "exit 0"`；不可用则跳过 bash 检查；新增 `tools/test_workflow_checks.py`（5 例）覆盖探测跳过与 heredoc 禁令 | 已修 |
 
+
+## 2026-11-19 归档遗留项收尾（RF-6 / RF-16）
+
+> 两条在 v0.2 归档里长期挂 `待定`，一直没人接；这次按「已归档不改、另开新号跟进」的规矩收掉。
+
+| 编号 | 类型 | 发现 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-154 | 字段歧义（承接归档 RF-6） | 行内替换时报告与日志里 `old` 是整行文字、`new` 只是替换片段，两者不对等，事后看日志分不清「命中的是哪个子串」 | 报告与写盘日志的每条 operation 补 `fragment`（命中的原文子串）与 `span`（在整行里的字符区间 `[起, 止)`）；`old`/`new`/`mode` 语义不变，整行替换时两者为 `None`；日志字段只增不减，旧记录缺字段读成 `None`；`tools/…` 无改动，新增 `test_report_inline_fragment.py`（5 例）守住行内/整行两档与旧日志兼容 | 已修 |
+| RF-155 | 测试卫生（承接归档 RF-16） | 早期用例不带 `--out-dir`，产物堆在仓库 `data/output/`（一次全量跑就多出 4 张，历史累计 961 张 `report-*.png`） | `test_write_audit_log.py` 四处 `run_cli` 改走临时输出目录，历史产物清空；新增 `src/test/conftest.py`（会话级快照钩子）作为**本地拦截**：任何时候有用例往 `data/output/` 写文件，会话结束即红并点名文件 | 已修 |

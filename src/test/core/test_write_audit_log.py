@@ -250,6 +250,8 @@ class CliWritesAuditLog(unittest.TestCase):
         self.path = os.path.join(self.tmp.name, "report.png")
         Image.fromarray(self.rgb).save(self.path)
         self.log_dir = os.path.join(self.tmp.name, "logs")
+        # 输出一律指到临时目录：缺 --out-dir 时会写到仓库默认的 data/output（交接时堆了一地）
+        self.out_dir = os.path.join(self.tmp.name, "out")
 
     def run_cli(self, *argv: str, log_dir: str | None = None) -> int:
         code, _out, _err = self.run_cli_capture(*argv, log_dir=log_dir)
@@ -298,8 +300,12 @@ class CliWritesAuditLog(unittest.TestCase):
         self.assertEqual(self.logs(), [])
 
     def test_second_save_appends_a_second_record(self):
-        self.run_cli(self.path, "--map", f"{self.TITLE}=年度报告2024", "--quiet")
-        self.run_cli(self.path, "--map", f"{self.TITLE}=年度报告2025", "--quiet")
+        self.run_cli(
+            self.path, "--map", f"{self.TITLE}=年度报告2024", "--out-dir", self.out_dir, "--quiet"
+        )
+        self.run_cli(
+            self.path, "--map", f"{self.TITLE}=年度报告2025", "--out-dir", self.out_dir, "--quiet"
+        )
         self.assertEqual(
             [e["operations"][0]["new"] for e in self.logs()], ["年度报告2024", "年度报告2025"]
         )
@@ -308,7 +314,14 @@ class CliWritesAuditLog(unittest.TestCase):
         debug_dir = os.path.join(self.tmp.name, "debug")
         self.assertEqual(
             self.run_cli(
-                self.path, "--map", f"{self.TITLE}=年度报告2024", "--debug", debug_dir, "--quiet"
+                self.path,
+                "--map",
+                f"{self.TITLE}=年度报告2024",
+                "--debug",
+                debug_dir,
+                "--out-dir",
+                self.out_dir,
+                "--quiet",
             ),
             0,
         )
@@ -334,7 +347,14 @@ class CliWritesAuditLog(unittest.TestCase):
     def test_explicit_log_dir_wins_over_environment(self):
         chosen = os.path.join(self.tmp.name, "chosen")
         self.run_cli(
-            self.path, "--map", f"{self.TITLE}=年度报告2024", "--log-dir", chosen, "--quiet"
+            self.path,
+            "--map",
+            f"{self.TITLE}=年度报告2024",
+            "--log-dir",
+            chosen,
+            "--out-dir",
+            self.out_dir,
+            "--quiet",
         )
         self.assertEqual(len(self.logs(chosen)), 1)
         self.assertFalse(os.path.exists(self.log_dir))

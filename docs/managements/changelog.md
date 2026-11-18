@@ -7,6 +7,23 @@
 
 ## v0.3-dev — 开发中
 
+### 修复（归档遗留项收尾：行内替换的报告字段）
+
+- `src/python/core/edit.py`：行内替换的报告条目补 `fragment`（命中的原文子串）与 `span`
+  （子串在整行里的字符区间 `[起, 止)`）；`old`/`new`/`mode` 语义不变，整行替换时两者为 `None`。
+  这解掉了归档 `RF-6` 的“新旧文字不对等”岐义。
+- `src/python/core/audit.py`：`OP_FIELDS` 加上 `fragment`/`span`，写盘日志的 `operations[]` 同步落盘；
+  字段只增不减，旧日志缺字段读成 `None`。
+- `src/test/core/test_report_inline_fragment.py`（5 例）：行内/整行的报告字段、`fragment` 与 `span`
+  自洽（原文切片 = 报告的区间）、日志落盘与旧记录兼容。
+
+### 修复（归档遗留项收尾：用例不再写仓库产物目录）
+
+- `src/test/core/test_write_audit_log.py`：四处 `run_cli` 没带 `--out-dir`（偷懒走默认 `data/output`）
+  的用例改为统一写临时目录，顺手清掉历史堆积的 961 张 `data/output/report-*.png`。
+- 新增 `src/test/conftest.py`：会话级自动钩子，前后对比仓库 `data/output/` 快照，
+  有用例写进去就当场红并点名文件（归档 `RF-16` 的真实拦截）。
+
 ### 修复（v0.2 的 windows 作业仍红）
 
 - `src/test/core/layout/test_text_layout.py`：宽字距用例仍拿"另一次 fit 的排版宽度"当期望，

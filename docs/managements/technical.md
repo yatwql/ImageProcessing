@@ -236,6 +236,9 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 - 批量：输入为目录时遍历一层，`IMG_EXTS` 过滤；输出统一 `<out_dir>/<stem>.png`。
 - 汇总：成功/失败/无匹配张数与替换总数；至少一处成功返回 0。
 - `--report FILE`：同一份汇总再加逐图明细（`src`/`dst`/`replaced`/`operations`）写成 JSON；
+  每条 `operations` 记 `old`（整行原文）/`new`（写进图里的新文字）/`fragment`（行内命中时命中的原文子串）
+  /`span`（该子串在整行里的字符区间 `[起, 止)`）/`mode`/`rect`/字体样式/`iou`；
+  整行替换时 `fragment` 与 `span` 都是 `null`（`old` 与 `new` 对等，不歧义）。
   `--dry-run` 时 `dry_run=true`、`saved=false`。
 - `--quality N` 透传给 `save_image`；`--log-dir` 覆盖日志目录。
 
@@ -337,7 +340,7 @@ OCR 由 `App.start_loading()` 放到后台线程；`App.loading` 期间界面照
   写入时跨进程加锁（POSIX `flock`、Windows `msvcrt.locking`）、`fsync` 落盘，
   `prune_logs()` 自动清理超过 30 天的旧文件。
   `time` `channel` `action` `src_file` `src_path` `src_size` `dst_file` `dst_path` `dst_size`
-  `replaced` `operations[]`（`old`/`new`/`mode`/`rect`/`font`/`size`/`tracking`/`color`/`align`/`iou`）、
+  `replaced` `operations[]`（`old`/`new`/`fragment`/`span`/`mode`/`rect`/`font`/`size`/`tracking`/`color`/`align`/`iou`）、
   `dst_sha256` `dst_width` `dst_height`，
   以及用户显式设置过的样式项 `options`。
 - `action` 区分 `替换文字并保存图片` 与 `写出调试图`（`--debug` 的 mask 图同样入日志）。
@@ -447,7 +450,9 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `core/test_error_contract.py` | NFR-6 错误契约（`CoreError` 不外溢） |
 | `core/test_ocr_contract.py` | FR-1 OCR 契约与缺依赖提示 |
 | `core/test_write_audit_log.py` | FR-7 写盘日志字段 / 追加 / 并发 / 预演不记 |
+| `core/test_report_inline_fragment.py` | 行内替换的报告/日志字段：`fragment` + `span`，整行替换为 `null`，旧日志缺字段读成 `None` |
 | `core/test_log_query.py` | FR-11 日志查询与汇总 |
+| `conftest.py`（`src/test/`） | 用例不许往仓库 `data/output/` 写文件：会话前后对比快照，多出文件即红 |
 | `core/test_cancel_pipeline.py` | FR-10.4 单块级中断 |
 | `core/test_version_display.py` | FR-12 版本号贯穿（横幅/标题/日志/文档） |
 | `cli/test_arguments.py`、`test_single_image.py`、`test_batch_directory.py` | FR-4 参数、单图、批量与坏图跳过 |

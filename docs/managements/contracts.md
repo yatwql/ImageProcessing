@@ -39,7 +39,7 @@
 | 契约 | 内容 | 破坏方式 |
 | --- | --- | --- |
 | `core.Job` | `rect / src / new / span` 四字段；`span=None` 表示整行，否则为行内区间 | 改字段名/语义 |
-| `core.replace_image` | 返回 `(rgb, alpha|None, report)`；报告每条含 `old/new/rect/mode/font/size/tracking/color/align/iou` | 改返回结构 |
+| `core.replace_image` | 返回 `(rgb, alpha|None, report)`；报告每条含 `old/new/fragment/span/rect/mode/font/size/tracking/color/align/iou`（`fragment`/`span` 只在行内替换时有值） | 改返回结构 |
 | 错误契约 | 可预期失败**只**抛 `CoreError`，由渠道决定提示或退出；核心层不 `sys.exit`、不 `print` | 抛内置异常裸奔 |
 | 幂等 | 同图同参数重复执行，输出字节一致 | 引入随机/时间依赖 |
 | 覆盖保护 | 输出与输入同路径时拒绝；同目录不同名用 `-1/-2…` 编号 | 静默覆盖原图 |

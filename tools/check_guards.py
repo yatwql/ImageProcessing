@@ -15,6 +15,8 @@
   名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
   目录树    `docs/managements/folders.md` 必须覆盖所有源文件与文档（新增文件要同步）
   测试字体  用例不得硬编码 `ImageFont.truetype(FONT_CJK…, index=…)`，必须走 `cjk_font()`
+  导入方向  `core` 不得导入 `cli/tui`，`cli` 与 `tui` 互不导入（`tools/check_import_surface.py`）
+  文档索引  每份管理文档与手册都必须出现在 `docs/README.md` 的索引里
   依赖锁    `constraints.txt` 全部精确固定，且覆盖 pyproject 里声明的每个直接依赖
   PS 编码   `scripts/*.ps1` 必须是 UTF-8 with BOM（PowerShell 5.1 按 ANSI 读会乱码）
   scripts   `scripts/` 只放 .sh/.ps1 薄壳启动脚本（逻辑属于 `src/python` 或 `tools/`）
@@ -466,6 +468,33 @@ def check_scripts_are_launchers() -> list[str]:
     return problems
 
 
+def check_import_surface() -> list[str]:
+    """架构约束（AR-1/AR-2）：导入方向必须单一，渠道之间不得互相依赖。"""
+    result = subprocess.run([sys.executable, "tools/check_import_surface.py"],
+                            cwd=str(ROOT), capture_output=True, text=True, check=False)
+    if result.returncode == 0:
+        return []
+    return [line.strip().removeprefix("[FAIL] ") for line in result.stdout.splitlines()
+            if line.startswith("[FAIL]")] or ["导入方向检查失败"]
+
+
+def check_docs_index() -> list[str]:
+    """文档索引：`docs/README.md` 必须链接到每份管理文档与手册，否则等于没入口。"""
+    index = (ROOT / "docs" / "README.md")
+    if not index.is_file():
+        return ["缺少 docs/README.md（文档索引）"]
+    text = _read(index)
+    problems = []
+    for base in (DOCS, ROOT / "docs" / "manuals"):
+        for path in sorted(base.glob("*.md")):
+            rel = path.relative_to(ROOT).as_posix()
+            if rel == "docs/README.md":
+                continue
+            if path.name not in text and rel not in text:
+                problems.append(f"{rel} 未出现在 docs/README.md 索引里")
+    return problems
+
+
 CHECKS = [
     ("编号-plan", check_plan_ids),
     ("编号-review", check_rf_ids),
@@ -477,6 +506,8 @@ CHECKS = [
     ("名称", check_name_consistency),
     ("目录树文档", check_folders_doc),
     ("测试字体", check_test_font_usage),
+    ("导入方向", check_import_surface),
+    ("文档索引", check_docs_index),
     ("依赖锁", check_constraints),
     ("PS 编码", check_windows_scripts),
     ("scripts 薄壳", check_scripts_are_launchers),

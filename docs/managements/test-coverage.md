@@ -6,17 +6,17 @@
 `reports/junit.xml`（`tools/check_all.py` 全量模式产出）。改完用例或实现后重新生成即可，
 不要手改数字。
 
-> 生成时间：2026-11-18 14:24　|　命令：`.venv/bin/python tools/check_all.py`
+> 生成时间：2026-11-18 14:39　|　命令：`.venv/bin/python tools/check_all.py`
 
 ## 1. 总览
 
 | 指标 | 数值 | 门槛 | 结论 |
 | --- | ---: | ---: | --- |
-| 行覆盖率 | 85.7% | ≥ 75.0% | ✅ |
-| 用例总数 | 446 | — | — |
-| 通过 | 446 | = 总数 | ✅ |
+| 行覆盖率 | 88.8% | ≥ 75.0% | ✅ |
+| 用例总数 | 503 | — | — |
+| 通过 | 503 | = 总数 | ✅ |
 | 跳过 | 0（0.0%） | ≤ 15.0% | ✅ |
-| 用例总耗时 | 73.8s | — | — |
+| 用例总耗时 | 84.1s | — | — |
 
 ## 2. 模块覆盖率（高风险模块带门槛）
 
@@ -24,24 +24,24 @@
 | --- | ---: | ---: | ---: | --- |
 | `cli/__main__.py` | 0.0% | 0 / 4 | — | — |
 | `tui/__main__.py` | 0.0% | 0 / 4 | — | — |
-| `bootstrap.py` | 57.8% | 59 / 102 | — | — |
-| `tui/ui.py` | 60.5% | 72 / 119 | — | — |
-| `launch.py` | 71.9% | 23 / 32 | — | — |
-| `tui/ui_base.py` | 78.1% | 75 / 96 | — | — |
 | `tui/ui_actions.py` | 80.0% | 180 / 225 | ≥ 80.0% | ✅ |
-| `tui/ui_input.py` | 81.0% | 81 / 100 | — | — |
+| `tui/ui_input.py` | 81.0% | 81 / 100 | ≥ 80.0% | ✅ |
+| `tui/ui_base.py` | 81.2% | 78 / 96 | ≥ 80.0% | ✅ |
 | `tui/app.py` | 85.4% | 403 / 472 | ≥ 80.0% | ✅ |
-| `cli/main.py` | 85.8% | 188 / 219 | — | — |
+| `cli/main.py` | 85.8% | 188 / 219 | ≥ 85.0% | ✅ |
 | `core/audit.py` | 89.0% | 153 / 172 | ≥ 85.0% | ✅ |
 | `core/render.py` | 89.5% | 85 / 95 | ≥ 85.0% | ✅ |
 | `core/image.py` | 89.8% | 88 / 98 | ≥ 85.0% | ✅ |
 | `core/style.py` | 90.0% | 153 / 170 | — | — |
 | `core/fonts.py` | 90.1% | 136 / 151 | — | — |
-| `cli/log_query.py` | 92.0% | 46 / 50 | — | — |
+| `cli/log_query.py` | 92.0% | 46 / 50 | ≥ 90.0% | ✅ |
 | `core/ocr.py` | 92.5% | 37 / 40 | — | — |
 | `core/edit.py` | 93.4% | 114 / 122 | ≥ 85.0% | ✅ |
+| `launch.py` | 93.8% | 30 / 32 | ≥ 90.0% | ✅ |
 | `core/options.py` | 93.9% | 46 / 49 | ≥ 90.0% | ✅ |
 | `tui/ui_draw.py` | 94.1% | 222 / 236 | ≥ 85.0% | ✅ |
+| `bootstrap.py` | 94.1% | 96 / 102 | ≥ 90.0% | ✅ |
+| `tui/ui.py` | 95.0% | 113 / 119 | ≥ 90.0% | ✅ |
 | `config.py` | 95.1% | 77 / 81 | — | — |
 | `core/match.py` | 95.2% | 60 / 63 | ≥ 90.0% | ✅ |
 | `__init__.py` | 100.0% | 4 / 4 | — | — |
@@ -55,12 +55,12 @@
 
 | 包 | 文件数 | 覆盖率 |
 | --- | ---: | ---: |
-| `.` | 5 | 75.0% |
+| `.` | 5 | 94.6% |
 | `cli` | 3 | 85.7% |
 | `core` | 12 | 91.4% |
-| `tui` | 8 | 83.0% |
+| `tui` | 8 | 86.4% |
 
-## 4. 场景测试分组（293 例）
+## 4. 场景测试分组（350 例）
 
 | 分组 | 用例数 | 通过 | 耗时 | 覆盖的点 |
 | --- | ---: | ---: | ---: | --- |
@@ -68,44 +68,52 @@
 | `cli.test_arguments.MappingLoading` | 5 | 5 | 0.0s | — |
 | `cli.test_arguments.ParserDefaults` | 3 | 3 | 0.0s | — |
 | `cli.test_arguments.VersionFlag` | 1 | 1 | 0.0s | — |
-| `cli.test_batch_directory.BatchDirectoryRun` | 9 | 9 | 6.2s | — |
+| `cli.test_batch_directory.BatchDirectoryRun` | 9 | 9 | 7.1s | — |
+| `cli.test_bootstrap_launch.BootstrapMain` | 4 | 4 | 0.0s | — |
+| `cli.test_bootstrap_launch.ConfDirResolution` | 3 | 3 | 0.0s | — |
+| `cli.test_bootstrap_launch.EnsureDependencies` | 4 | 4 | 0.0s | — |
+| `cli.test_bootstrap_launch.EnsureVenv` | 2 | 2 | 0.0s | — |
+| `cli.test_bootstrap_launch.LaunchDispatch` | 6 | 6 | 0.0s | — |
+| `cli.test_bootstrap_launch.MissingModules` | 3 | 3 | 0.3s | — |
+| `cli.test_bootstrap_launch.PlatformPaths` | 2 | 2 | 0.0s | — |
+| `cli.test_bootstrap_launch.WriteConfig` | 3 | 3 | 0.0s | — |
 | `cli.test_demo_assets.DemoAssets` | 2 | 2 | 0.0s | — |
-| `cli.test_demo_assets.DemoCliFlows` | 5 | 5 | 7.5s | — |
-| `cli.test_entry_smoke.EntryPoints` | 8 | 8 | 0.8s | — |
-| `cli.test_entry_smoke.ScriptLaunchers` | 2 | 2 | 0.2s | — |
+| `cli.test_demo_assets.DemoCliFlows` | 5 | 5 | 8.6s | — |
+| `cli.test_entry_smoke.EntryPoints` | 8 | 8 | 0.9s | — |
+| `cli.test_entry_smoke.ScriptLaunchers` | 2 | 2 | 0.3s | — |
 | `cli.test_launch_env.AutoSetupSwitch` | 3 | 3 | 0.0s | — |
 | `cli.test_launch_env.BootstrapEntry` | 2 | 2 | 0.0s | — |
 | `cli.test_launch_env.LaunchChannels` | 4 | 4 | 0.0s | — |
-| `cli.test_launch_env.MissingModules` | 3 | 3 | 0.2s | — |
+| `cli.test_launch_env.MissingModules` | 3 | 3 | 0.4s | — |
 | `cli.test_log_query_cli.LogQueryCli` | 8 | 8 | 0.0s | — |
-| `cli.test_single_image.SingleImageOutputPixels` | 1 | 1 | 0.7s | — |
-| `cli.test_single_image.SingleImageRun` | 13 | 13 | 8.4s | — |
-| `cli.test_single_image.VersionBanner` | 1 | 1 | 2.8s | — |
-| `core.test_cancel_pipeline.ReplacementCancel` | 4 | 4 | 0.4s | — |
+| `cli.test_single_image.SingleImageOutputPixels` | 1 | 1 | 0.8s | — |
+| `cli.test_single_image.SingleImageRun` | 13 | 13 | 9.2s | — |
+| `cli.test_single_image.VersionBanner` | 1 | 1 | 3.4s | — |
+| `core.test_cancel_pipeline.ReplacementCancel` | 4 | 4 | 0.5s | — |
 | `core.test_log_query.LogQuery` | 9 | 9 | 0.0s | — |
 | `core.test_mapping_rules.BlockOverrides` | 4 | 4 | 0.0s | — |
 | `core.test_mapping_rules.MappingRules` | 8 | 8 | 0.0s | — |
 | `core.test_version_display.CodeUpdatedDate` | 5 | 5 | 0.0s | — |
 | `core.test_version_display.VersionInDocs` | 1 | 1 | 0.0s | — |
 | `core.test_version_display.VersionIsLogged` | 1 | 1 | 0.0s | — |
-| `core.test_version_display.VersionIsPrinted` | 4 | 4 | 2.6s | — |
+| `core.test_version_display.VersionIsPrinted` | 4 | 4 | 3.7s | — |
 | `core.test_version_display.VersionSource` | 2 | 2 | 0.0s | — |
 | `core.test_write_audit_log.AuditEntryFields` | 7 | 7 | 0.0s | — |
 | `core.test_write_audit_log.AuditLogFile` | 9 | 9 | 0.5s | — |
-| `core.test_write_audit_log.CliWritesAuditLog` | 9 | 9 | 8.3s | — |
-| `core.test_write_audit_log.TuiWritesAuditLog` | 7 | 7 | 5.2s | — |
-| `tui.test_apply_and_batch.ApplyFlow` | 12 | 12 | 6.0s | — |
+| `core.test_write_audit_log.CliWritesAuditLog` | 9 | 9 | 9.4s | — |
+| `core.test_write_audit_log.TuiWritesAuditLog` | 7 | 7 | 5.8s | — |
+| `tui.test_apply_and_batch.ApplyFlow` | 12 | 12 | 6.7s | — |
 | `tui.test_directory_browsing.BrowseKeys` | 3 | 3 | 0.1s | — |
 | `tui.test_directory_browsing.DefaultInput` | 2 | 2 | 0.0s | — |
 | `tui.test_directory_browsing.DirectoryRows` | 7 | 7 | 0.0s | — |
-| `tui.test_interaction_edges.BatchEdges` | 3 | 3 | 0.3s | — |
+| `tui.test_interaction_edges.BatchEdges` | 3 | 3 | 0.2s | — |
 | `tui.test_interaction_edges.BrowsingEdges` | 4 | 4 | 0.0s | — |
 | `tui.test_interaction_edges.KeyEdges` | 5 | 5 | 0.1s | — |
 | `tui.test_interaction_edges.MappingEdits` | 4 | 4 | 0.0s | — |
 | `tui.test_interaction_edges.SettingParsing` | 8 | 8 | 0.0s | — |
 | `tui.test_key_dispatch.BackgroundLoading` | 2 | 2 | 0.1s | — |
 | `tui.test_key_dispatch.BatchInterrupt` | 2 | 2 | 0.0s | — |
-| `tui.test_key_dispatch.MainPanelKeys` | 17 | 17 | 0.3s | — |
+| `tui.test_key_dispatch.MainPanelKeys` | 17 | 17 | 0.7s | — |
 | `tui.test_key_dispatch.MapPanelKeys` | 5 | 5 | 0.0s | — |
 | `tui.test_key_dispatch.NonAsciiDigits` | 2 | 2 | 0.0s | — |
 | `tui.test_key_dispatch.NonBlockingInput` | 4 | 4 | 0.0s | — |
@@ -113,11 +121,11 @@
 | `tui.test_key_dispatch.SettingsPanelKeys` | 4 | 4 | 0.0s | — |
 | `tui.test_keys_and_navigation.CliLikeArguments` | 2 | 2 | 0.0s | — |
 | `tui.test_keys_and_navigation.KeySequenceDecoding` | 4 | 4 | 0.0s | — |
-| `tui.test_keys_and_navigation.ListNavigation` | 11 | 11 | 0.1s | — |
+| `tui.test_keys_and_navigation.ListNavigation` | 11 | 11 | 0.2s | — |
 | `tui.test_layout_rendering.BorderDrawing` | 3 | 3 | 0.0s | — |
 | `tui.test_layout_rendering.LayoutRendering` | 6 | 6 | 0.0s | — |
 | `tui.test_layout_rendering.RefreshFlush` | 3 | 3 | 0.0s | — |
-| `tui.test_layout_rendering.ResponsiveLayout` | 8 | 8 | 0.0s | — |
+| `tui.test_layout_rendering.ResponsiveLayout` | 8 | 8 | 0.1s | — |
 | `tui.test_layout_rendering.WindowsStyleAcs` | 1 | 1 | 0.0s | — |
 | `tui.test_mapping_panel.MappingPanel` | 5 | 5 | 0.1s | — |
 | `tui.test_screen_snapshots.ScreenSnapshots` | 1 | 1 | 0.1s | — |
@@ -125,22 +133,28 @@
 | `tui.test_session_state.TuiSessionState` | 4 | 4 | 0.0s | — |
 | `tui.test_settings_panel.SettingsPanel` | 9 | 9 | 0.1s | — |
 | `tui.test_tui_real_terminal.RealTerminalSmoke` | 2 | 2 | 10.1s | — |
+| `tui.test_ui_shell.BaseWidgets` | 5 | 5 | 0.0s | — |
+| `tui.test_ui_shell.DrawEntry` | 1 | 1 | 0.0s | — |
+| `tui.test_ui_shell.LoopBehaviour` | 5 | 5 | 0.1s | — |
+| `tui.test_ui_shell.MainEntry` | 5 | 5 | 0.0s | — |
+| `tui.test_ui_shell.ParseArgs` | 6 | 6 | 0.0s | — |
+| `tui.test_ui_shell.ReadKey` | 8 | 8 | 0.0s | — |
 
 ## 5. 单元测试分组（132 例）
 
 | 分组 | 用例数 | 通过 | 耗时 | 覆盖的点 |
 | --- | ---: | ---: | ---: | --- |
-| `core.background.test_background_types` | 7 | 7 | 0.1s | — |
-| `core.color.test_alpha_channel` | 4 | 4 | 0.6s | — |
-| `core.color.test_text_colors` | 2 | 2 | 2.0s | — |
+| `core.background.test_background_types` | 7 | 7 | 0.2s | — |
+| `core.color.test_alpha_channel` | 4 | 4 | 0.7s | — |
+| `core.color.test_text_colors` | 2 | 2 | 2.3s | — |
 | `core.font.test_font_pool` | 16 | 16 | 0.7s | — |
 | `core.format.test_image_read_write` | 16 | 16 | 0.0s | — |
-| `core.layout.test_text_layout` | 5 | 5 | 3.5s | — |
-| `core.pipeline.test_replace_pipeline` | 3 | 3 | 2.4s | — |
+| `core.layout.test_text_layout` | 5 | 5 | 3.8s | — |
+| `core.pipeline.test_replace_pipeline` | 3 | 3 | 2.8s | — |
 | `core.primitives.test_erasing_and_drawing` | 12 | 12 | 0.1s | — |
 | `core.primitives.test_inpaint_radius` | 6 | 6 | 0.0s | — |
 | `core.primitives.test_rendering_primitives` | 4 | 4 | 0.0s | — |
-| `core.primitives.test_style_analysis` | 3 | 3 | 1.5s | — |
+| `core.primitives.test_style_analysis` | 3 | 3 | 1.7s | — |
 | `core.test_feature_edges.AreaJobs` | 3 | 3 | 0.0s | — |
 | `core.test_feature_edges.ColorParsing` | 2 | 2 | 0.0s | — |
 | `core.test_feature_edges.ImageFormatTable` | 3 | 3 | 0.0s | — |
@@ -155,11 +169,11 @@
 | `core.test_platform_stability.PlatformDefaults` | 4 | 4 | 0.0s | — |
 | `core.test_platform_stability.ScaleAndIdempotence` | 3 | 3 | 0.2s | — |
 | `core.test_platform_stability.VersionMeta` | 2 | 2 | 0.0s | — |
-| `core.test_properties.ColorProperties` | 2 | 2 | 0.1s | — |
+| `core.test_properties.ColorProperties` | 2 | 2 | 0.2s | — |
 | `core.test_properties.NormMapProperties` | 3 | 3 | 0.2s | — |
 | `core.test_properties.PlanJobsProperties` | 1 | 1 | 0.1s | — |
 | `core.test_properties.UniquePathProperties` | 1 | 1 | 0.1s | — |
-| `core.test_properties.WidthProperties` | 2 | 2 | 0.1s | — |
+| `core.test_properties.WidthProperties` | 2 | 2 | 0.2s | — |
 
 ## 6. 其他（未归类，需显式确认）
 
@@ -176,14 +190,14 @@
 | --- | ---: | ---: |
 | `cli/__main__.py` | 0.0% | 4 |
 | `tui/__main__.py` | 0.0% | 4 |
-| `bootstrap.py` | 57.8% | 43 |
-| `tui/ui.py` | 60.5% | 47 |
-| `launch.py` | 71.9% | 9 |
-| `tui/ui_base.py` | 78.1% | 21 |
 | `tui/ui_actions.py` | 80.0% | 45 |
 | `tui/ui_input.py` | 81.0% | 19 |
+| `tui/ui_base.py` | 81.2% | 18 |
 | `tui/app.py` | 85.4% | 69 |
 | `cli/main.py` | 85.8% | 31 |
+| `core/audit.py` | 89.0% | 19 |
+| `core/render.py` | 89.5% | 10 |
+| `core/image.py` | 89.8% | 10 |
 
 ## 8. 怎么更新
 

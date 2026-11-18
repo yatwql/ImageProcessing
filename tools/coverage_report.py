@@ -31,6 +31,9 @@ MODULE_MIN = {
     "core/match.py": 0.90, "core/options.py": 0.90,
     "core/edit.py": 0.85, "core/render.py": 0.85, "core/image.py": 0.85, "core/audit.py": 0.85,
     "tui/ui_actions.py": 0.80, "tui/ui_draw.py": 0.85, "tui/app.py": 0.80,
+    "bootstrap.py": 0.90, "launch.py": 0.90, "tui/ui.py": 0.90,
+    "tui/ui_input.py": 0.80, "tui/ui_base.py": 0.80,
+    "cli/main.py": 0.85, "cli/log_query.py": 0.90,
 }
 TOTAL_MIN = 0.75
 SKIP_MAX = 0.15

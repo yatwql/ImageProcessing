@@ -14,12 +14,13 @@
 | QG-1 | 静态质量 | `ruff check src/ tools/` + `mypy`（全树） | 零告警 / 零错误 |
 | QG-2 | 结构约定 | `tools/check_guards.py` | 13 项全过 |
 | QG-3 | 行覆盖率 | `tools/check_coverage.py` | 总量 ≥ 75% |
-| QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%，edit/render/image/audit/ui_draw ≥85%，app/ui_actions ≥80%） | 逐项达标 |
+| QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%；edit/render/image/audit/ui_draw/bootstrap/launch/ui/cli-main/cli-log_query ≥85~90%；app/ui_actions/ui_base/ui_input ≥80%） | 逐项达标 |
 | QG-5 | 跳过率 | 同上（正常模式，即机器上有中文字体） | ≤ 15% |
 | QG-6 | 行为正确性 | 全量用例（功能/交互/跨平台/稳定性/入口冒烟/快照/属性） | 0 失败 |
 | QG-7 | 性能不退化 | `tools/check_perf.py` | 四步各阈值 + 合计 ≤ 6s |
 | QG-8 | 依赖安全 | CI `audit` 作业 `pip-audit --strict` | 无已知漏洞 |
 | QG-9 | 缺陷回归 | 每个已修缺陷都有对应用例 | 100%（见 §6） |
+| QG-10 | 发布门禁 | `tools/release.py check/gate`（工作区干净、版本与日期一致、全量门禁） | 全绿才可打标签 |
 
 一条命令自查：`python tools/check_all.py`（全量）/ `--quick`（提交前用）。
 
@@ -51,6 +52,8 @@
 | 真终端 | 真 curses 渲染 | `tui/test_tui_real_terminal.py`（`script(1)` 伪终端） | POSIX + `script` 才跑，其余平台 skip |
 | 性能 | 热路径耗时 | `tools/check_perf.py` | 阈值 = 实测 × 5 以上，只挡数量级退化 |
 | 变异（opt-in） | 验证断言强度 | `tools/mutation_check.py`（mutmut） | 默认试点 `core/match.py`、`core/options.py` |
+| 架构约束 | 依赖方向不被破坏 | `tools/check_import_surface.py`（守护第 14 项） | `core` 不导入渠道、渠道互不导入 |
+| 发布 | 发行物可复现 | `tools/release.py`（check/gate/build/tag/publish） | 见 `releasing.md` |
 
 ## 4. 用例编写标准
 
@@ -70,6 +73,9 @@
 
 - 总量 ≥ 75%；9 个高风险模块单独设限（见 `tools/check_coverage.py` 的 `MODULE_MIN`）。
 - 新增模块：若属于"判断密集/出错代价高"的类别，必须同时加进 `MODULE_MIN`。
+- 现有门槛（贴实测下沿，防止回落）：`core/{match,options}` 90%，`core/{edit,render,image,audit}`、
+  `tui/ui_draw`、`bootstrap`、`launch`、`tui/ui`、`cli/main` 85~90%，`tui/{app,ui_actions,ui_base,ui_input}` 80%，
+  `cli/log_query` 90%。
 - 豁免：仅允许"平台条件导入/入口薄壳"这类结构性不可覆盖；豁免要在本文与守卫里写明理由，
   不允许用 `# pragma: no cover` 大面积糊。
 - 跳过率：正常模式 ≤ 15%；超出说明环境缺依赖或用例在躲问题。

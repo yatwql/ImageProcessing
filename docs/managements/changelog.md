@@ -5,6 +5,57 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 参考 investor-review：架构约束 / 设计契约 / 发布流程 / 文档索引
+
+### 新增
+
+- `docs/managements/contracts.md`：AR-1..7 架构约束（依赖方向、分层、入口契约、文件长度、编码）、
+  §2 核心 API / CLI / 数据 / 界面四类契约、§3 版本与兼容策略、§4 扩展点、§5 约束与守护对照。
+- `docs/managements/releasing.md`：六步发布流程（check/prepare/gate/build/tag/publish）、
+  版本策略、发布前清单、CI 侧发布、回滚方式。
+- `tools/release.py`：上述六步的可执行编排；`tag`/`publish` 等有副作用的步骤必须 `--yes`。
+- `tools/check_import_surface.py`：AST 检查导入方向——`core` 不导入 `cli`/`tui`，`cli`/`tui` 互不导入。
+- `docs/README.md`：全仓文档索引。
+- CI `release` 作业：推 `v*` 标签时跑全量门禁 → 构建 wheel/sdist + SHA256SUMS → `gh release create --verify-tag`。
+
+### 变更
+
+- 守护新增第 14 项「导入方向」、第 15 项「文档索引」（共 15 项）。
+- `technical.md` 增 §1.2 依赖方向；`CLAUDE.md` 增导入方向硬约束与发布/文档索引纪律；
+  `testplan.md` 增 QG-10 发布门禁与两类测试层（架构约束、发布）；README 文档索引补齐。
+
+## 2026-11-18 — 补测薄弱模块，覆盖率 84% → 88.8%
+
+### 新增测试（57 例）
+
+- `src/test/cli/test_bootstrap_launch.py`（27 例）：配置目录解析（绝对/相对/平台默认）、
+  建 venv 复用与新建、`missing_modules` 探测、`ensure_dependencies` 的自动/关闭/dev 三条分支、
+  `write_config` 写入/不覆盖/不可写、`main --check|--skip-install|--dev`、
+  渠道分派与 `execv` 失败退化、`IMG_P_NO_AUTO_SETUP` 开关、平台解释器路径。装依赖全部打桩，
+  只验证"调了哪些命令"，不联网。
+- `src/test/tui/test_ui_shell.py`（30 例）：`parse_args` 全量取值/非法值/`--help`、
+  `main` 的缺路径/空目录提示/CoreError/KeyboardInterrupt→130/版本横幅、
+  主循环的 Esc 归一/KEY_RESIZE/终端持续报错主动退出/单次与连续 Ctrl-C、
+  `read_key` 的单字符/功能键/独立 Esc/转义序列/超时恢复阻塞、
+  `progress_bar` 边界、`cut/pad` 极小预算、`box/divider` 小窗口、HELP/USAGE 关键项。
+
+### 覆盖率变化
+
+| 模块 | 之前 | 现在 |
+| --- | ---: | ---: |
+| `bootstrap.py` | 57.8% | 94.1% |
+| `launch.py` | 71.9% | 93.8% |
+| `tui/ui.py` | 60.5% | 95.0% |
+| `tui/ui_base.py` | 78.1% | 81.2% |
+| `tui/ui_input.py` | 81.0% | 81.0% |
+| **总量** | 84.0% | **88.8%** |
+
+### 变更
+
+- `tools/check_coverage.py` 与 `tools/coverage_report.py` 的 `MODULE_MIN` 新增 7 项
+  （bootstrap/launch/ui/ui_base/ui_input/cli-main/log_query），贴实测下沿防回落。
+- `testplan.md` 的 QG-4 与门槛说明同步；`technical.md` 用例对照表补两个文件。
+
 ## 2026-11-18 — 测试计划与覆盖率报告
 
 ### 新增

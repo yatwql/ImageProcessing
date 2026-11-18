@@ -120,3 +120,8 @@
 | PLAN-86 | 覆盖率文档 | 新增 `docs/managements/test-coverage.md` + `tools/coverage_report.py`（`--write` 生成）：总览、模块覆盖率（带门槛）、包级汇总、场景/单元分组、薄弱点 | 完成 |
 | PLAN-87 | 测试计划 | 新增 `docs/managements/testplan.md`：质量目标 QG-1..9、门禁分层 P0/P1/P2、测试分层 13 类、用例编写标准、覆盖率/性能/跨平台标准、缺陷分级、合并前清单 | 完成 |
 | PLAN-88 | 日志查询命令覆盖 | `cli/log_query.py` 覆盖率 0% → 92%：新增 8 例（过滤/`--json`/坏日期/无匹配/`--help`），并修正"指定日期无日志文件"应返回空而不是报错 | 完成 |
+| PLAN-89 | 补测薄弱模块 | `bootstrap.py` 58%→94%、`launch.py` 72%→94%、`tui/ui.py` 60%→95%、`ui_base` 81%、`ui_input` 81%（新增 57 例：平台路径、依赖安装分支、入口分支/退出码、主循环异常、Esc 序列、绘制件边界）；总覆盖率 84%→88.8% | 完成 |
+| PLAN-90 | 门槛收紧 | `MODULE_MIN` 新增 bootstrap/launch/ui/ui_base/ui_input/cli-main/log_query 七项，贴实测下沿防回落 | 完成 |
+| PLAN-91 | 架构约束可执行 | 新增 `tools/check_import_surface.py`（core 不导入 cli/tui、渠道互不导入），并入守护第 14 项；`contracts.md` 写清 AR-1..7 与 API/CLI/数据/界面契约 | 完成 |
+| PLAN-92 | 文档索引 | 新增 `docs/README.md` 统一索引 + 守护第 15 项（每份管理文档/手册必须被索引引用） | 完成 |
+| PLAN-93 | 发布流程 | 新增 `tools/release.py`（check/prepare/gate/build/tag/publish，副作用步骤需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（推 `v*` 标签：全量门禁 → 构建 → 建 Release） | 完成 |

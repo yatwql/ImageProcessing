@@ -25,6 +25,14 @@ MODULE_MIN = {
     "tui/ui_actions.py": 0.80,
     "tui/ui_draw.py": 0.85,
     "tui/app.py": 0.80,
+    # 以下为本轮补测后新达标的模块：门槛贴着实测值下沿，防止回落
+    "bootstrap.py": 0.90,
+    "launch.py": 0.90,
+    "tui/ui.py": 0.90,
+    "tui/ui_input.py": 0.80,
+    "tui/ui_base.py": 0.80,
+    "cli/main.py": 0.85,
+    "cli/log_query.py": 0.90,
 }
 TOTAL_MIN = 0.75
 SKIP_MAX_RATIO = 0.15  # 正常模式（有中文字体）下，跳过用例不该超过 15%

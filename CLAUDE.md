@@ -124,6 +124,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 ## 文档纪律
 
+- 发布走 `docs/managements/releasing.md` + `tools/release.py`（check → prepare → gate → build → tag → publish）；
+  文档索引在 `docs/README.md`，新增文档必须加进索引（守护第 15 项）。
 - 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`
   （后者由 `.venv/bin/python tools/coverage_report.py --write` 生成，别手改数字）。
 - 三份文档随实现同步：

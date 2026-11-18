@@ -250,6 +250,22 @@
 | RF-109 | 覆盖缺口 | `cli/log_query.py` 覆盖率 0%（只有 core 层回读用例，用户真按的那条命令没测） | 新增 8 例覆盖过滤/`--json`/坏日期/无匹配/`--help`，覆盖率 0% → 92% | 已修 |
 | RF-110 | 行为缺陷 | `--date` 指定某天且当天没有日志文件时抛 `CoreError`（退出码 2），应为"没有匹配的记录" | `read_entries` 把 `FileNotFoundError` 当空结果；补回归用例 | 已修 |
 
+## 2026-11-18 补测薄弱模块
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-111 | 覆盖薄弱 | `bootstrap.py` 58%、`launch.py` 72%、`tui/ui.py` 60%：都是"用户能不能跑起来"的关键路径，却因为会建 venv/装依赖而没人敢测 | 全部打桩补齐 57 例（装依赖只验证命令、`execv` 失败退化、平台路径、入口退出码、主循环异常/Esc/KEY_RESIZE、`read_key` 序列、绘制件边界）；覆盖率 → 94% / 94% / 95% | 已修 |
+| RF-112 | 门槛偏松 | 高风险模块清单里没有 bootstrap/launch/入口层，补测收益无法锁定 | `MODULE_MIN` 增 7 项（bootstrap/launch/ui/ui_base/ui_input/cli-main/log_query），贴实测下沿 | 已修 |
+
+## 2026-11-18 参考 investor-review：架构约束 / 契约 / 发布
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-113 | 架构约束不可执行 | "core 唯一实现替换逻辑、渠道不互相依赖"只写在 CLAUDE.md，没有机器检查 | 新增 `tools/check_import_surface.py`：AST 扫描 `src.python.X` 导入，core 不得导入 cli/tui、cli 与 tui 互不导入；并入守护第 14 项 | 已修 |
+| RF-114 | 契约未成文 | 核心 API、CLI 退出码、日志/摘要字段、配置文件键的稳定性与破坏方式没有一处成文，升级时容易无声破坏 | 新增 `contracts.md`：AR-1..7 依赖/分层约束、§2 四类契约、§3 版本与兼容策略、§4 扩展点、§5 约束与守护对照 | 已修 |
+| RF-115 | 发布无流程 | 发布靠手动改版本号 + 手推标签，没有预检/门禁/产物/回滚说明；CI 也没有 tag 触发链路 | 新增 `tools/release.py`（check/prepare/gate/build/tag/publish，副作用需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（`v*` 标签：全量门禁 → wheel/sdist+SHA256SUMS → `gh release create`） | 已修 |
+| RF-116 | 文档无统一入口 | 文档散在 README 与管理目录，新增文档没人知道；也没有检查 | 新增 `docs/README.md` 索引 + 守护第 15 项「文档索引」（漏链即红） | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

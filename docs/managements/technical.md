@@ -75,6 +75,11 @@ src/
     cli/  tui/               渠道与交互用例
 ```
 
+## 1.2 依赖方向（硬约束）
+
+`core` 不导入 `cli`/`tui`；`cli` 与 `tui` 互不导入——由 `tools/check_import_surface.py`
+（守护第 14 项）逐文件核对 `src.python.X` 形式的导入。完整契约见 `contracts.md`。
+
 ## 2. 模块与职责
 
 | 文件 | 职责 | 关键导出 |
@@ -419,6 +424,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `core/format/test_image_read_write.py` | FR-6 输出格式表、元数据、质量、覆盖保护 |
 | `core/background/test_background_types.py` | FR-2 纯色 / 渐变 / 照片底图擦除 |
 | `core/pipeline/test_replace_pipeline.py` | FR-2 端到端 + memo 幂等 |
+| `cli/test_bootstrap_launch.py` | 环境引导与启动器：配置目录解析、建 venv、装依赖分支、`--check/--skip-install/--dev`、渠道分派与 `execv` 失败、平台路径 |
 | `cli/test_log_query_cli.py` | 日志查询命令：过滤、`--json`、坏日期、无匹配 |
 | `core/test_properties.py` | 属性测试：norm_map 下标、cut/pad 预算、颜色、unique_path、plan_jobs span |
 | `core/test_feature_edges.py` | 功能边界：映射规则/颜色解析/任务构造/日志轮转/格式表 |
@@ -437,6 +443,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tui/test_keys_and_navigation.py` | FR-5 按键归一、目录浏览 |
 | `tui/test_interaction_edges.py` | 交互边界：样式面板非法输入、映射增删改、目录边界、批量取消 |
 | `tui/test_key_dispatch.py` | FR-5 三块面板逐键 + 中断 + 非 ASCII 数字 |
+| `tui/test_ui_shell.py` | TUI 外壳：参数解析、入口分支（缺路径/空目录/CoreError/中断）、主循环异常与 Esc/KEY_RESIZE、`read_key` 序列、基础绘制件 |
 | `tui/test_screen_snapshots.py` | 界面快照：5 尺寸 × 8 状态的整屏文本（布局漂移即红） |
 | `tui/test_layout_rendering.py` | FR-5 宽/窄屏响应式布局（32~130 列） |
 | `tui/test_mapping_panel.py`、`test_settings_panel.py` | FR-5 映射表 / 样式面板编辑 |

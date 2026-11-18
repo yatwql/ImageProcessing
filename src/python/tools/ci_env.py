@@ -38,8 +38,12 @@ def write(out: Path) -> list[Path]:
     written.append(platform_info)
 
     freeze = subprocess.run(
-        [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True,
-        encoding="utf-8", errors="replace", check=False,
+        [sys.executable, "-m", "pip", "freeze"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
     )
     freeze_path = out / "pip-freeze.txt"
     freeze_path.write_text(freeze.stdout, encoding="utf-8")

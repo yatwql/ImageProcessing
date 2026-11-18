@@ -15,6 +15,41 @@
 - CI「失败用例摘要」步自己红了（`UnicodeEncodeError: 'charmap'`，Windows 控制台 cp1252 打印中文）：
   逻辑搬进 `src/python/tools/junit_summary.py`（`ensure_utf8_stdio()`），工作流只留一行 `python -m ...`。
 
+### 修复（windows 作业「类型检查」红）
+
+- `src/python/core/audit.py`：`import fcntl` 在 Windows 的 typeshed 里没有 `flock`/`LOCK_EX` 等属性，
+  `mypy` 在 windows 作业上直接红。改为 `fcntl: Any = _fcntl_module` 间接引用（运行时行为不变）。
+- `src/test/tui/test_tui_real_terminal.py`：`os.mkfifo` 同样是 POSIX-only 属性，改成 `cast(Any, os).mkfifo(...)`。
+- `check_all` 新增「mypy (win32 平台)」一步（`--platform win32`）：这类差异现在本地就红。
+
+### 修复（windows 作业「工程守护」红）
+
+- 四个工具（`check_guards` / `check_perf` / `check_platform_safety` / `gen_folders`）的 `main()` 缺
+  `ensure_utf8_stdio()`：Windows 控制台 cp1252 下打印中文 `[ok] 编号-plan` 直接 `UnicodeEncodeError`。
+- 五个工具（`check_guards` / `gen_folders` / `release` / `ci_env` / `update_constraints`）的
+  `subprocess.run(text=True)` 缺 `encoding=`：Windows 用 cp1252 解码 UTF-8 输出 →
+  `UnicodeDecodeError` + `stdout is None`。
+- 守护「跨平台」两条规则收紧：`tools/` 里有 `main()` 必须调 `ensure_utf8_stdio()`（+3 例）；
+  子进程编码检查改为按「整次调用」判断（原来只看 3 行，跨行写法漏检）。
+
+### 修复（windows 作业「工程守护」红：工作流自检）
+
+- `src/python/tools/check_workflows.py`：以前直接 `bash -n` 每个 `run:` 块；windows-latest 上 `bash`
+  是 WSL 存根（退 1、stderr 空），于是逐条报"bash 语法错误"。改为先探测 `bash -c "exit 0"`
+  （`BASH_OK`），不可用时跳过 bash 检查，只保留 YAML 与 `python -c` 片段校验。
+
+### 修复（windows 作业「耗时守卫」红）
+
+- `src/python/tools/check_perf.py`：`日志追加×300` 在 windows runner 上实测 3.5s（上限 1.0s）——fsync 慢一个量级。
+  新增平台档 `limits_for(is_windows)`：Windows 只把**落盘那一步**放大 5 倍、总上限放大 4 倍，其余步骤保持基准
+  （无条件放大等于把门禁调松）；`tools/test_perf_limits.py`（3 例）钉住这条口径。
+
+### 新增（流程提速）
+
+- `src/python/tools/gate_stamp.py` + `src/test/tools/test_gate_stamp.py`（8 例）：全量门禁通过后按
+  「跟踪文件路径 + 内容」的 sha256 留戳（`.git/retype-gate-stamp.json`）；`pre-push` 先问戳，
+  同一份代码再推直接跳过 7 分钟的全量重跑，改任何跟踪文件即失效。
+
 ### 新增
 
 - `src/python/tools/junit_summary.py` + `src/test/tools/test_junit_summary.py`（5 例）：失败/错误用例

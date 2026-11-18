@@ -38,6 +38,7 @@ try:  # 3.11+
 except ModuleNotFoundError:  # 3.10：用 tomli（dev 依赖，带平台标记）
     import tomli as tomllib
 
+from ..stdio import ensure_utf8_stdio
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
 SRC = ROOT / "src"
@@ -457,7 +458,7 @@ def git_src_date() -> str | None:
             ["git", "log", "-1", "--format=%cs", "--", "src"],
             cwd=str(ROOT),
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             check=False,
         )
     except OSError:
@@ -544,7 +545,7 @@ def check_import_surface() -> list[str]:
         [sys.executable, "-m", "src.python.tools.check_import_surface"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         check=False,
     )
     if result.returncode == 0:
@@ -625,7 +626,7 @@ def check_workflows() -> list[str]:
         [sys.executable, "-m", "src.python.tools.check_workflows"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         check=False,
     )
     if result.returncode == 0:
@@ -681,6 +682,8 @@ CHECKS = [
 
 
 def main(argv: Sequence[str] = ()) -> int:
+    ensure_utf8_stdio()
+
     # 空序列表示"没传参"，避免 `x is None` 形式的静态规则噪音
     args = list(argv) if argv else sys.argv[1:]
     if "-h" in args or "--help" in args:

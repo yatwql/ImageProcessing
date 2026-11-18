@@ -57,7 +57,9 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 .venv/bin/python -m src.python.tools.check_all --quick   # 跳过覆盖率与无字体复跑（提交前钩子用这个）
 ```
 
-- 提交前钩子 `pre-commit` 跑 `--quick`，推送前钩子 `pre-push` 跑全量（含覆盖率门禁与无字体复跑）。
+- 提交前钩子 `pre-commit` 跑 `--quick`，推送前钩子 `pre-push` 跑全量（含覆盖率门禁与三档矩阵）；
+  全量通过会在 `.git/retype-gate-stamp.json` 留戳，**同一份代码再推不重跑**（约省 7 分钟），
+  改任何跟踪文件都会让戳失效。
 - 覆盖率门禁：总量 ≥96%，且 `core/{match,options}` ≥90%、`core/{edit,render,image,audit,render}` 与
   `tui/{ui_draw}` ≥85%、`tui/{app,ui_actions}` ≥80%；正常模式 skip ≤15%（`src/python/tools/check_coverage.py`）。
 - 界面快照：`src/test/snapshots/tui.json`（5 尺寸 × 8 状态）。有意改界面后

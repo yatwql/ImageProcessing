@@ -14,19 +14,19 @@
 
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
-| 主程序代码 | Python | 31 | 4,308 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 66 | 8,726 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 678 | `git grep -c "def test_"` 行数口径 |
-| 工程工具 | Python | 17 | 3,026 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
+| 主程序代码 | Python | 31 | 4,311 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
+| 测试代码 | Python | 69 | 8,992 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 697 | `git grep -c "def test_"` 行数口径 |
+| 工程工具 | Python | 18 | 3,268 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
-| CI 与钩子 | YAML / Shell | 4 | 347 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
-| 管理文档 | Markdown | 10 | 1,762 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
+| CI 与钩子 | YAML / Shell | 4 | 353 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
+| 管理文档 | Markdown | 10 | 1,818 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
 | 归档文档 | Markdown | 4 | 1,468 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
-| 根文档与配置 | Markdown / TOML / TXT | 7 | 477 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
+| 根文档与配置 | Markdown / TOML / TXT | 7 | 479 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **154** | **20,858** | 主程序 : 测试 ≈ 1 : 2.03；仓库共 158 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **158** | **21,433** | 主程序 : 测试 ≈ 1 : 2.09；仓库共 162 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -109,6 +109,7 @@ ImageProcessing/
 │   │   │   ├── check_workflows.py            # CI 工作流自检：把"只在 runner 上才炸"的脚本错误搬到本地
 │   │   │   ├── ci_env.py                     # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
 │   │   │   ├── coverage_report.py            # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统
+│   │   │   ├── gate_stamp.py                 # 全量门禁通过戳：同一份代码不重复跑 7 分钟的全量门禁
 │   │   │   ├── gen_folders.py                # 重新生成 `docs/managements/folders.md` 的两个"机器可算"部分：目录树与项
 │   │   │   ├── junit_summary.py              # JUnit 报告摘要：把失败用例列成一行一条，CI 里一眼看清红在哪
 │   │   │   ├── mutation_check.py             # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
@@ -190,11 +191,14 @@ ImageProcessing/
 │   │   │   └── tui.json                      # 界面快照数据
 │   │   ├── tools/
 │   │   │   ├── __init__.py                   # 工程工具用例（发布编排 / 归档流程等）
+│   │   │   ├── test_gate_stamp.py            # 门禁戳（`gate_stamp`）：同一份代码不重复跑全量门禁
 │   │   │   ├── test_gen_folders_stats.py     # `gen_folders` 的统计表重算：数字由脚本算，说明列与表结构一概不动
 │   │   │   ├── test_junit_summary.py         # CI 失败摘要工具（`junit_summary`）：把 junit 报告里的红用例列成 `class:
+│   │   │   ├── test_perf_limits.py           # 耗时守卫的平台档：Windows runner 的 fsync 慢一个量级，只放大落盘那一步
 │   │   │   ├── test_platform_safety_rules.py  # 「跨平台」守护的规则自检：规则本身也要有用例，否则它会悄悄失效
 │   │   │   ├── test_release_archive.py       # 归档流程（`release.py archive`）的用例
-│   │   │   └── test_release_versions.py      # 版本号与分支策略（`-dev` 开发版 / 正式版）：`release.py` 的定版与切版
+│   │   │   ├── test_release_versions.py      # 版本号与分支策略（`-dev` 开发版 / 正式版）：`release.py` 的定版与切版
+│   │   │   └── test_workflow_checks.py       # 工作流自检（`check_workflows`）：bash 语法检查要在"没有真 bash"时优雅跳过
 │   │   ├── tui/                              # 交互用例
 │   │   │   ├── __init__.py                   # tui 场景测试
 │   │   │   ├── test_apply_and_batch.py       # TUI 执行流程测试：替换当前图、批量确认、重名与覆盖保护

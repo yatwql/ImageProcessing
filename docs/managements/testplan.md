@@ -117,6 +117,8 @@
 - 守护「跨平台」的三条用例卫生规则（会在本地直接红，不等 CI）：写死字体家族 /
   裸 `bash`/`sh` / 无平台守卫的 `fcntl`；豁免写在行尾 `# platform-safe`（如 POSIX-only 的 `script(1)` 冒烟）。
 - Windows 上无法用 `script(1)`：真终端冒烟自动 skip，由 ACS int 模拟 + windows 作业兜底。
+- **类型检查也按 Windows 平台跑一遍**（`mypy --platform win32`，`check_all` 全量步骤之一）：
+  `fcntl` / `os.mkfifo` 这类「Linux 有、Windows 没有」的属性，只有这一档能在本地提前发现。
 - **本地 CI 矩阵**（全量模式默认全跑；`--ci-matrix` / `--font-matrix` 可单开）：
   ① 无中文字体（`IMG_P_TEST_NO_CJK_FONT=1`）；
   ② cp1252 控制台 + C locale（`PYTHONIOENCODING=cp1252 LC_ALL=C LANG=C`）——
@@ -143,6 +145,8 @@
 | `check_platform_safety` | 五条用例卫生规则 × `# platform-safe` 豁免 | `tools/test_platform_safety_rules.py` |
 | `gen_folders` | 目录树生成、统计表数字重算、`alt`/指定字体模式 | `tools/test_gen_folders_stats.py` |
 | `junit_summary` | 失败/错误用例提取、报告缺失、用法提示 | `tools/test_junit_summary.py` |
+| `gate_stamp` | 指纹随跟踪文件变化、未跟踪文件不影响、戳缺失/损坏 | `tools/test_gate_stamp.py` |
+| `check_perf` | 平台档：Windows 只放大落盘步骤与总上限，且容得下实测 3.5s | `tools/test_perf_limits.py` |
 
 ## 9. 质量报告与产物
 

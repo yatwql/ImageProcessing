@@ -43,6 +43,7 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   release.py                 发布编排：check → archive → prepare → gate → build → tag → publish
   gen_folders.py             重新生成 folders.md 的目录树与统计表数字（说明列保留）
   junit_summary.py           把 junit 报告里的失败用例列成一行一条（CI 摘要步用它）
+  gate_stamp.py              门禁戳：同一份代码已全量通过时，推送前跳过重跑（省 ~7 分钟）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
@@ -467,6 +468,9 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tools/test_platform_safety_rules.py` | 守护「跨平台」的规则自检：写死字体家族 / 裸 bash / 无守卫 fcntl /
 绝对像素阈值 / 断言里比 `sys.executable`，以及 `bash_exe()` 探测、字体矩阵候选顺序与换行符规则 |
 | `tools/test_release_versions.py` | 版本策略：`0.3-dev`→`0.3` 定版、跨版本拒绝、`devbump` 切下个开发版、开发版不能打标签 |
+| `tools/test_perf_limits.py` | 耗时守卫平台档：POSIX 用基准上限，Windows 只放大落盘步骤与总上限，且容得下实测 3.5s |
+| `tools/test_gate_stamp.py` | 门禁戳：写/读/损坏戳、指纹随跟踪文件变化、未跟踪文件不影响、命令行退出码 |
+| `tools/test_workflow_checks.py` | 工作流自检：bash 不可用时跳过语法检查、heredoc 禁令、合法 `python -m` 放行 |
 | `tools/test_junit_summary.py` | CI 失败摘要：`class::name` 列表、失败+错误、报告缺失不报错、用法提示 |
 | `tools/test_gen_folders_stats.py` | 目录统计重算：文件数/行数/用例数/示例图与合计行由脚本算，说明列不动 |
 

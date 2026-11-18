@@ -41,12 +41,8 @@ def normalize(text: str) -> str:
 @contextlib.contextmanager
 def fixed_version():
     """把界面里的版本串固定成 `SNAPSHOT_VERSION`（标题/帮助页都会带它）。"""
-    title = (
-        f"{version_mod.NAME} v{SNAPSHOT_VERSION} ({version_mod.UPDATED}) · {version_mod.TITLE}"
-    )
-    help_text = ui_base.HELP.replace(
-        f"v{version_mod.VERSION}", f"v{SNAPSHOT_VERSION}"
-    )
+    title = f"{version_mod.NAME} v{SNAPSHOT_VERSION} ({version_mod.UPDATED}) · {version_mod.TITLE}"
+    help_text = ui_base.HELP.replace(f"v{version_mod.VERSION}", f"v{SNAPSHOT_VERSION}")
     with (
         mock.patch.object(ui_draw, "VERSION", SNAPSHOT_VERSION),
         mock.patch.object(ui_draw, "TITLE_TEXT", title),
@@ -54,6 +50,8 @@ def fixed_version():
         mock.patch.object(ui_base, "HELP", help_text),
     ):
         yield
+
+
 UPDATE = os.environ.get("UPDATE_SNAPSHOTS") == "1"
 
 SIZES = [(32, 18), (44, 22), (50, 24), (80, 26), (130, 34)]

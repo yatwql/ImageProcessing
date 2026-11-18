@@ -50,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     steps: list[tuple[str, list[str], dict[str, str] | None]] = [
         ("ruff", [PY, "-m", "ruff", "check", "src/"], None),
         ("mypy", [PY, "-m", "mypy"], None),
+        # 同一棵树按 Windows 的 typeshed 再检查一遍：fcntl / os.mkfifo 这类
+        # 「Linux 有、Windows 没有」的属性，只有这一档能在本地提前发现。
+        ("mypy (win32 平台)", [PY, "-m", "mypy", "--platform", "win32"], None),
         ("guards", [PY, "-m", "src.python.tools.check_guards"], None),
         ("perf", [PY, "-m", "src.python.tools.check_perf", "--ci"], None),
     ]
@@ -129,6 +132,16 @@ def main(argv: list[str] | None = None) -> int:
             env={"IMG_P_TEST_FONT": "alt"},
         ):
             return 1
+
+    # 全量通过就在 git 目录里留个戳：同一份代码再 push 不必重跑 7 分钟。
+    if not quick:
+        from . import gate_stamp
+
+        try:
+            gate_stamp.write_stamp()
+            print("已记录门禁戳（同一份代码下次推送可跳过重跑）")
+        except OSError as exc:  # 只读环境/无 git：不影响结论
+            print(f"[!] 无法写门禁戳：{exc}")
 
     print("\n全部通过 ✅")
     return 0

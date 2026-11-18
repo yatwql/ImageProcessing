@@ -31,7 +31,7 @@ VERSION_FILE = ROOT / "src" / "python" / "version.py"
 DOCS = ROOT / "docs"
 CHANGELOG = DOCS / "managements" / "changelog.md"
 DIST = ROOT / "dist"
-DEV_SUFFIX = "-dev"          # 开发分支上的版本号后缀：0.3-dev；发布时去掉
+DEV_SUFFIX = "-dev"  # 开发分支上的版本号后缀：0.3-dev；发布时去掉
 PY = sys.executable
 
 # 归档：三份过程台账，旧版本内容整块搬进 docs/archive/v<系列>/（规则见 docs/archive/README.md）
@@ -338,7 +338,9 @@ def cmd_devbump(version: str, version_file: Path | None = None) -> int:
 
 def cmd_tag(version: str, yes: bool) -> int:
     if is_dev(version):
-        print(f"[FAIL] {version} 是开发版，不能打标签；先 prepare --version {base_version(version)}")
+        print(
+            f"[FAIL] {version} 是开发版，不能打标签；先 prepare --version {base_version(version)}"
+        )
         return 2
     tag = f"v{version}"
     existing = sh(["git", "tag", "--list", tag]).stdout.strip()

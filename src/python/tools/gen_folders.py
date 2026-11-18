@@ -16,6 +16,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
+from ..stdio import ensure_utf8_stdio
 from ._paths import ROOT
 
 DOC = ROOT / "docs" / "managements" / "folders.md"
@@ -91,7 +92,7 @@ def tracked_files() -> list[str]:
         ["git", "-c", "core.quotepath=false", "ls-files", "-z"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
     ).stdout
     return [
         p
@@ -294,6 +295,8 @@ def refresh_stats(text: str, files: list[str], root: Path | None = None) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
+
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)

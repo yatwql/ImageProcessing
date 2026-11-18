@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = shutil.which("script")
@@ -39,7 +40,7 @@ class RealTerminalSmoke(unittest.TestCase):
         """在 pty 里跑一次 TUI，`seconds` 秒后按 q 退出，返回去转义后的输出。"""
         with tempfile.TemporaryDirectory() as tmp:
             fifo = Path(tmp) / "stdin"
-            os.mkfifo(fifo)
+            cast(Any, os).mkfifo(fifo)  # POSIX-only；本类只在 POSIX 上跑，win32 typeshed 里没有
             record = Path(tmp) / "typescript"
             # 保持 stdin 打开，过几秒再送 q：让界面画出至少一帧
             feeder = f"exec 3>{fifo}; sleep {seconds}; printf q >&3; sleep 1"

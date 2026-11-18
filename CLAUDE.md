@@ -41,14 +41,22 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
   可关掉自动安装。
 - 依赖与工具配置只在 `pyproject.toml`；`requirements*.txt` 只是 `-e .` / `-e .[dev]` 的兼容壳；
   版本组合由 `constraints.txt` 锁定，安装与 CI 都要带 `-c constraints.txt`。
-- 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`），`IMG_P_SKIP_HOOK=1` 临时跳过。
+- 提交前门禁：`sh .githooks/install-hooks.sh` 启用（写 `core.hooksPath`）；钩子执行
+  `tools/check_all.py --quick`（ruff/mypy/guards/perf/全量用例），`IMG_P_SKIP_HOOK=1` 临时跳过。
 - 配置文件：`/data/config/retype.json`（模板见 `/data/config/retype.example.json`，可用 `IMG_P_CONFIG` 指定）；
   测试中间文件写 `/data/tmp`，测试报告写 `/test-reports`。
 - 入口：`./scripts/cli.sh`（= `python -m src.python.cli`）、`./scripts/tui.sh`（= `python -m src.python.tui`）；
   Windows 用 `scripts\cli.ps1` / `tui.ps1` / `setup.ps1` / `test.ps1`，虚拟环境解释器在 `.venv\Scripts\python.exe`。
 
+**推送前只跑一条命令**（与 CI 的六个作业对齐，绿了再推）：
+
 ```bash
-.venv/bin/ruff check src/ scripts/                                 # 静态检查
+.venv/bin/python tools/check_all.py           # ruff → mypy → guards → perf → 用例(含覆盖率) → 无字体复跑
+.venv/bin/python tools/check_all.py --quick   # 跳过覆盖率与无字体复跑（提交前钩子用这个）
+```
+
+```bash
+.venv/bin/ruff check src/ tools/                                   # 静态检查
 .venv/bin/python -m mypy                                              # 类型检查（守 core）
 .venv/bin/python tools/check_guards.py                              # 编号/分层/长度/编码/测试目录
 .venv/bin/python tools/check_perf.py                                # 耗时守卫

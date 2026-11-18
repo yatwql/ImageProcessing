@@ -35,7 +35,8 @@ Windows（PowerShell）用同名 `.ps1`：
 本地与 CI 跑同一套检查，提交前钩子也跑前两项：
 
 ```bash
-sh .githooks/install-hooks.sh                         # 启用提交前门禁（一次）
+.venv/bin/python tools/check_all.py                   # 本地一条命令跑完 CI 的全部检查
+sh .githooks/install-hooks.sh                         # 启用提交前门禁（一次，钩子跑 --quick）
 .venv/bin/ruff check src/ scripts/                    # 静态检查
 .venv/bin/python -m mypy                              # 类型检查（守 core）
 .venv/bin/python tools/check_guards.py              # 编号/分层/长度/编码/测试目录/版本/依赖锁

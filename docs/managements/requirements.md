@@ -182,6 +182,7 @@
 | FR-12.2 | 每次运行都报 | CLI 每次运行先往 stderr 打印 `retype <版本>`（不污染 `--list`/`--report` 的 stdout）；TUI 在进 curses 前打印同一行 |
 | FR-12.3 | 界面可见 | TUI 标题栏显示 `文字替换 v0.1`，帮助页首行同样带版本 |
 | FR-12.4 | 日志可追溯 | 每条写盘日志带 `app_version` 字段，事后能判断是哪个版本写的 |
+| FR-12.7 | 代码更新日期 | 界面标题、帮助页、CLI 横幅与写盘日志都展示 `UPDATED`（YYYY-MM-DD）；它与 `src/` 最后一次提交日期一致，由守护核对 |
 | FR-12.6 | 名称一致 | 程序名只在 `version.NAME` 定义；CLI 横幅、TUI 标题、日志 `app` 字段、包名/控制台脚本、文档标题全部引用，`check_guards.py` 校验 |
 | FR-12.5 | 文档一致 | README、CLAUDE.md、三份管理文档与手册开头都有 `> 版本：v0.1`，与代码一致（`check-guards.py` 校验） |
 

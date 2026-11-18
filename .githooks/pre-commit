@@ -4,7 +4,9 @@
 #   sh .githooks/install-hooks.sh      # 启用（git config core.hooksPath .githooks）
 #   IMG_P_SKIP_HOOK=1 git commit ...   # 临时跳过（仅限明确知道后果时）
 #
-# 只改了非代码文件时直接放行；有一点用例较慢（约 35s），换来的是一次提交即全绿。
+# 与 CI 对齐：`tools/check_all.py --quick` 跑静态检查 + 守护 + 耗时守卫 + 全量用例
+# （约 60s；想更快可以先手动 `tools/check_all.py --quick -k 关键字`）。
+# 只改了非代码文件时直接放行。
 
 set -e
 ROOT=$(git rev-parse --show-toplevel)
@@ -24,20 +26,5 @@ if [ ! -x "$PY" ]; then
   exit 0
 fi
 
-echo "[pre-commit] ruff"
-"$PY" -m ruff check src/ scripts/ >/dev/null
-
-echo "[pre-commit] guards"
-"$PY" tools/check_guards.py --ci
-
-case "$STAGED" in
-  *.py*|*pyproject.toml*)
-    echo "[pre-commit] pytest"
-    "$PY" -m pytest src/test -q -x -p no:cacheprovider >/dev/null
-    ;;
-  *)
-    echo "[pre-commit] 无 Python 改动，跳过用例"
-    ;;
-esac
-
-echo "[pre-commit] ok"
+echo "[pre-commit] check_all --quick（ruff / mypy / guards / perf / 用例）"
+exec "$PY" tools/check_all.py --quick

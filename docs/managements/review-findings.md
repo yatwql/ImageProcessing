@@ -194,6 +194,20 @@
 | RF-88 | 本地不可复现 | 上述失败只在 Windows runner 出现，本地（有 Noto）永远绿，导致"推上去才发现" | 新增 `IMG_P_TEST_NO_CJK_FONT=1`：本地强制模拟无字体环境，`pytest src/test -q` 应 0 失败（字体用例全 skip）；守护新增第 13 项「测试字体」禁止再硬编码 index | 已修 |
 | RF-89 | 平台假设 | `test_posix_falls_back_to_common_font_dirs` 在 Windows 上断言 `/usr/share/fonts` | 加 `skipUnless(os.name == "posix")` | 已修 |
 
+## 2026-11-18 代码更新日期
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-90 | 可追溯 | 界面与日志只显示版本号 `0.1`，反馈问题时无法判断跑的是哪一天的代码（同一版本号可能有多次修改） | `version.UPDATED` 为唯一来源：TUI 标题/帮助页、CLI 横幅与 `--version` 都显示，写盘日志加 `app_updated` 字段；守护核对它与 `src/` 最后一次提交日期一致 | 已修 |
+
+## 2026-11-18 本地门禁与窄屏回归
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-91 | 流程缺陷 | "本地绿、CI 红"反复出现：本地没有一条能覆盖 CI 六个作业的命令，靠人记着跑哪几条 | 新增 `tools/check_all.py`（ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑），提交前钩子改调 `--quick`；推送前只跑这一条 | 已修 |
+| RF-92 | 界面回归 | 标题加上版本与日期后变长，窄屏 44/50 列放不下右上角 `[宽x高]`，两个布局用例失败 | 尺寸标记改放底部状态行，标题行不再与它抢位置；布局用例恢复 | 已修 |
+| RF-93 | 守护有效性 | 新增 `tools/check_all.py` 后守护立刻报「目录树文档未覆盖」——说明第 12 项确实拦得住漂移 | 同步 `folders.md` 的树与统计 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

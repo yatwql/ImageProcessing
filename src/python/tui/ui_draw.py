@@ -22,11 +22,11 @@ import curses
 import os
 import re
 
-from ..version import NAME, TITLE, VERSION
+from ..version import NAME, TITLE, UPDATED, VERSION
 from .app import App
 from .ui_base import HELP, attr, box, divider, dwidth, pad, progress_bar, put, vline
 
-TITLE_TEXT = f"{NAME} v{VERSION} · {TITLE}"
+TITLE_TEXT = f"{NAME} v{VERSION} ({UPDATED}) · {TITLE}"
 PROGRESS = re.compile(r"(\d+)\s*/\s*(\d+)")
 
 
@@ -87,7 +87,9 @@ def _draw_footer(win, app: App, h: int, w: int, img) -> None:
     else:
         detail = app.status if not app.images else ""
     put(win, h - 4, 2, detail, w - 4, attr("accent"))
-    put(win, h - 3, 2, _status_text(app, w - 4), w - 4, attr("ok"))
+    size_marker = f"  [{w}x{h}]" if w < 60 else ""
+    put(win, h - 3, 2, _status_text(app, w - 4 - dwidth(size_marker)) + size_marker,
+        w - 4, attr("ok"))
     put(win, h - 2, 2, f" {_keys_hint(app, w)} ", w - 4, attr("sel"))
 
 

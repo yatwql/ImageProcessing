@@ -17,7 +17,7 @@
 | 主程序代码 | Python | 30 | 4,161 | `src/python/**/*.py`（不含测试）：core 核心层 / cli 命令行 / tui 交互 / 引导与启动器 |
 | 测试代码 | Python | 45 | 4,342 | `src/test/**/*.py`：core（含 background/color/font/format/layout/pipeline/primitives）、cli、tui |
 | 测试用例 | — | — | 330 | `git grep -c "def test_"` 行数口径；pytest 实际执行为 370（含 subTest 展开与参数化） |
-| 工程工具 | Python | 3 | 701 | `tools/`：工程守护、耗时守卫、测试编排（不进运行时包） |
+| 工程工具 | Python | 4 | 885 | `tools/`：工程守护、耗时守卫、测试编排（不进运行时包） |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 3 | 244 | `.github/workflows/ci.yml` + `.githooks/pre-commit`、`install-hooks.sh` |
 | 管理文档 | Markdown | 6 | 1,455+ | `docs/managements/`：需求 / 技术设计 / 计划 / 变更 / 自检 / 本文件 |
@@ -155,6 +155,7 @@ ImageProcessing/
 │   │   └── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口
 │   └── __init__.py                           # 项目源码包：src.python 为程序代码，src.test 为测试用例
 ├── tools/                                    # 工程工具，不进运行时包
+│   ├── check_all.py                          # 本地全量门禁：ruff/mypy/guards/perf/用例
 │   ├── check_guards.py                       # 工程守护 12 项
 │   ├── check_perf.py                         # 耗时守卫（四步热路径）
 │   └── run_tests.py                          # 测试编排：报告 / 覆盖率 / 摘要 / 清理

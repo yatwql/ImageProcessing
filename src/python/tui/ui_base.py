@@ -10,7 +10,7 @@ import contextlib
 import curses
 import unicodedata
 
-from ..version import NAME, TITLE, VERSION
+from ..version import NAME, TITLE, UPDATED, VERSION
 
 PAIR = {"title": 1, "sel": 2, "dim": 3, "ok": 4, "warn": 5, "err": 6,
         "accent": 7, "frame": 8}
@@ -34,7 +34,7 @@ USAGE = """\
 """
 
 HELP = f"""\
-{NAME} v{VERSION} · {TITLE} —— 操作说明
+{NAME} v{VERSION} ({UPDATED}) · {TITLE} —— 操作说明
 
 左栏「图片」                     右栏「识别到的文字」
   ↑↓ / j k   选图片               1..9 / 0   直接跳到第 1..10 张

@@ -18,7 +18,7 @@ from typing import Any
 
 from PIL import Image
 
-from ..version import NAME, VERSION
+from ..version import NAME, UPDATED, VERSION
 from .errors import CoreError
 from .options import Options
 
@@ -159,6 +159,11 @@ def app_version() -> str:
     return VERSION
 
 
+def app_updated() -> str:
+    """代码最后更新日期（日志字段用；与界面标题同源）。"""
+    return UPDATED
+
+
 def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
                 action: str = ACTION_REPLACE, channel: str = "cli",
                 options: object | None = None, when: dt.datetime | None = None) -> dict[str, Any]:
@@ -169,6 +174,7 @@ def build_entry(src: str, dst: str, report: Sequence[Mapping[str, Any]] = (), *,
         "time": stamp.isoformat(timespec="seconds"),
         "app": NAME,
         "app_version": app_version(),
+        "app_updated": app_updated(),
         "channel": channel,
         "action": action,
         "src_file": os.path.basename(src),

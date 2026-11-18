@@ -4,6 +4,7 @@
 """
 
 from .version import NAME as __app_name__
+from .version import UPDATED as __updated__
 from .version import VERSION as __version__
 
-__all__ = ["__app_name__", "__version__"]
+__all__ = ["__app_name__", "__updated__", "__version__"]

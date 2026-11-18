@@ -74,6 +74,37 @@ class VersionIsLogged(TuiTestCase):
         self.assertEqual(entry["app_version"], version_mod.VERSION)
 
 
+class CodeUpdatedDate(TuiTestCase):
+    """代码更新日期要出现在 TUI 标题、帮助页与写盘日志里（反馈问题时一眼看出是哪天的代码）。"""
+
+    def test_title_bar_shows_the_update_date(self):
+        from src.python.tui import ui_draw
+
+        app = self.make_app(count=1)
+        win = FakeWin([], rows=28, cols=120)
+        ui_draw.draw_frame(win, app)
+        self.assertIn(version_mod.UPDATED, win.screen[0])
+
+    def test_help_page_shows_the_update_date(self):
+        from src.python.tui import ui_base
+
+        self.assertIn(version_mod.UPDATED, ui_base.HELP)
+
+    def test_write_log_entry_records_the_update_date(self):
+        entry = audit.build_entry("a.png", "b.png", ())
+        self.assertEqual(entry["app_updated"], version_mod.UPDATED)
+
+    def test_cli_version_prints_the_update_date(self):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
+                contextlib.suppress(SystemExit):
+            cli_main.main(["--version"])
+        self.assertIn(version_mod.UPDATED, out.getvalue() + err.getvalue())
+
+    def test_update_date_looks_like_a_date(self):
+        self.assertRegex(version_mod.UPDATED, r"^\d{4}-\d{2}-\d{2}$")
+
+
 class VersionInDocs(unittest.TestCase):
     def test_every_doc_starts_with_the_current_version(self):
         docs = [

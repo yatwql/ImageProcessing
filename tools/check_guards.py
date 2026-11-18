@@ -10,7 +10,8 @@
   长度      单个源文件不超过 1000 行
   编码      文本 I/O 必须显式 `encoding=`（二进制模式除外）
   用例目录  `src/test` 下不得留只有 `__init__.py` 的空包，且目录要出现在 technical.md
-  版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致
+  版本号    `src/python/version.py` 为唯一来源，pyproject 动态读取，各文档开头一致；
+            `UPDATED`（界面/日志展示的代码更新日期）必须等于 `src/` 最后一次提交日期
   名称      `version.NAME` 与 pyproject 包名/控制台脚本一致，日志与界面都引用它
   目录树    `docs/managements/folders.md` 必须覆盖所有源文件与文档（新增文件要同步）
   测试字体  用例不得硬编码 `ImageFont.truetype(FONT_CJK…, index=…)`，必须走 `cjk_font()`
@@ -23,6 +24,7 @@ from __future__ import annotations
 
 import ast
 import re
+import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -370,10 +372,42 @@ def check_name_consistency() -> list[str]:
     return problems
 
 
+def current_updated() -> str | None:
+    """从 version.py 读代码更新日期（YYYY-MM-DD）。"""
+    text = _read(SRC / "python" / "version.py")
+    m = re.search(r'^UPDATED\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    return m.group(1) if m else None
+
+
+def git_src_date() -> str | None:
+    """`src/` 最后一次提交的日期；没有 git（安装包）或命令不可用时返回 None。"""
+    try:
+        out = subprocess.run(
+            ["git", "log", "-1", "--format=%cs", "--", "src"],
+            cwd=str(ROOT), capture_output=True, text=True, check=False,
+        )
+    except OSError:
+        return None
+    stamp = out.stdout.strip()
+    return stamp or None
+
+
 def check_version_consistency() -> list[str]:
     """版本号：代码是唯一来源，打包配置与各文档开头必须与之一致。"""
     version = current_version()
     problems = []
+    updated = current_updated()
+    if updated is None:
+        problems.append('src/python/version.py 里没有 UPDATED = "YYYY-MM-DD"')
+    elif not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated):
+        problems.append(f"UPDATED 格式应为 YYYY-MM-DD，收到 {updated!r}")
+    else:
+        commit_date = git_src_date()
+        if commit_date and commit_date != updated:
+            problems.append(
+                f"UPDATED 是 {updated}，但 src/ 最后提交是 {commit_date}"
+                "（改了代码要同步更新 src/python/version.py 的 UPDATED）"
+            )
     pyproject = _read(ROOT / "pyproject.toml")
     if 'version = { attr = "src.python.version.VERSION" }' not in pyproject:
         problems.append("pyproject.toml 未指向 src.python.version.VERSION（版本号会两处不一致）")

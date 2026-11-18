@@ -419,6 +419,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `core/format/test_image_read_write.py` | FR-6 输出格式表、元数据、质量、覆盖保护 |
 | `core/background/test_background_types.py` | FR-2 纯色 / 渐变 / 照片底图擦除 |
 | `core/pipeline/test_replace_pipeline.py` | FR-2 端到端 + memo 幂等 |
+| `core/test_properties.py` | 属性测试：norm_map 下标、cut/pad 预算、颜色、unique_path、plan_jobs span |
 | `core/test_feature_edges.py` | 功能边界：映射规则/颜色解析/任务构造/日志轮转/格式表 |
 | `core/test_platform_stability.py` | 跨平台默认值（配置目录/解释器路径）、异常契约、规模与幂等 |
 | `core/test_config_file.py` | FR-9 配置文件读取、容错、优先级 |
@@ -430,10 +431,12 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `core/test_version_display.py` | FR-12 版本号贯穿（横幅/标题/日志/文档） |
 | `cli/test_arguments.py`、`test_single_image.py`、`test_batch_directory.py` | FR-4 参数、单图、批量与坏图跳过 |
 | `cli/test_demo_assets.py` | 回归样例：`data/demo/` 真图 |
+| `cli/test_entry_smoke.py` | 入口冒烟：`--version/--help/launch` 错误码 + shell 薄壳语法 |
 | `cli/test_launch_env.py` | 启动器渠道分派与自动安装开关 |
 | `tui/test_keys_and_navigation.py` | FR-5 按键归一、目录浏览 |
 | `tui/test_interaction_edges.py` | 交互边界：样式面板非法输入、映射增删改、目录边界、批量取消 |
 | `tui/test_key_dispatch.py` | FR-5 三块面板逐键 + 中断 + 非 ASCII 数字 |
+| `tui/test_screen_snapshots.py` | 界面快照：5 尺寸 × 8 状态的整屏文本（布局漂移即红） |
 | `tui/test_layout_rendering.py` | FR-5 宽/窄屏响应式布局（32~130 列） |
 | `tui/test_mapping_panel.py`、`test_settings_panel.py` | FR-5 映射表 / 样式面板编辑 |
 | `tui/test_apply_and_batch.py` | FR-5、FR-10 替换、批量、进度与取消 |

@@ -204,6 +204,8 @@
 | NFR-3 | 可移植 | Linux/macOS + Python ≥ 3.10；仅依赖 pip 包与系统字体（fontconfig） |
 | NFR-4 | 可维护 | 核心逻辑单点实现，CLI 与 TUI 不重复实现替换逻辑；`ruff` 零告警、`mypy` 全树零错误、`tools/check_guards.py` 十三项全过 |
 | NFR-8 | 门禁自动化 | CI（GitHub Actions）与 `pre-commit` 同源执行 ruff / mypy / guards / perf / 全量用例；任一项失败即拦截 |
+| NFR-12 | 质量门禁分层 | 静态（ruff/mypy）→ 结构守护（13 项）→ 覆盖率（总量 75% + 9 个高风险模块 80~90% + skip ≤15%）→ 行为（功能/交互/跨平台/稳定/入口冒烟）→ 界面快照 → 性能（四步热路径）→ 依赖审计（pip-audit）；提交前跑 quick、推送前跑全量 |
+| NFR-13 | 可复现的失败 | 平台差异（无中文字体、ACS int、长路径、平台默认值）都有本地可跑的模拟用例；CI 失败上传 junit/覆盖率/环境指纹 |
 | NFR-11 | 依赖可复现 | `constraints.txt` 精确固定直接与传递依赖，setup 与 CI 统一 `pip install -c`；升级须全绿才算通过 |
 | NFR-10 | 版本可溯源 | 版本号单点定义；运行横幅、界面标题、日志字段、文档开头四处一致，漂移即被守护拦截 |
 | NFR-9 | 回归可测 | 覆盖率不低于 75%（当前约 80%）；四步热路径耗时不超过 `check-perf.py` 的阈值（合计 6s）|

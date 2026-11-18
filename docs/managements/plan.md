@@ -116,3 +116,4 @@
 | PLAN-82 | 覆盖率分模块 | `tools/check_coverage.py`：总量 75%、9 个高风险模块 80~90%、skip ≤15%；接入 `check_all` | 完成 |
 | PLAN-83 | 变异测试 | `tools/mutation_check.py`（opt-in，mutmut），默认试点 `core/match.py` | 完成 |
 | PLAN-84 | 依赖审计与入口冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（含 shell 薄壳语法检查） | 完成 |
+| PLAN-85 | 文档全面校准（本轮） | 8 份文档对齐当前实现：统计数字（116 个代码/文档文件 14,097 行、含示例图 122 个跟踪文件、436 个 test 函数）、CI 七个作业、用例对照表新增属性/快照/入口冒烟、NFR-12/13（门禁分层与可复现失败）、README 钩子说明 | 完成 |

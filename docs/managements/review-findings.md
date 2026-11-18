@@ -235,6 +235,12 @@
 | RF-104 | 断言强度 | 覆盖率不等于"能杀 bug"，没有机制验证断言强度 | 引入 mutmut 试点脚本（opt-in），先跑 match/options | 已修 |
 | RF-105 | 供应链/入口 | 依赖漏洞无审计；入口（`--version/--help/launch`）没有冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（11 例） | 已修 |
 
+## 2026-11-18 文档校准（质量加固之后）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-106 | 文档漂移 | 质量管理加固后文档落后于实现：CI 写成六个作业、`folders.md` 统计仍是旧数字、用例对照表缺属性测试/快照/入口冒烟、NFR 没写门禁分层 | 全量校准 8 份文档：统计表按实测重算、CI 七个作业、用例对照表补 3 行、requirements 新增 NFR-12/13、README 钩子与快照用法 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

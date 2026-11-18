@@ -14,17 +14,17 @@
 
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
-| 主程序代码 | Python | 30 | 4,161 | `src/python/**/*.py`（不含测试）：core 核心层 / cli 命令行 / tui 交互 / 引导与启动器 |
-| 测试代码 | Python | 45 | 4,342 | `src/test/**/*.py`：core（含 background/color/font/format/layout/pipeline/primitives）、cli、tui |
-| 测试用例 | — | — | 330 | `git grep -c "def test_"` 行数口径；pytest 实际执行为 370（含 subTest 展开与参数化） |
-| 工程工具 | Python | 4 | 885 | `tools/`：工程守护、耗时守卫、测试编排（不进运行时包） |
+| 主程序代码 | Python | 30 | 4,257 | `src/python/**/*.py`（不含测试）：core 核心层 / cli / tui / 引导与启动器 |
+| 测试代码 | Python | 51 | 5,510 | `src/test/**/*.py`：core（含 7 个子目录、属性测试、平台/稳定）/ cli（含入口冒烟）/ tui（含快照与真终端） |
+| 测试用例 | — | — | 436 | `git grep -c "def test_"` 行数口径；pytest 实际执行 427 例 + 132 subtests |
+| 工程工具 | Python | 7 | 1,160 | `tools/`：守护 / 耗时 / 覆盖率 / 测试编排 / 启动器检查 / 变异 / 约束升级 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
-| CI 与钩子 | YAML / Shell | 3 | 244 | `.github/workflows/ci.yml` + `.githooks/pre-commit`、`install-hooks.sh` |
-| 管理文档 | Markdown | 6 | 1,455+ | `docs/managements/`：需求 / 技术设计 / 计划 / 变更 / 自检 / 本文件 |
+| CI 与钩子 | YAML / Shell | 4 | 291 | CI 七个作业 + 提交前（quick）与推送前（全量）钩子 |
+| 管理文档 | Markdown | 6 | 1,847 | 需求 / 技术设计 / 计划 / 变更 / 自检 / 本文件 |
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
-| 根文档与配置 | Markdown / TOML / TXT | 7 | 390 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
+| 根文档与配置 | Markdown / TOML / TXT | 7 | 421 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **105** | **约 1.19 万行** | 主程序 : 测试 ≈ 1 : 1.04；测试与文档投入与主程序相当 |
+| **合计（不含示例图）** | — | **116** | **14,097** | 主程序 : 测试 ≈ 1 : 1.29；含 4 张示例图后仓库共 122 个跟踪文件 |
 
 ## 目录树
 

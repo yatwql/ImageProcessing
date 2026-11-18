@@ -6,8 +6,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
+import threading
+import time
 import unittest
+from unittest import mock
 
 from src.python.tui import ui
 from src.python.tui.app import Block
@@ -173,6 +177,65 @@ class NonAsciiDigits(TuiTestCase):
         ui.handle(app, win, "3")
         self.assertIn("第 3 张", app.message)
 
+
+class NonBlockingInput(TuiTestCase):
+    """主循环必须用超时轮询收键：Windows 首次 OCR 很慢，死等就会"按 q 没反应"。"""
+
+    def test_read_key_returns_empty_on_timeout(self):
+        win = FakeWin([None], rows=10, cols=40)      # 队列里是 None ＝ 这一轮没有输入
+        self.assertEqual(ui.read_key(win, timeout_ms=10), "")
+        self.assertEqual(win.timeout_ms, -1, "读完要把窗口恢复成阻塞模式")
+
+    def test_read_key_returns_the_pressed_key(self):
+        win = FakeWin(["q"], rows=10, cols=40)
+        self.assertEqual(ui.read_key(win, timeout_ms=10), "q")
+
+    def test_loop_keeps_drawing_while_waiting_for_input(self):
+        app = self.make_app(count=1)
+        win = FakeWin([None, None, None, "q"], rows=26, cols=100)
+        with contextlib.suppress(KeyboardInterrupt):
+            ui.loop(win, app)
+        self.assertTrue(app.quit)
+        self.assertGreaterEqual(win.refresh_count, 4, "每轮轮询都要重画一帧")
+
+    def test_quit_works_while_ocr_is_still_loading(self):
+        app = self.make_app(count=1)
+        app.loading = True                            # 模拟后台识别还没结束
+        win = FakeWin(["q"], rows=26, cols=100)
+        with contextlib.suppress(KeyboardInterrupt):
+            ui.loop(win, app)
+        self.assertTrue(app.quit, "识别期间按 q 必须立即退出")
+
+
+class BackgroundLoading(TuiTestCase):
+    """OCR 放后台线程：主循环不被阻塞，期间还能收键。"""
+
+    def test_start_loading_sets_flag_then_clears_it(self):
+        app = self.make_app(count=1)
+        done = threading.Event()
+
+        def slow_ensure() -> None:
+            time.sleep(0.05)
+            done.set()
+
+        with mock.patch.object(app, "ensure_blocks", side_effect=slow_ensure):
+            app.start_loading()
+            self.assertTrue(app.loading, "刚启动时应标记为识别中")
+            self.assertTrue(done.wait(timeout=2), "后台线程应真的跑起来")
+            self.assertTrue(app.loaded_event.wait(timeout=2), "结束时要发完成事件")
+        self.assertFalse(app.loading, "识别结束后要清掉标记")
+
+    def test_start_loading_is_idempotent(self):
+        """加载未结束时再次 start_loading() 不能再起一个线程（否则 OCR 会跑两遍）。"""
+        app = self.make_app(count=1)
+        release = threading.Event()
+
+        with mock.patch.object(app, "ensure_blocks", side_effect=lambda: release.wait(2)) as spy:
+            app.start_loading()
+            app.start_loading()          # 仍在加载中
+            release.set()
+            self.assertTrue(app.loaded_event.wait(timeout=2), "后台线程应结束")
+        self.assertEqual(spy.call_count, 1)
 
 class MapPanelKeys(TuiTestCase):
     def setUp(self):

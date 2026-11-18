@@ -51,11 +51,11 @@ def loop(win, app: App) -> None:
     while not app.quit:
         if not app.started:
             app.started = True
-            draw_frame(win, app)  # 先画出"正在识别"
-            app.ensure_blocks()
+            draw_frame(win, app)   # 先画出"正在识别"
+            app.start_loading()    # OCR 走后台线程：期间界面照样能收键
         draw_frame(win, app)
         try:
-            key = read_key(win)
+            key = read_key(win, timeout_ms=120)
         except KeyboardInterrupt:  # 手机终端偶发 Ctrl-C：一次忽略，连按两次退出
             interrupts += 1
             if interrupts >= 2:
@@ -71,6 +71,8 @@ def loop(win, app: App) -> None:
             continue
         interrupts = 0
         silent = 0
+        if not key:                 # 只是到了轮询时间，重画一帧继续等
+            continue
         if key == "KEY_RESIZE":
             with contextlib.suppress(curses.error):
                 curses.update_lines_cols()

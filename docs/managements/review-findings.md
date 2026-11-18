@@ -208,6 +208,13 @@
 | RF-92 | 界面回归 | 标题加上版本与日期后变长，窄屏 44/50 列放不下右上角 `[宽x高]`，两个布局用例失败 | 尺寸标记改放底部状态行，标题行不再与它抢位置；布局用例恢复 | 已修 |
 | RF-93 | 守护有效性 | 新增 `tools/check_all.py` 后守护立刻报「目录树文档未覆盖」——说明第 12 项确实拦得住漂移 | 同步 `folders.md` 的树与统计 | 已修 |
 
+## 2026-11-18 Windows TUI 假死
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-94 | 交互缺陷（Windows） | 主循环 `get_wch()` 死等，而首帧里同步跑 OCR；Windows 首次加载 onnxruntime 十几秒，期间按 q / 方向键完全没反应 | `read_key(win, timeout_ms=120)` 超时轮询 + OCR 放后台线程（`App.start_loading()` / `loading` / `loaded_event`）；输入行同源复用 | 已修 |
+| RF-95 | 测试盲区 | 旧用例的 `FakeWin` 在"队列空"时按 timeout 状态抛不同异常，改成轮询后测试会永久转圈；也没有"识别中按 q"的用例 | `FakeWin.get_wch` 语义收紧（`None`＝无输入、队列空＝结束）；新增 `NonBlockingInput` / `BackgroundLoading` 共 6 例 | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

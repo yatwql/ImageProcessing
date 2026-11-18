@@ -135,6 +135,10 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - Windows 专项：TUI 用 `windows-curses`（约束在 `constraints.txt`），它把 `curses.ACS_*`
   暴露成 int；改动绘制层后至少跑 `src/test/tui/test_layout_rendering.py` 的
   `WindowsStyleAcs`（把 ACS 常量换成 int 的模拟）与 CI 的 windows 作业。
+- TUI 收键必须是**超时轮询**（`read_key(win, timeout_ms=120)`），不能死等：
+  Windows 上首次 OCR（onnxruntime 加载）可能要十几秒，死等期间界面完全不响应
+  （用户看到的就是"按 q / 方向键没反应"）。OCR 本身放后台线程（`App.start_loading()`），
+  主循环照常重画与收键；`App.loading`/`loaded_event` 给界面与用例用。
 - TUI 绘制两条铁律：① 每帧结尾必须 `win.refresh()`；② 线框只能 `addch`，不能把
   `curses.ACS_*`（可能是 int）拼进 `addstr`——两者出错都表现为真机黑屏，`FakeWin` 已按此收紧，
   另有 `test_tui_real_terminal.py` 用 `script(1)` 跑真 curses 冒烟。

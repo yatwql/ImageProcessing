@@ -189,13 +189,15 @@ class FakeWin:
         self.cell_count += 1
 
     def get_wch(self):
+        # None = 这一轮"没有输入"（配合 read_key 的超时轮询）；
+        # 队列空了 = 用例喂完了，抛 KeyboardInterrupt 让主循环收尾。
+        # 注意：timeout_ms 不再影响"空队列"的语义——主循环现在一直带超时轮询，
+        # 若空队列也当超时，测试会永远转下去。
         if self.keys and self.keys[0] is None:
             self.keys.pop(0)
             raise curses.error("timeout")
         if not self.keys:
-            if self.timeout_ms >= 0:
-                raise curses.error("timeout")
-            raise KeyboardInterrupt  # 队列空了＝人跑了，循环自行收尾
+            raise KeyboardInterrupt
         return self.keys.pop(0)
 
 

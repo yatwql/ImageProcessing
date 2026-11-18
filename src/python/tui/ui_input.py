@@ -96,12 +96,30 @@ SEQ_MAP = {
 ESC_WAIT_MS = 45          # 独立 ESC 与之字形转义序列的区分窗口
 
 
-def read_key(win) -> str:
-    """读一个按键并归一成 token。
+def read_key(win, timeout_ms: int = -1) -> str:
+    """读一个按键并归一成 token；`timeout_ms >= 0` 时到点返回空串（不阻塞）。
+
+    主循环用 100~200ms 的轮询而不是死等：Windows 上首次 OCR 加载很慢，
+    死等期间界面收不到任何按键（用户看到的就是"按 q 没反应"）。
 
     有些手机终端/SSH 客户端不把方向键交给 curses，直接吐 `ESC [ A` 这样的字节；
     这里自己收尾把它们翻译成方向键，同时保证"单按 Esc"仍然是返回上一层。
     """
+    if timeout_ms >= 0:
+        with contextlib.suppress(curses.error):
+            win.timeout(timeout_ms)
+    try:
+        key = _read_one(win)
+    except curses.error:
+        return ""                       # 到点没有输入
+    finally:
+        if timeout_ms >= 0:
+            with contextlib.suppress(curses.error):
+                win.timeout(-1)
+    return key
+
+
+def _read_one(win) -> str:
     key = win.get_wch()
     if isinstance(key, int):
         return KEYMAP.get(key, "")

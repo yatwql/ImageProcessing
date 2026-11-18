@@ -49,9 +49,17 @@ def main(argv: list[str] | None = None) -> int:
         ("perf", [PY, "tools/check_perf.py", "--ci"], None),
     ]
     if quick:
-        steps.append(("pytest（快速：不算覆盖率）", [PY, "-m", "pytest", "src/test", "-q", "-x", *extra], None))
+        steps.append(
+            (
+                "pytest（快速：不算覆盖率）",
+                [PY, "-m", "pytest", "src/test", "-q", "-x", *extra],
+                None,
+            )
+        )
     else:
-        steps.append(("pytest + 覆盖率", [PY, "-m", "pytest", "src/test", "-q", "--cov", *extra], None))
+        steps.append(
+            ("pytest + 覆盖率", [PY, "-m", "pytest", "src/test", "-q", "--cov", *extra], None)
+        )
 
     for name, cmd, env in steps:
         if not run(name, cmd, env=env):
@@ -59,9 +67,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # "机器上没有中文字体"是 CI 上最容易漏的一档（Windows runner 就是这种环境）
     if no_font or not quick:
-        if not run("pytest（模拟无中文字体）",
-                   [PY, "-m", "pytest", "src/test", "-q", "--no-header"],
-                   env={"IMG_P_TEST_NO_CJK_FONT": "1"}):
+        if not run(
+            "pytest（模拟无中文字体）",
+            [PY, "-m", "pytest", "src/test", "-q", "--no-header"],
+            env={"IMG_P_TEST_NO_CJK_FONT": "1"},
+        ):
             return 1
 
     print("\n全部通过 ✅")

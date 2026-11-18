@@ -8,6 +8,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import threading
 from collections.abc import Callable
 
 from ..config import apply_to_options, default_out_dir, log_dir
@@ -115,6 +116,9 @@ class App:
         self.last_saved: str | None = None
         self.quit = False
         self.cancel = False  # 批量替换的中断标志（界面轮询到 Esc 时置位）
+        self.loading: bool = False  # 后台识别中（OCR 慢，不能阻塞按键）
+        self.loaded_event = threading.Event()  # 后台识别结束（用例/界面都可以等它）
+        self.loaded_event.set()
         if self.dir:
             self._load_dir(self.dir)
         if map_file:
@@ -163,6 +167,30 @@ class App:
         self.img_start = 0
         self.message = f"{path}：{len(self.images)} 张图片"
         return True
+
+    def start_loading(self) -> None:
+        """在后台跑 OCR（`ensure_blocks`），主循环照常收键。
+
+        首次加载 onnxruntime 模型在 Windows 上可能要十几秒；同步跑会让界面
+        看起来完全卡死（按 q / 方向键都没反应）。
+        """
+        if self.loading:
+            return
+        self.loading = True
+        self.loaded_event.clear()
+        self.message = "正在识别文字，请稍等…（q 可退出）"
+
+        def work() -> None:
+            try:
+                self.ensure_blocks()
+                self.message = f"{self.dir or ''}：{len(self.images)} 张图片"
+            except Exception as exc:                    # 后台线程不能把异常抛给界面
+                self.message = f"识别失败: {exc}"
+            finally:
+                self.loading = False
+                self.loaded_event.set()
+
+        threading.Thread(target=work, name="retype-ocr", daemon=True).start()
 
     def rescan(self) -> str:
         """重新扫描当前目录/输入，把新复制进来的图片纳入列表（保留尽量多的选中状态）。

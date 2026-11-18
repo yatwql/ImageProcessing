@@ -244,6 +244,10 @@ CI 有独立 `windows-latest` 作业跑全量用例 + 类型 + 守护 + 耗时�
 线框一律 `addch`——`curses.ACS_*` 在部分构建里是 **int**，`addstr` 只收 str，
 拼字符串会抛 `TypeError` 并被兜底吞掉，表现为整帧空白。
 
+**主循环**：`read_key(win, timeout_ms=120)` 轮询（超时返回空串 → 重画一帧），
+OCR 由 `App.start_loading()` 放到后台线程；`App.loading` 期间界面照常收键，
+所以 Windows 上模型首次加载十几秒也不会"假死"。
+
 **响应式约束**：所有文字走 `put()`（按显示列裁剪，中文占两列），
 边框走 `addch`；`_support.FakeWin.addstr` 同样按显示列模拟，
 所以 `test_layout_rendering.ResponsiveLayout` 能在 32~130 列之间断言"不溢出、不丢关键信息"。

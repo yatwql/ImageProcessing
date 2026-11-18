@@ -106,3 +106,4 @@
 | PLAN-72 | 代码更新日期 | `version.UPDATED` 展示在 TUI 标题/帮助页/CLI 横幅，并写入日志 `app_updated`；守护核对它与 `src/` 最后提交日期一致 | 完成 |
 | PLAN-73 | 本地对齐 CI | `tools/check_all.py`：ruff → mypy → guards → perf → 用例+覆盖率 → 无字体复跑（`--quick` 跳过末两项）；提交前钩子改调 `--quick` | 完成 |
 | PLAN-74 | 窄屏尺寸标记归位 | 标题变长后 `[宽x高]` 改由底部状态行显示，44/50 列布局用例恢复 | 完成 |
+| PLAN-75 | Windows TUI 响应 | 主循环改超时轮询（120ms）、OCR 放后台线程；新增 6 个用例覆盖"识别中按 q""无输入重画""后台只跑一次" | 完成 |

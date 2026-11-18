@@ -5,6 +5,24 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 修 Windows TUI"按 q 没反应"
+
+### 修复
+
+- 主循环原来死等 `get_wch()`，而首帧里同步跑 `App.ensure_blocks()`（OCR）。
+  Windows 上 onnxruntime 首次加载要十几秒，这段时间界面完全不收键。
+- 改为：`read_key(win, timeout_ms=120)` 超时轮询（没键就重画一帧），
+  OCR 由 `App.start_loading()` 放后台线程，`App.loading` / `loaded_event` 供界面与用例使用。
+- 输入行 `edit_line` 也走同一套 `_read_one`，不再受窗口 timeout 状态残留影响。
+
+### 测试（"小白鼠"换成自测）
+
+- `NonBlockingInput`：超时返回空串且恢复阻塞模式、按 q 能拿到、无输入时每轮都重画、
+  **识别中按 q 立即退出**。
+- `BackgroundLoading`：后台线程真的跑起来并发出完成事件、重复调用只跑一次。
+- `FakeWin.get_wch` 语义收紧：`None`＝本轮无输入，队列空＝用例结束；
+  避免主循环带超时轮询后测试被"空队列当超时"卡死。
+
 ## 2026-11-18 — 本地一条命令对齐 CI（check_all）
 
 ### 新增

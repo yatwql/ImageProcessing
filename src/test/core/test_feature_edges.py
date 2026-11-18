@@ -141,7 +141,7 @@ class OptionsSummary(unittest.TestCase):
         self.assertEqual(audit.options_summary(options.Options()), {})
 
     def test_explicit_values_are_recorded(self):
-        summary = audit.options_summary(options.Options(font="/tmp/a.ttf", size=28))
+        summary = audit.options_summary(options.Options(font="/tmp/a.ttf", size=28))  # platform-safe
         self.assertEqual(summary.get("size"), 28)
         self.assertIn("font", summary)
 

@@ -22,7 +22,8 @@ FONT_EXTS = (".ttf", ".otf", ".ttc", ".otc")
 
 def _run(cmd: list[str]) -> str:
     try:
-        return subprocess.run(cmd, capture_output=True, text=True, check=False).stdout
+        return subprocess.run(cmd, capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", check=False).stdout
     except FileNotFoundError:
         return ""
 

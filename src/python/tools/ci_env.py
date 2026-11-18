@@ -38,7 +38,8 @@ def write(out: Path) -> list[Path]:
     written.append(platform_info)
 
     freeze = subprocess.run(
-        [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True, check=False
+        [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True,
+        encoding="utf-8", errors="replace", check=False,
     )
     freeze_path = out / "pip-freeze.txt"
     freeze_path.write_text(freeze.stdout, encoding="utf-8")
@@ -46,7 +47,7 @@ def write(out: Path) -> list[Path]:
 
     fonts_path = out / "fonts.txt"
     try:
-        listing = subprocess.run(["fc-list"], capture_output=True, text=True, check=False)
+        listing = subprocess.run(["fc-list"], capture_output=True, text=True, check=False, encoding="utf-8", errors="replace")
         lines = listing.stdout.splitlines()[:FONT_LIMIT]
         fonts_path.write_text(
             "\n".join(lines) if lines else "(no fonts / fc-list 不可用)\n", encoding="utf-8"

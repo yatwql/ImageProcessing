@@ -28,14 +28,14 @@ class PlatformDefaults(unittest.TestCase):
 
     def test_posix_default_conf_dir_is_slash_data(self):
         with mock.patch.object(sys, "platform", "linux"):
-            self.assertEqual(bootstrap.default_conf_dir().as_posix(), "/data/config")
+            self.assertEqual(bootstrap.default_conf_dir().as_posix(), "/data/config")  # platform-safe
 
     def test_windows_default_conf_dir_is_inside_repo(self):
         with mock.patch.object(sys, "platform", "win32"):
             path = bootstrap.default_conf_dir()
         self.assertIn("data", path.parts)
         self.assertIn("config", path.parts)
-        self.assertNotEqual(path.as_posix(), "/data/config")
+        self.assertNotEqual(path.as_posix(), "/data/config")  # platform-safe
 
     def test_relative_env_config_dir_is_resolved_against_repo(self):
         with mock.patch.dict(os.environ, {"IMG_P_CONFIG_DIR": "cfg/here"}):
@@ -72,10 +72,10 @@ class ConfigResolution(unittest.TestCase):
         self.assertEqual(os.path.basename(config.config_file()), "img-p.json")
 
     def test_explicit_env_wins(self):
-        with mock.patch.dict(os.environ, {"IMG_P_CONFIG": "/tmp/x.json"}):
-            self.assertEqual(config.config_file(), "/tmp/x.json")
-        with mock.patch.dict(os.environ, {"RETYPE_CONFIG": "/tmp/y.json"}):
-            self.assertEqual(config.config_file(), "/tmp/y.json")
+        with mock.patch.dict(os.environ, {"IMG_P_CONFIG": "/tmp/x.json"}):  # platform-safe
+            self.assertEqual(config.config_file(), "/tmp/x.json")  # platform-safe
+        with mock.patch.dict(os.environ, {"RETYPE_CONFIG": "/tmp/y.json"}):  # platform-safe
+            self.assertEqual(config.config_file(), "/tmp/y.json")  # platform-safe
 
     def test_chinese_values_survive_a_round_trip(self):
         self.write("retype.json", {"data_dir": "/数据/图片", "font": "/字体/思源.ttf"})

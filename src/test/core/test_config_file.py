@@ -34,8 +34,8 @@ class ConfigFile(unittest.TestCase):
         self.assertEqual(config.load_config(), {})
 
     def test_unknown_keys_are_ignored(self):
-        self.write({"out_dir": "/data/out", "unknown": 1})
-        self.assertEqual(config.load_config(), {"out_dir": "/data/out"})
+        self.write({"out_dir": "/data/out", "unknown": 1})  # platform-safe
+        self.assertEqual(config.load_config(), {"out_dir": "/data/out"})  # platform-safe
 
     def test_broken_json_is_ignored_with_a_message(self):
         self.write("{not json")
@@ -46,16 +46,16 @@ class ConfigFile(unittest.TestCase):
         self.assertEqual(config.load_config(), {})
 
     def test_paths_follow_config_when_env_is_absent(self):
-        self.write({"data_dir": "/data/pics", "out_dir": "/data/out", "log_dir": "/data/logs"})
+        self.write({"data_dir": "/data/pics", "out_dir": "/data/out", "log_dir": "/data/logs"})  # platform-safe
         with mock.patch.dict(os.environ, {}, clear=False):
             for key in ("IMG_P_DATA_DIR", "IMG_P_OUT_DIR", "IMG_P_LOG_DIR"):
                 os.environ.pop(key, None)
-            self.assertEqual(config.default_input(), "/data/pics")
-            self.assertEqual(config.default_out_dir(), "/data/out")
-            self.assertEqual(config.log_dir(), "/data/logs")
+            self.assertEqual(config.default_input(), "/data/pics")  # platform-safe
+            self.assertEqual(config.default_out_dir(), "/data/out")  # platform-safe
+            self.assertEqual(config.log_dir(), "/data/logs")  # platform-safe
 
     def test_environment_beats_config(self):
-        self.write({"data_dir": "/data/pics", "out_dir": "/data/out", "log_dir": "/data/logs"})
+        self.write({"data_dir": "/data/pics", "out_dir": "/data/out", "log_dir": "/data/logs"})  # platform-safe
         with mock.patch.dict(os.environ, {"IMG_P_DATA_DIR": "/mnt/a",
                                           "IMG_P_OUT_DIR": "/mnt/b",
                                           "IMG_P_LOG_DIR": "/mnt/c"}):

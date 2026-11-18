@@ -293,6 +293,14 @@
 | RF-127 | 版本兼容 | `check_guards.py` 用 `tomllib`（3.11+），在 3.10 上入口冒烟直接 `ModuleNotFoundError` | 回退到 `tomli`（`tomli==2.5.0; python_version < "3.11"`） | 已修 |
 | RF-128 | 用例不可移植 | 三处用例假设 POSIX：`/tmp/cfg` 是绝对路径、`/proc` 不可写、`bootstrap --check` 依赖 `.venv` | 分别改为 `skipIf(win32)`、打桩 `Path.mkdir`、无 venv 时 skip | 已修 |
 
+## 2026-11-18 windows 冒烟失败与跨平台守护
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-129 | 测试缺陷（Windows） | 子进程 `text=True` 按 cp1252 解码，子进程写 UTF-8 中文 → reader 线程 `UnicodeDecodeError` → stdout 变空，断言全部 "not found in ''" | 显式 `encoding="utf-8", errors="replace"`，并给 7 处产品/工具的同类调用补齐 | 已修 |
+| RF-130 | 用例可移植 | 不可写目录用例依赖 `/proc`（Windows 上可能真能建出来） | 打桩 `Path.mkdir` 抛 OSError | 已修 |
+| RF-131 | 门禁缺口 | "只在 Windows 上炸"的写法（POSIX 路径、子进程编码、POSIX-only 导入）没有本地检查，只能等 CI | 新增守护第 17 项「跨平台」；需豁免的行标 `# platform-safe` | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`src/python/tools/check_guards.py`：6/6 通过。

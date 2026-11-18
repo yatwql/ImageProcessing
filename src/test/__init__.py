@@ -12,7 +12,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-TMP_DIR = os.environ.get("IMG_P_TMP_DIR", "/data/tmp")
+TMP_DIR = os.environ.get("IMG_P_TMP_DIR", "/data/tmp")  # platform-safe
 try:
     os.makedirs(TMP_DIR, exist_ok=True)
     tempfile.tempdir = TMP_DIR

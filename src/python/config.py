@@ -16,7 +16,7 @@ LOG_DIR = os.path.join(ROOT, "logs")
 
 # 配置目录：Linux/macOS 用 /data/config；Windows 没有 /data，用仓库内 data/config
 CONFIG_DIR = (
-    os.path.join(ROOT, "data", "config") if sys.platform == "win32" else "/data/config"
+    os.path.join(ROOT, "data", "config") if sys.platform == "win32" else "/data/config"  # platform-safe
 )
 CONFIG_NAME = "retype.json"
 LEGACY_CONFIG_NAME = "img-p.json"

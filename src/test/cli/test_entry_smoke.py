@@ -88,7 +88,8 @@ class ScriptLaunchers(unittest.TestCase):
         for path in sorted((ROOT / "scripts").glob("*.sh")):
             with self.subTest(script=path.name):
                 proc = subprocess.run(
-                    ["bash", "-n", str(path)], capture_output=True, text=True, check=False
+                    ["bash", "-n", str(path)], capture_output=True, text=True,
+                    encoding="utf-8", errors="replace", check=False,
                 )
                 self.assertEqual(proc.returncode, 0, proc.stderr)
 

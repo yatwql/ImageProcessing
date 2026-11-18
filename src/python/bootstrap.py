@@ -26,7 +26,7 @@ def default_conf_dir() -> Path:
     """配置目录默认值：Linux/macOS 用 /data/config；Windows 没有 /data，用仓库内 data/config。"""
     if sys.platform == "win32":
         return ROOT / "data" / "config"
-    return Path("/data/config")
+    return Path("/data/config")  # platform-safe
 
 
 def _conf_dir() -> Path:
@@ -46,8 +46,8 @@ CONFIG = CONF_DIR / "retype.json"
 
 DEFAULT_CONFIG = {
     "data_dir": "/data",
-    "out_dir": "/data/output",
-    "log_dir": "/data/logs",
+    "out_dir": "/data/output",  # platform-safe
+    "log_dir": "/data/logs",  # platform-safe
     "font": None,
     "size": None,
     "color": None,
@@ -89,7 +89,8 @@ def missing_modules(py: Path, need_dev: bool = False) -> list[str]:
         for n in names
     )
     try:
-        out = subprocess.run([str(py), "-c", probe], capture_output=True, text=True, check=False)
+        out = subprocess.run([str(py), "-c", probe], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", check=False)
     except OSError:
         return ["venv"]
     if out.returncode != 0:

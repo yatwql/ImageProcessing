@@ -32,7 +32,8 @@ PY = sys.executable
 
 
 def sh(cmd: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True, check=check)
+    return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", check=check)
 
 
 def read_version() -> tuple[str, str]:

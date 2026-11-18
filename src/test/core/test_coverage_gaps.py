@@ -60,7 +60,7 @@ class LogQueryGaps(unittest.TestCase):
             mock.patch.object(log_query, "read_entries", side_effect=CoreError("读不了")),
             contextlib.redirect_stderr(err),
         ):
-            code = log_query.main(["--log-dir", "/tmp/x"])
+            code = log_query.main(["--log-dir", "/tmp/x"])  # platform-safe
         self.assertEqual(code, 2)
         self.assertIn("读不了", err.getvalue())
 

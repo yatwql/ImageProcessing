@@ -544,6 +544,17 @@ def check_workflows() -> list[str]:
     return problems or ["工作流自检失败"]
 
 
+def check_platform_safety() -> list[str]:
+    """跨平台安全：POSIX 路径 / 子进程编码 / POSIX-only 模块（守护第 17 项）。"""
+    result = subprocess.run([sys.executable, "-m", "src.python.tools.check_platform_safety"],
+                            cwd=str(ROOT), capture_output=True, text=True,
+                            encoding="utf-8", errors="replace", check=False)
+    if result.returncode == 0:
+        return []
+    return [line.strip().removeprefix("[FAIL] ") for line in result.stdout.splitlines()
+            if line.startswith("[FAIL]")] or ["跨平台检查失败"]
+
+
 CHECKS = [
     ("编号-plan", check_plan_ids),
     ("编号-review", check_rf_ids),
@@ -558,6 +569,7 @@ CHECKS = [
     ("导入方向", check_import_surface),
     ("文档索引", check_docs_index),
     ("工作流", check_workflows),
+    ("跨平台", check_platform_safety),
     ("依赖锁", check_constraints),
     ("PS 编码", check_windows_scripts),
     ("scripts 薄壳", check_scripts_are_launchers),

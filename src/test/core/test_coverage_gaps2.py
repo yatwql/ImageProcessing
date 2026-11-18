@@ -25,7 +25,7 @@ from src.python.core.errors import CoreError
 
 class BootstrapProbe(unittest.TestCase):
     def test_probe_oserror_reports_venv(self):
-        py = Path("/tmp/python")
+        py = Path("/tmp/python")  # platform-safe
         with mock.patch.object(bootstrap.subprocess, "run", side_effect=OSError("boom")):
             self.assertEqual(bootstrap.missing_modules(py), ["venv"])
 

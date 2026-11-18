@@ -97,6 +97,7 @@ ImageProcessing/
 │   │   │   ├── check_guards.py               # 工程守护：把 `CLAUDE.md` 里的硬性约束变成可执行检查
 │   │   │   ├── check_import_surface.py       # 架构约束：模块导入方向（谁可以依赖谁）
 │   │   │   ├── check_perf.py                 # 耗时守卫：把最热的几步钉住，退化即红
+│   │   │   ├── check_platform_safety.py      # 跨平台安全：把"只在 Windows/macOS 上才炸"的写法在本地拦下来
 │   │   │   ├── check_workflows.py            # CI 工作流自检：把"只在 runner 上才炸"的脚本错误搬到本地
 │   │   │   ├── ci_env.py                     # CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传
 │   │   │   ├── coverage_report.py            # 生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统

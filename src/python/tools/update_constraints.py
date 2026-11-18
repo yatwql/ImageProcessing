@@ -26,7 +26,8 @@ SKIP = {"img-p", "retype", "pip", "setuptools", "wheel"}
 
 def frozen() -> dict[str, str]:
     out = subprocess.run(
-        [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True
+        [sys.executable, "-m", "pip", "freeze"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     ).stdout
     pins: dict[str, str] = {}
     for line in out.splitlines():

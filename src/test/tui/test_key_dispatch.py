@@ -144,9 +144,9 @@ class MainPanelKeys(TuiTestCase):
         self.assertIn("没识别出文字", img.error or "", "这里没有 OCR 桩，重新识别应给提示")
 
     def test_o_edits_output_dir(self):
-        self.win.keys.extend(list("/tmp/out") + ["\n"])
+        self.win.keys.extend(list("/tmp/out") + ["\n"])  # platform-safe
         self.press("o")
-        self.assertTrue(self.app.out_dir.endswith("/tmp/out"))
+        self.assertTrue(self.app.out_dir.endswith("/tmp/out"))  # platform-safe
 
     def test_w_exports_mapping_to_json(self):
         self.app.mapping = {"旧": "新"}

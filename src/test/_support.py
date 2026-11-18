@@ -22,16 +22,16 @@ RegionPairs: TypeAlias = Sequence[tuple[str, Rect]]
 # 常见的中日韩字体位置：Debian/Ubuntu（含 GitHub Actions 装了 fonts-noto-cjk 之后）、
 # macOS、Windows。真要用某个字体时再显式传 font_path。
 _CJK_BOLD_CANDIDATES = (
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
-    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",  # platform-safe
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",  # platform-safe
+    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc",  # platform-safe
     "/System/Library/Fonts/PingFang.ttc",
     "C:/Windows/Fonts/msyhbd.ttc",
 )
 _CJK_REG_CANDIDATES = (
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # platform-safe
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",  # platform-safe
+    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",  # platform-safe
     "/System/Library/Fonts/PingFang.ttc",
     "C:/Windows/Fonts/msyh.ttc",
 )

@@ -31,11 +31,11 @@ class ParseArgs(unittest.TestCase):
             [
                 "data",
                 "-o",
-                "/tmp/out",
+                "/tmp/out",  # platform-safe
                 "-m",
                 "map.json",
                 "-f",
-                "/tmp/a.ttf",
+                "/tmp/a.ttf",  # platform-safe
                 "--color",
                 "#102030",
                 "--align",
@@ -49,13 +49,13 @@ class ParseArgs(unittest.TestCase):
                 "--quality",
                 "80",
                 "--log-dir",
-                "/tmp/logs",
+                "/tmp/logs",  # platform-safe
                 "--fit-width",
             ]
         )
-        self.assertEqual(out_dir, "/tmp/out")
+        self.assertEqual(out_dir, "/tmp/out")  # platform-safe
         self.assertEqual(map_file, "map.json")
-        self.assertEqual(opts.font, "/tmp/a.ttf")
+        self.assertEqual(opts.font, "/tmp/a.ttf")  # platform-safe
         self.assertEqual(opts.color, "#102030")
         self.assertEqual(opts.align, "left")
         self.assertEqual(opts.size, 28)
@@ -64,7 +64,7 @@ class ParseArgs(unittest.TestCase):
         self.assertAlmostEqual(tracking, -1.5, places=3)
         self.assertEqual(opts.max_fonts, 40)
         self.assertEqual(opts.quality, 80)
-        self.assertEqual(opts.log_dir, "/tmp/logs")
+        self.assertEqual(opts.log_dir, "/tmp/logs")  # platform-safe
         self.assertTrue(opts.fit_width)
 
     def test_non_numeric_value_exits_with_2(self):

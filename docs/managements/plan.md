@@ -128,3 +128,4 @@
 | PLAN-94 | 覆盖率冲刺 | 新增 6 个补测文件（gaps1..3 共 83 例）：错误分支/空输入/平台分支/终端异常/入口薄壳；总量 84% → 96%，门槛 75% → 96%（`fail_under` 与 `check_coverage.TOTAL_MIN` 同步） | 完成 |
 | PLAN-95 | 工具归位 | `tools/*.py` 迁到 `src/python/tools/`（12 个模块），排除出发行包与覆盖率；调用改为 `python -m src.python.tools.x`；新增 AR-8（产品代码不得反向依赖工具）；过长的 gaps3 拆成 gaps3/gaps4 | 完成 |
 | PLAN-96 | 技术债清理 | 工具共用 `_paths.ROOT`（10 处收敛）、去掉 check_perf 的 sys.path 注入、audit 平台 pragma 只留一处其余用真用例覆盖、工具入口统一 `ensure_utf8_stdio()`、3.10 的 tomllib→tomli 回退、Windows 不适用用例显式 skip/打桩 | 完成 |
+| PLAN-97 | 跨平台守护 | 新增 `check_platform_safety.py`（POSIX 路径 / 子进程编码 / POSIX-only 导入），并入守护第 17 项；修 7 处 `subprocess text=True` 缺 encoding 的隐患与两处 Windows 用例 | 完成 |

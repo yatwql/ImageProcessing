@@ -62,7 +62,7 @@ def check_run_blocks(workflow: dict) -> list[str]:
             f.write(script)
             temp_path = Path(f.name)
         try:
-            result = subprocess.run(["bash", "-n", str(temp_path)], capture_output=True, text=True)
+            result = subprocess.run(["bash", "-n", str(temp_path)], capture_output=True, text=True, encoding="utf-8", errors="replace")
         finally:
             temp_path.unlink(missing_ok=True)
         if result.returncode != 0:

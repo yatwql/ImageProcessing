@@ -112,11 +112,11 @@ class DebugDirFailure(unittest.TestCase):
 
 class FontCacheFailure(unittest.TestCase):
     def test_unreadable_cache_is_ignored(self):
-        with mock.patch.object(fonts, "cache_file", return_value="/proc/nope/fonts.json"):
+        with mock.patch.object(fonts, "cache_file", return_value="/proc/nope/fonts.json"):  # platform-safe
             self.assertEqual(fonts._read_cache(), {})
 
     def test_unwritable_cache_does_not_raise(self):
-        with mock.patch.object(fonts, "cache_file", return_value="/proc/nope/fonts.json"):
+        with mock.patch.object(fonts, "cache_file", return_value="/proc/nope/fonts.json"):  # platform-safe
             fonts._write_cache({"k": []})  # 不抛即通过
 
 

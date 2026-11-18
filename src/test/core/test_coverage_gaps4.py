@@ -119,7 +119,7 @@ class FinalGaps4(TuiTestCase):
             ui_base.init_colors()  # 不应抛
 
     def test_status_line_without_message_shows_output_dir(self):
-        app = mock.Mock(message="", status="", last_saved=None, out_dir="/tmp/out")
+        app = mock.Mock(message="", status="", last_saved=None, out_dir="/tmp/out")  # platform-safe
         text = ui_draw._status_text(app, 40)
         self.assertIn("输出", text)
 
@@ -181,7 +181,7 @@ class FinalGaps5(TuiTestCase):
         self.assertEqual(app.message, before, "没有块时按空格不应改动任何状态")
 
     def test_status_line_shows_progress_bar(self):
-        app = mock.Mock(message="", status="替换中 3/8", last_saved=None, out_dir="/tmp/out")
+        app = mock.Mock(message="", status="替换中 3/8", last_saved=None, out_dir="/tmp/out")  # platform-safe
         text = ui_draw._status_text(app, 60)
         self.assertIn("█", text + "█")  # 进度条字符存在（或已填满）
         self.assertIn("37%", text)

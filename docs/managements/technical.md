@@ -39,7 +39,7 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   runTest.sh / runTest.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
-  check_guards.py            工程守护（16 项）
+  check_guards.py            工程守护（17 项）
   gen_folders.py             重新生成 folders.md 的目录树与统计读数
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
@@ -385,7 +385,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树 73 文件；core 严格注解、
   渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
-  测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流，共 16 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
+  测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流，共 17 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
   覆盖率阈值 `fail_under = 96`（实测约 97%）。
 - 依赖可复现：`constraints.txt` 把直接依赖与其传递依赖全部精确固定，`setup.*` 与 CI 都用
   `pip install -c constraints.txt`；升级流程 = 改锁定 → 跑 `test.sh` 全绿 → 提交。

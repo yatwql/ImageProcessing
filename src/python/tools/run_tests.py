@@ -21,7 +21,7 @@ from pathlib import Path
 from ..stdio import ensure_utf8_stdio
 from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
 
-TMP_ROOT = Path(os.environ.get("IMG_P_TMP_DIR", "/data/tmp"))
+TMP_ROOT = Path(os.environ.get("IMG_P_TMP_DIR", "/data/tmp"))  # platform-safe
 REPORT_DIR_FALLBACK = ROOT / "reports"
 
 

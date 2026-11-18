@@ -5,6 +5,24 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 修 windows 冒烟失败 + 新增「跨平台」守护
+
+### 修复
+
+- `test_entry_smoke`：Windows 上 `text=True` 按 cp1252 解码子进程输出，而子进程写的是
+  UTF-8 中文 → reader 线程 `UnicodeDecodeError` → stdout 变空，断言全是 "not found in ''"。
+  显式 `encoding="utf-8", errors="replace"`。
+- `test_bootstrap_launch`：不可写目录用例依赖 `/proc`（Windows 上可能真能建出来）→ 打桩 `Path.mkdir`。
+- 同类隐患一并修掉 6 处（`bootstrap`、`core/fonts`、`tools/{release,update_constraints,ci_env,check_guards,check_workflows}`）：
+  凡 `subprocess` + `text=True` 都补 `encoding="utf-8", errors="replace"`。
+
+### 新增守护第 17 项「跨平台」
+
+`src/python/tools/check_platform_safety.py` 扫 `src/**`，拦三类真实踩过的写法：
+硬编码 POSIX 路径（`# platform-safe` 可标注"仅作字符串"）、`subprocess` 缺 `encoding=`、
+直接导入 POSIX-only 模块（`fcntl`/`pwd`/`termios`）。接入 `check_guards` 后本地即可拦下
+"只在 Windows 上炸"的类别，不再等 CI。
+
 ## 2026-11-18 — 技术债清理（工具与平台兼容）
 
 ### 变更

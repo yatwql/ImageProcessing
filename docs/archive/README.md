@@ -1,6 +1,6 @@
 # 归档规范
 
-> 版本：v0.1
+> 版本：v0.2
 
 发布新版本后，`plan.md` / `review-findings.md` / `changelog.md` 里属于**已发布系列**的内容
 会被整块搬到这里，主台账只留当前开发版本的内容与归档索引。本目录的管理要求参考
@@ -13,10 +13,10 @@
 ```text
 docs/archive/
 ├── README.md                              # 本文件：归档规范
-└── v0.1.x/                                # 一个版本系列一个子目录（vX.Y.x）
-    ├── archived_plan.0.1.x.md             # 计划归档（原 docs/managements/plan.md）
-    ├── archived_review-findings.0.1.x.md  # 自检记录归档
-    ├── archived_changelog.0.1.x.md        # 变更记录归档
+└── v0.2.x/                                # 一个版本系列一个子目录（vX.Y.x）
+    ├── archived_plan.0.2.x.md             # 计划归档（原 docs/managements/plan.md）
+    ├── archived_review-findings.0.2.x.md  # 自检记录归档
+    ├── archived_changelog.0.2.x.md        # 变更记录归档
     └── <任务名>/                          # 可选：该系列的设计稿/中间稿，名字不限
 ```
 
@@ -30,11 +30,11 @@ docs/archive/
 ## 2. 归档文件头（四项，缺一项即门禁红）
 
 ```markdown
-# 计划归档 — v0.1.x
+# 计划归档 — v0.2.x
 
-> 归档时间：2026-11-20（v0.1 发布，本系列首份）
+> 归档时间：2026-11-18（v0.2 发布，本系列首份）
 > 原始文件：`docs/managements/plan.md`
-> 涵盖版本：v0.1
+> 涵盖版本：v0.2
 > 归档内容：由 `python -m src.python.tools.release archive` 整块搬运，未改一字
 
 ---
@@ -83,7 +83,7 @@ docs/archive/
 ## 归档                          # 脚本生成的索引，不要手改
 | 系列 | 归档文件 | 涵盖版本 | 归档时间 |
 | --- | --- | --- | --- |
-| v0.1.x | [`archived_plan.0.1.x.md`](../archive/v0.1.x/archived_plan.0.1.x.md) | v0.1 | 2026-11-20 … |
+| v0.2.x | [`archived_plan.0.2.x.md`](../archive/v0.2.x/archived_plan.0.2.x.md) | v0.1 | 2026-11-20 … |
 ```
 
 ## 6. 检索与追溯
@@ -91,7 +91,7 @@ docs/archive/
 ```bash
 rg -n "PLAN-42" docs/                     # 主台账与归档一起搜，编号全局唯一
 rg -n "RF-129" docs/archive/              # 只看历史自检记录
-git log --follow docs/archive/v0.1.x/archived_plan.0.1.x.md   # 看得见搬运历史
+git log --follow docs/archive/v0.2.x/archived_plan.0.2.x.md   # 看得见搬运历史
 ```
 
 ## 7. 维护规则

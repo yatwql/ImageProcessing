@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[3]
 class VersionSource(unittest.TestCase):
     def test_version_module_is_the_single_source(self):
         self.assertEqual(__version__, version_mod.VERSION)
-        self.assertRegex(version_mod.VERSION, r"^\d+\.\d+")
+        self.assertRegex(version_mod.VERSION, r"^\d+\.\d+(-dev)?$")
 
     def test_pyproject_reads_the_version_from_that_module(self):
         text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

@@ -1,6 +1,6 @@
 # 测试覆盖率与分组统计
 
-> 版本：v0.1
+> 版本：v0.2
 
 本文件由 `python -m src.python.tools.coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与
 `reports/junit.xml`（`python -m src.python.tools.check_all` 全量模式产出）。改完用例或实现后重新生成即可，

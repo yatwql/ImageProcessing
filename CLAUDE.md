@@ -1,6 +1,6 @@
 # CLAUDE.md · retype
 
-> 版本：v0.1
+> 版本：v0.2
 
 ## 项目
 
@@ -123,6 +123,14 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 测试**不得**写项目里的 `data/`、`data/output/`；临时文件一律 `tempfile.TemporaryDirectory()`。
 - 需要 OCR 的用例用 `_support.patch_ocr()` 打桩，别在测试里加载 RapidOCR；
   需要窗口的用 `_support.FakeWin` + `TuiTestCase.drive()`，不要起真终端。
+
+## 分支与版本纪律
+
+- **日常开发只在 `dev` 分支**；`VERSION` 带 `-dev`（如 `0.3-dev`），各文档 `> 版本：` 行与它逐字一致
+  （守护「版本号」会核对，`master` 上带 `-dev` 或 `dev` 上不带都会红）。
+- 正式发布：`prepare --version X.Y`（去掉 `-dev`）→ gate → build → 打标签 `vX.Y` → **合并进 `master`**；
+  发布后回 `dev` 跑 `devbump --version <下一个 X.Y>` 切下一个开发版。
+- 开发版不允许打标签（`release.py tag` 会拒）；`main` 分支已改名为 `master`。
 
 ## CI 红纪律
 

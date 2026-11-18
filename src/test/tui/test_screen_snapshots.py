@@ -21,9 +21,16 @@ from pathlib import Path
 
 from src.python.tui import ui
 from src.python.tui.app import Block
+from src.python.version import VERSION
 from src.test._support import FakeWin, TuiTestCase, has_cjk_font
 
 SNAPSHOT = Path(__file__).resolve().parents[1] / "snapshots" / "tui.json"
+VERSION_TOKEN = f"v{VERSION}"
+
+
+def normalize(text: str) -> str:
+    """版本号不进快照：升版（含 -dev 后缀）不该让 40 屏快照全红。"""
+    return text.replace(VERSION_TOKEN, "v<VER>")
 UPDATE = os.environ.get("UPDATE_SNAPSHOTS") == "1"
 
 SIZES = [(32, 18), (44, 22), (50, 24), (80, 26), (130, 34)]
@@ -94,7 +101,7 @@ class ScreenSnapshots(TuiTestCase):
         for case_name, app in cases.items():
             for cols, rows in SIZES:
                 key = f"{case_name}@{cols}x{rows}"
-                current[key] = self.render(app, cols, rows)
+                current[key] = normalize(self.render(app, cols, rows))
 
         if UPDATE:
             SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
@@ -111,6 +118,7 @@ class ScreenSnapshots(TuiTestCase):
         self.assertFalse(missing, f"快照里有已不存在的用例：{missing}")
         self.assertFalse(extra, f"新增用例缺快照：{extra}（UPDATE_SNAPSHOTS=1 生成）")
 
+        expected = {key: normalize(text) for key, text in expected.items()}
         for key, want in expected.items():
             with self.subTest(screen=key):
                 self.assertEqual(

@@ -1,6 +1,6 @@
 # 技术设计文档（Technical Design）
 
-> 版本：v0.1
+> 版本：v0.2
 
 - 项目：retype / PNG 文字替换
 - 版本：1.0
@@ -465,6 +465,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tools/test_release_archive.py` | 归档流程：台账切开、整块搬运、主台账留头与索引、幂等与追加批次、索引倒序 |
 | `tools/test_platform_safety_rules.py` | 守护「跨平台」的规则自检：写死字体家族 / 裸 bash / 无守卫 fcntl /
 绝对像素阈值 / 断言里比 `sys.executable`，以及 `bash_exe()` 探测、字体矩阵候选顺序与换行符规则 |
+| `tools/test_release_versions.py` | 版本策略：`0.3-dev`→`0.3` 定版、跨版本拒绝、`devbump` 切下个开发版、开发版不能打标签 |
 | `tools/test_gen_folders_stats.py` | 目录统计重算：文件数/行数/用例数/示例图与合计行由脚本算，说明列不动 |
 
 ## 10.0 测试报告脚本

@@ -3,7 +3,8 @@
 
     python tools/release.py check                 # 工作区干净 + 版本一致 + 快速门禁（含两档 CI 矩阵）
     python tools/release.py archive --yes         # 把三份台账的旧内容整块搬进 docs/archive/vX.Y.x/
-    python tools/release.py prepare --version 0.2 # 改 version.py 与 changelog 标题
+    python tools/release.py prepare --version 0.2 # 定版：0.2-dev → 0.2（改 version.py 与 changelog 标题）
+    python tools/release.py devbump --version 0.3 # 发布后切下一个开发版（→ 0.3-dev，在 dev 分支跑）
     python tools/release.py gate                  # 全量门禁（= check_all）
     python tools/release.py build                 # 打 wheel/sdist + SHA256SUMS
     python tools/release.py tag                   # 打附注标签 vX.Y（--yes 才真执行）
@@ -30,6 +31,7 @@ VERSION_FILE = ROOT / "src" / "python" / "version.py"
 DOCS = ROOT / "docs"
 CHANGELOG = DOCS / "managements" / "changelog.md"
 DIST = ROOT / "dist"
+DEV_SUFFIX = "-dev"          # 开发分支上的版本号后缀：0.3-dev；发布时去掉
 PY = sys.executable
 
 # 归档：三份过程台账，旧版本内容整块搬进 docs/archive/v<系列>/（规则见 docs/archive/README.md）
@@ -63,6 +65,23 @@ def read_version() -> tuple[str, str]:
     return version.group(1), updated.group(1)
 
 
+def base_version(version: str) -> str:
+    """`0.2-dev` → `0.2`：正式版本号（标签、发布说明都用它）。"""
+    return version[: -len(DEV_SUFFIX)] if version.endswith(DEV_SUFFIX) else version
+
+
+def is_dev(version: str) -> bool:
+    return version.endswith(DEV_SUFFIX)
+
+
+def write_version(version: str, today: str, version_file: Path | None = None) -> None:
+    path = version_file if version_file is not None else VERSION_FILE
+    text = path.read_text(encoding="utf-8")
+    text = re.sub(r'^VERSION = "[^"]+"', f'VERSION = "{version}"', text, flags=re.MULTILINE)
+    text = re.sub(r'^UPDATED = "[^"]+"', f'UPDATED = "{today}"', text, flags=re.MULTILINE)
+    path.write_text(text, encoding="utf-8")
+
+
 def cmd_check() -> int:
     problems: list[str] = []
     status = sh(["git", "status", "--porcelain"]).stdout.strip()
@@ -72,8 +91,13 @@ def cmd_check() -> int:
     commit_date = sh(["git", "log", "-1", "--format=%cs", "--", "src"]).stdout.strip()
     if commit_date and commit_date != updated:
         problems.append(f"UPDATED={updated} 与 src/ 最后提交 {commit_date} 不一致")
-    if not re.fullmatch(r"\d+\.\d+", version):
-        problems.append(f"版本号格式应为 MAJOR.MINOR，收到 {version!r}")
+    if not re.fullmatch(r"\d+\.\d+(?:-dev)?", version):
+        problems.append(f"版本号应为 MAJOR.MINOR 或 MAJOR.MINOR-dev，收到 {version!r}")
+    branch = sh(["git", "rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
+    if branch == "master" and is_dev(version):
+        problems.append(f"master 上是 {version}：发布分支不能带 -dev（先 prepare 成正式号）")
+    if branch == "dev" and not is_dev(version):
+        problems.append(f"dev 上是 {version}：开发分支的版本必须带 -dev（如 {version}-dev）")
     # 发布预检不只跑“本机默认环境”：把两档 CI 矩阵一起过（字族/控制台差异）。
     # 这是“本地绿、CI 红”在发布前最后一次拦截点。
     quick = sh(
@@ -101,17 +125,21 @@ def cmd_check() -> int:
 
 
 def cmd_prepare(version: str) -> int:
-    if not re.fullmatch(r"\d+\.\d+", version):
-        print(f"[FAIL] 版本号格式应为 MAJOR.MINOR，收到 {version!r}")
+    if not re.fullmatch(r"\d+\.\d+(?:-dev)?", version):
+        print(f"[FAIL] 版本号应为 MAJOR.MINOR 或 MAJOR.MINOR-dev，收到 {version!r}")
+        return 2
+    current, _updated = read_version()
+    if base_version(current) != base_version(version):
+        print(
+            f"[FAIL] 跨版本发布：当前 {current}，目标 {version}。"
+            "发布只能把当前开发版（X.Y-dev）定版为 X.Y；换小版本请先 devbump"
+        )
         return 2
     today = dt.date.today().isoformat()
-    text = VERSION_FILE.read_text(encoding="utf-8")
-    text = re.sub(r'^VERSION = "[^"]+"', f'VERSION = "{version}"', text, flags=re.MULTILINE)
-    text = re.sub(r'^UPDATED = "[^"]+"', f'UPDATED = "{today}"', text, flags=re.MULTILINE)
-    VERSION_FILE.write_text(text, encoding="utf-8")
+    write_version(version, today)
 
     changelog = CHANGELOG.read_text(encoding="utf-8")
-    head = f"## v{version} — {today}"
+    head = f"## v{base_version(version)} — {today}"
     if head in changelog:
         print(f"[ok] changelog 已有 {head} 标题")
     else:
@@ -295,7 +323,23 @@ def cmd_build() -> int:
     return 0
 
 
+def cmd_devbump(version: str, version_file: Path | None = None) -> int:
+    """切到下一个开发版本：`VERSION = X.Y-dev`（发布后回到 dev 分支的第一步）。"""
+    target = base_version(version)
+    if not re.fullmatch(r"\d+\.\d+", target):
+        print(f"[FAIL] 目标版本应为 MAJOR.MINOR（自动补 -dev），收到 {version!r}")
+        return 2
+    current, _updated = read_version()
+    today = dt.date.today().isoformat()
+    write_version(f"{target}{DEV_SUFFIX}", today, version_file)
+    print(f"[ok] 版本 {current} → {target}{DEV_SUFFIX}（记得同步各文档的「> 版本：」行）")
+    return 0
+
+
 def cmd_tag(version: str, yes: bool) -> int:
+    if is_dev(version):
+        print(f"[FAIL] {version} 是开发版，不能打标签；先 prepare --version {base_version(version)}")
+        return 2
     tag = f"v{version}"
     existing = sh(["git", "tag", "--list", tag]).stdout.strip()
     if existing:
@@ -331,7 +375,8 @@ def main(argv: list[str] | None = None) -> int:
     version, _updated = read_version()
     ap = argparse.ArgumentParser(description="retype 发布流程")
     ap.add_argument(
-        "command", choices=["check", "archive", "prepare", "gate", "build", "tag", "publish"]
+        "command",
+        choices=["check", "archive", "prepare", "devbump", "gate", "build", "tag", "publish"],
     )
     ap.add_argument("--version", default=version, help=f"目标版本（当前 {version}）")
     ap.add_argument("--yes", action="store_true", help="真的执行有副作用的步骤")
@@ -343,6 +388,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_archive(args.version, args.yes)
     if args.command == "prepare":
         return cmd_prepare(args.version)
+    if args.command == "devbump":
+        return cmd_devbump(args.version)
     if args.command == "gate":
         return cmd_gate()
     if args.command == "build":

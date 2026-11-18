@@ -1,6 +1,6 @@
 # 目录结构与项目统计
 
-> 文档版本：v0.1
+> 文档版本：v0.2
 >
 > 项目目录树 — 新增/重命名/删除任何非排除的文件或目录时，**必须同步更新此文档**；
 > `src/python/tools/check_guards.py` 的第 12 项「目录树文档」会核对本文件是否覆盖了所有源文件与文档，
@@ -15,18 +15,18 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 31 | 4,308 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 64 | 8,502 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 664 | `git grep -c "def test_"` 行数口径 |
-| 工程工具 | Python | 16 | 2,920 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
+| 测试代码 | Python | 65 | 8,644 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 673 | `git grep -c "def test_"` 行数口径 |
+| 工程工具 | Python | 16 | 2,967 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 364 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
-| 管理文档 | Markdown | 10 | 2,977 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
-| 归档文档 | Markdown | 4 | 134 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
+| 管理文档 | Markdown | 10 | 1,722 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
+| 归档文档 | Markdown | 4 | 1,468 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
-| 根文档与配置 | Markdown / TOML / TXT | 7 | 469 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
+| 根文档与配置 | Markdown / TOML / TXT | 7 | 477 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **151** | **20,418** | 主程序 : 测试 ≈ 1 : 1.97；仓库共 155 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **152** | **20,694** | 主程序 : 测试 ≈ 1 : 2.01；仓库共 156 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -47,10 +47,10 @@ ImageProcessing/
 │       └── 示例-通知3.png                    # 回归样例（通知版式）
 ├── docs/                                     # 文档
 │   ├── archive/                              # 版本归档：旧版本台账整块搬入（规则见 README）
-│   │   ├── v0.1.x/                           # 版本归档系列 v0.1.x
-│   │   │   ├── archived_changelog.0.1.x.md   # 变更记录归档：v0.1 系列（待首次发布搬入）
-│   │   │   ├── archived_plan.0.1.x.md        # 计划归档：v0.1 系列（待首次发布搬入）
-│   │   │   └── archived_review-findings.0.1.x.md  # 自检记录归档：v0.1 系列（待首次发布搬入）
+│   │   ├── v0.2.x/                           # 版本归档系列 v0.2.x
+│   │   │   ├── archived_changelog.0.2.x.md
+│   │   │   ├── archived_plan.0.2.x.md
+│   │   │   └── archived_review-findings.0.2.x.md
 │   │   └── README.md                         # 归档规范：目录/命名、头部四项、搬运与编号不复用规则
 │   ├── managements/                          # 管理文档
 │   │   ├── changelog.md                      # 管理文档
@@ -191,7 +191,8 @@ ImageProcessing/
 │   │   │   ├── __init__.py                   # 工程工具用例（发布编排 / 归档流程等）
 │   │   │   ├── test_gen_folders_stats.py     # `gen_folders` 的统计表重算：数字由脚本算，说明列与表结构一概不动
 │   │   │   ├── test_platform_safety_rules.py  # 「跨平台」守护的规则自检：规则本身也要有用例，否则它会悄悄失效
-│   │   │   └── test_release_archive.py       # 归档流程（`release.py archive`）的用例
+│   │   │   ├── test_release_archive.py       # 归档流程（`release.py archive`）的用例
+│   │   │   └── test_release_versions.py      # 版本号与分支策略（`-dev` 开发版 / 正式版）：`release.py` 的定版与切版
 │   │   ├── tui/                              # 交互用例
 │   │   │   ├── __init__.py                   # tui 场景测试
 │   │   │   ├── test_apply_and_batch.py       # TUI 执行流程测试：替换当前图、批量确认、重名与覆盖保护

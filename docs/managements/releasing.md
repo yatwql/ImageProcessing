@@ -1,6 +1,6 @@
 # 发布流程
 
-> 版本：v0.1
+> 版本：v0.2
 
 发布 = 七个可单独重试的步骤，全部由 `src/python/tools/release.py` 编排。**每次发布前必须全绿**，
 不靠人记；`gate` 会跑与 CI 完全相同的检查。
@@ -16,11 +16,43 @@
 .venv/bin/python -m src.python.tools.release tag --yes               # 7. 打标签（推标签触发 CI 发布）
 ```
 
+## 0. 分支与版本号（`dev` / `master`）
+
+| 项 | 规则 |
+| --- | --- |
+| 开发分支 | `dev`：**日常开发都在这里**，`VERSION` 带后缀，如 `0.3-dev` |
+| 发布分支 | `master`：只放正式发布的版本号（`0.3`），发布后由 `dev` 合并进来 |
+| 开发版本号 | 正式版本号 + `-dev`（`0.3-dev`）；`check_guards` 核对各文档 `> 版本：` 行与之一致 |
+| 正式版本号 | 无后缀（`0.3`）；`release.py prepare --version 0.3` 去掉 `-dev` |
+| 标签 | 只给正式版本打（`v0.3`）；开发版调 `tag` 会被拒绝 |
+| 发布后 | `master` 上打标签并发布 → 回到 `dev` 跑 `release.py devbump --version 0.4` 切下一个开发版 |
+
+```bash
+# 日常（dev 分支）
+git switch dev
+.venv/bin/python -m src.python.tools.check_all --quick
+
+# 发布（仍在 dev 上定版，再合并进 master）
+.venv/bin/python -m src.python.tools.release check
+.venv/bin/python -m src.python.tools.release archive --yes
+.venv/bin/python -m src.python.tools.release prepare --version 0.3   # 0.3-dev → 0.3
+#   同步各文档的「> 版本：」行 → gen_folders --write → 提交
+.venv/bin/python -m src.python.tools.release gate
+.venv/bin/python -m src.python.tools.release build
+git switch master && git merge --no-ff dev
+.venv/bin/python -m src.python.tools.release tag --yes && git push origin master v0.3
+git switch dev
+.venv/bin/python -m src.python.tools.release devbump --version 0.4   # → 0.4-dev
+```
+
+> 为什么开发版也写进 `VERSION`：界面标题、CLI 横幅、写盘日志的 `app_version` 都要能一眼看出
+> "跑的是开发版还是正式版"；`-dev` 后缀就是最便宜的标记，不用另开字段。
+
 ## 1. 版本策略
 
 | 项 | 规则 |
 | --- | --- |
-| 版本格式 | `MAJOR.MINOR`（当前 `0.1`），定义在 `src/python/version.py`（唯一来源） |
+| 版本格式 | `MAJOR.MINOR[-dev]`（开发版带 `-dev`），定义在 `src/python/version.py`（唯一来源） |
 | `UPDATED` | 等于 `src/` 最后一次提交日期，守护「版本号」会核对 |
 | 何时升 `MINOR` | 新增能力、**或**任何破坏 §契约 的改动（见 `contracts.md` §3） |
 | 何时只发补丁 | 同一 `MINOR` 内修缺陷不打新版本号；直接随下一次发布合入 |

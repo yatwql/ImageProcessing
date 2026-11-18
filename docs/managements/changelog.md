@@ -1,9 +1,33 @@
 # 变更记录
 
-> 版本：v0.2
+> 版本：v0.3-dev
 
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
+
+## v0.3-dev — 开发中
+
+### 修复（v0.2 的 windows 作业仍红）
+
+- `src/test/core/layout/test_text_layout.py`：宽字距用例仍拿"另一次 fit 的排版宽度"当期望，
+  psipeline 实际用的字体/字号/字距未必相同（Windows 上 msyh 与 Noto 度量不同），
+  改为按 `report` 里 pipeline 自己报告的 font/size/tracking 算期望宽度，并以「同字体无字距」为下限。
+- CI「失败用例摘要」步自己红了（`UnicodeEncodeError: 'charmap'`，Windows 控制台 cp1252 打印中文）：
+  逻辑搬进 `src/python/tools/junit_summary.py`（`ensure_utf8_stdio()`），工作流只留一行 `python -m ...`。
+
+### 新增
+
+- `src/python/tools/junit_summary.py` + `src/test/tools/test_junit_summary.py`（5 例）：失败/错误用例
+  列成 `class::name`，报告缺失不报错。
+- 守护「工作流」新增规则：`run:` 块内联 python 脚本（heredoc / `python -c`）一律红——
+  那段代码既没有 `ensure_utf8_stdio()` 也写不了用例。
+- 版本策略落地：`dev` 分支开发版 `0.3-dev`，正式版 `0.2` 已在 `master` 打标签 `v0.2`；
+  `release.py` 新增 `devbump`，`prepare` 只做定版（`X.Y-dev` → `X.Y`），开发版拒绝打标签。
+- 界面快照不再含版本串（`v<VER>`）：升版不再产生 40 屏 diff。
+
+### 验证
+
+- `ruff` / `mypy` / `guards 18/18` / `check_workflows` 全绿；`pytest src/test -q` 674 passed。
 
 ## v0.2 — 2026-11-18
 

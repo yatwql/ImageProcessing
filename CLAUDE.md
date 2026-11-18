@@ -1,6 +1,6 @@
 # CLAUDE.md · retype
 
-> 版本：v0.2
+> 版本：v0.3-dev
 
 ## 项目
 

@@ -52,7 +52,7 @@ class PlatformDefaults(unittest.TestCase):
 
 class ConfigResolution(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(self.tmp.cleanup)
         self.patch = mock.patch.object(config, "CONFIG_DIR", self.tmp.name)
         self.patch.start()
@@ -91,9 +91,10 @@ class ConfigResolution(unittest.TestCase):
 
 class EnvOverrides(unittest.TestCase):
     def test_data_out_and_log_dirs_honor_env(self):
-        with mock.patch.dict(os.environ, {"IMG_P_DATA_DIR": "/t/in",
-                                          "IMG_P_OUT_DIR": "/t/out",
-                                          "IMG_P_LOG_DIR": "/t/logs"}):
+        with mock.patch.dict(
+            os.environ,
+            {"IMG_P_DATA_DIR": "/t/in", "IMG_P_OUT_DIR": "/t/out", "IMG_P_LOG_DIR": "/t/logs"},
+        ):
             self.assertEqual(config.default_input(), "/t/in")
             self.assertEqual(config.default_out_dir(), "/t/out")
             self.assertEqual(config.log_dir(), "/t/logs")
@@ -115,7 +116,7 @@ class VersionMeta(unittest.TestCase):
 
 class PathHandling(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(self.tmp.cleanup)
 
     def test_same_file_accepts_relative_and_absolute(self):
@@ -129,8 +130,11 @@ class PathHandling(unittest.TestCase):
             os.chdir(cwd)
 
     def test_different_files_are_not_same(self):
-        self.assertFalse(image.same_file(os.path.join(self.tmp.name, "a.png"),
-                                         os.path.join(self.tmp.name, "b.png")))
+        self.assertFalse(
+            image.same_file(
+                os.path.join(self.tmp.name, "a.png"), os.path.join(self.tmp.name, "b.png")
+            )
+        )
 
     def test_unique_path_numbers_without_touching_extension(self):
         """编号来自 reserve_path/unique_path；扩展名保持不变。"""
@@ -163,10 +167,18 @@ class ErrorContract(unittest.TestCase):
     def test_missing_font_pool_is_a_core_error_not_index_error(self):
         rgb = np.full((60, 120, 3), 255, np.uint8)
         jobs = [Job((10, 10, 80, 20), "原文", "新文")]
-        with mock.patch.object(edit, "analyze", return_value={
-            "mask": np.zeros((60, 120), bool), "ink_box": (10, 10, 90, 30),
-            "text_color": (0, 0, 0), "stroke": 2.0, "stroke_core": 2.0, "slant": 0.0,
-        }):
+        with mock.patch.object(
+            edit,
+            "analyze",
+            return_value={
+                "mask": np.zeros((60, 120), bool),
+                "ink_box": (10, 10, 90, 30),
+                "text_color": (0, 0, 0),
+                "stroke": 2.0,
+                "stroke_core": 2.0,
+                "slant": 0.0,
+            },
+        ):
             with self.assertRaises(CoreError):
                 edit.replace_image(rgb, None, jobs, Options(), [])
 

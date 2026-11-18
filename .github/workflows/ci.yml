@@ -67,7 +67,20 @@ jobs:
             --cov-report=term \
             --cov-report=xml:"$IMG_P_TMP_DIR/coverage.xml"
 
-      - name: 上传报告
+      # 环境指纹：把解释器、平台、依赖版本、字体清单记下来，
+      # 出"本机绿 CI 红"时能直接比对，而不是靠猜
+      - name: 环境指纹
+        if: always()
+        run: |
+          mkdir -p ci-env
+          python -VV > ci-env/python.txt 2>&1
+          python -m pip freeze > ci-env/pip-freeze.txt 2>&1
+          python -c "import platform, sys; print(platform.platform());
+                     print(sys.platform)" > ci-env/platform.txt
+          fc-list 2>/dev/null | head -50 > ci-env/fonts.txt ||
+            echo "no fc-list" > ci-env/fonts.txt
+
+      - name: 上传报告与指纹
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -75,6 +88,7 @@ jobs:
           path: |
             ${{ runner.temp }}/img-p/junit.xml
             ${{ runner.temp }}/img-p/coverage.xml
+            ci-env/
           if-no-files-found: warn
           retention-days: 7
 
@@ -180,3 +194,21 @@ jobs:
         run: python tools/check_guards.py
       - name: 耗时守卫
         run: python tools/check_perf.py
+
+  audit:
+    # 依赖漏洞审计：装到当前环境的版本（就是 constraints.txt 锁的那套）逐个查 CVE。
+    # 有中高危就红；纯粹"升级更香"的提示不算。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: 安装依赖
+        run: |
+          python -m pip install --retries 5 --timeout 60 \
+            -c constraints.txt -e ".[dev]"
+      - name: pip-audit
+        run: python -m pip_audit --strict --progress-spinner off

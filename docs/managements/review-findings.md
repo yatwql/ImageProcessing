@@ -224,6 +224,17 @@
 | RF-98 | 健壮性 | 字体池为空（系统无字体 / `--font` 指向坏文件）时 `replace_image` 裸抛 `IndexError`，违反"核心层只抛 CoreError" | 明确抛 `CoreError("没有可用字体…")`，渠道提示一句即可 | 已修 |
 | RF-99 | 测试覆盖 | 功能边界、交互边界、跨平台默认值与稳定性（规模/幂等）几乎空白，只有主流程用例 | 新增 3 个文件 70 例：`core/test_feature_edges.py`、`tui/test_interaction_edges.py`、`core/test_platform_stability.py`（平台分支用 `sys.platform` 打桩，任何系统都能跑） | 已修 |
 
+## 2026-11-18 质量管理加固（快照/属性/门禁/变异/审计）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-100 | 测试盲区 | 布局事故只能靠"断言某个标记存在"来抓，漏一次就流到真机 | 整屏快照：5 尺寸 × 8 状态存 `snapshots/tui.json`，布局漂移必须显式更新 | 已修 |
+| RF-101 | 测试盲区 | 手写用例覆盖不到输入边界（颜色/宽度/下标映射） | hypothesis 属性测试 9 组性质，120 examples/组 | 已修 |
+| RF-102 | 流程 | pre-commit 只跑 `--quick`，覆盖率与无字体模式要到 CI 才见 | 新增 `pre-push` 跑全量；CI 加环境指纹与失败产物归档 | 已修 |
+| RF-103 | 门禁粒度 | 只看总覆盖率（75%），单个高风险模块掉到 40% 也看不出来；skip 无上限 | `tools/check_coverage.py`：9 个模块 80~90% + skip ≤15%，接入 `check_all` | 已修 |
+| RF-104 | 断言强度 | 覆盖率不等于"能杀 bug"，没有机制验证断言强度 | 引入 mutmut 试点脚本（opt-in），先跑 match/options | 已修 |
+| RF-105 | 供应链/入口 | 依赖漏洞无审计；入口（`--version/--help/launch`）没有冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（11 例） | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

@@ -32,7 +32,8 @@
 ImageProcessing/
 ├── .githooks/                                # git 钩子（core.hooksPath 指向这里）
 │   ├── install-hooks.sh                      # 启用/关闭仓库钩子
-│   └── pre-commit                            # 提交前门禁：check_all --quick
+│   ├── pre-commit                            # 提交前门禁：check_all --quick
+│   └── pre-push                              # git 钩子（core.hooksPath 指向这里）
 ├── .github/
 │   └── workflows/                            # CI 流水线
 │       └── ci.yml                            # CI：test×3 / lint / typecheck / guards / perf / windows
@@ -104,6 +105,7 @@ ImageProcessing/
 │   │   │   ├── test_arguments.py             # CLI 参数层测试：默认值、参数合并、非法用法与提前报错
 │   │   │   ├── test_batch_directory.py       # CLI 目录批量测试：逐图处理、汇总统计、输出命名、dry-run 与过滤规则
 │   │   │   ├── test_demo_assets.py           # 用仓库自带示例图（data/demo）跑真实图片流程：读取、单图替换、批量、日志
+│   │   │   ├── test_entry_smoke.py           # 入口冒烟：每个对外入口都能起来、给出正确退出码（不需要真终端）
 │   │   │   ├── test_launch_env.py            # 启动器与环境引导：首次运行自动装依赖，设 `IMG_P_NO_AUTO_SETUP=1` 才退回手动
 │   │   │   └── test_single_image.py          # CLI 单图流程测试：--list、输出位置、dry-run、样式覆盖、失败提示
 │   │   ├── core/                             # 核心层用例
@@ -141,8 +143,11 @@ ImageProcessing/
 │   │   │   ├── test_mapping_rules.py         # 映射规则测试：映射表与文字块如何变成替换任务（Job）
 │   │   │   ├── test_ocr_contract.py          # OCR 封装测试：结果结构、区域裁剪、引擎缺失时的错误契约
 │   │   │   ├── test_platform_stability.py    # 跨平台兼容与稳定性：路径/配置/环境变量、异常契约、幂等与规模
+│   │   │   ├── test_properties.py            # 属性测试（hypothesis）：用生成的大量输入验证"永远成立的性质"
 │   │   │   ├── test_version_display.py       # 版本号：唯一来源、界面可见、每次运行都报、写盘日志记录、文档开头一致
 │   │   │   └── test_write_audit_log.py       # 写盘日志：真实保存图片后必须留下一条可追溯的记录
+│   │   ├── snapshots/
+│   │   │   └── tui.json
 │   │   ├── tui/                              # 交互用例
 │   │   │   ├── __init__.py                   # tui 场景测试
 │   │   │   ├── test_apply_and_batch.py       # TUI 执行流程测试：替换当前图、批量确认、重名与覆盖保护
@@ -152,6 +157,7 @@ ImageProcessing/
 │   │   │   ├── test_keys_and_navigation.py   # TUI 按键测试：转义序列解码、方向键与别名键导航、数字跳图、Esc 语义
 │   │   │   ├── test_layout_rendering.py      # TUI 布局渲染测试：双栏/单栏切换、窄屏提示、异常不外溢
 │   │   │   ├── test_mapping_panel.py         # TUI 全局映射面板（e 键）：新增、修改、删除、导出 JSON
+│   │   │   ├── test_screen_snapshots.py      # TUI 屏幕快照：把固定尺寸 × 固定状态下的整屏文本钉住
 │   │   │   ├── test_session_state.py         # TUI 会话状态测试：样式选项校验、映射表读写（不涉及 curses 界面）
 │   │   │   ├── test_settings_panel.py        # TUI 样式选项面板（c 键）：逐项编辑、非法值只提示、Esc 返回
 │   │   │   └── test_tui_real_terminal.py     # 真终端冒烟：在伪终端里跑一次真 curses，确认"屏幕上真的有东西"
@@ -160,9 +166,12 @@ ImageProcessing/
 │   └── __init__.py                           # 项目源码包：src.python 为程序代码，src.test 为测试用例
 ├── tools/                                    # 工程工具，不进运行时包
 │   ├── check_all.py                          # 本地全量门禁：ruff/mypy/guards/perf/用例/无字体复跑
+│   ├── check_coverage.py                     # 覆盖率门禁：总覆盖率 + 高风险模块单独设限 + skip 上限
 │   ├── check_guards.py                       # 工程守护 13 项
 │   ├── check_perf.py                         # 耗时守卫（四步热路径）
-│   └── run_tests.py                          # 测试编排：报告 / 覆盖率 / 摘要 / 清理
+│   ├── mutation_check.py                     # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
+│   ├── run_tests.py                          # 测试编排：报告 / 覆盖率 / 摘要 / 清理
+│   └── update_constraints.py                 # 依赖升级助手：列出可升级项，并按当前环境重写 constraints.txt 的非标记部分
 ├── .gitignore                                # 忽略虚拟环境 / 缓存 / 输出 / 日志
 ├── CLAUDE.md                                 # AI 协作者约定：架构硬约束、纪律、已知坑
 ├── README.md                                 # 项目简介 / 快速开始 / 门禁 / 文档索引

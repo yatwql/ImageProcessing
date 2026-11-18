@@ -71,10 +71,14 @@ class LayoutRendering(TuiTestCase):
 # ACS 常量在 Windows 的 windows-curses（及部分 Linux 构建）里是 int：
 # 线框必须走 addch（str/int 都收），拼进 addstr 会 TypeError → 真机黑屏。
 INT_ACS = {
-    "ACS_HLINE": 113, "ACS_VLINE": 120,
-    "ACS_ULCORNER": 108, "ACS_URCORNER": 107,
-    "ACS_LLCORNER": 109, "ACS_LRCORNER": 106,
-    "ACS_LTEE": 116, "ACS_RTEE": 117,
+    "ACS_HLINE": 113,
+    "ACS_VLINE": 120,
+    "ACS_ULCORNER": 108,
+    "ACS_URCORNER": 107,
+    "ACS_LLCORNER": 109,
+    "ACS_LRCORNER": 106,
+    "ACS_LTEE": 116,
+    "ACS_RTEE": 117,
 }
 
 
@@ -106,7 +110,7 @@ class WindowsStyleAcs(TuiTestCase):
     def test_int_acs_constants_do_not_break_the_layout(self):
         app = self.make_app()
         win = FakeWin([], rows=26, cols=100)
-        ui.draw_frame(win, app)               # 不能抛（真机抛了就是黑屏）
+        ui.draw_frame(win, app)  # 不能抛（真机抛了就是黑屏）
         text = "\n".join(win.screen)
         self.assertIn("① 图片", text)
         self.assertIn("② 识别到的文字", text)
@@ -158,11 +162,11 @@ class BorderDrawing(TuiTestCase):
     def test_fake_window_rejects_non_str_to_addstr(self):
         win = FakeWin([], rows=4, cols=20)
         with self.assertRaises(TypeError):
-            win.addstr(0, 0, 104)          # curses 的 ACS int 码不能进 addstr
+            win.addstr(0, 0, 104)  # curses 的 ACS int 码不能进 addstr
 
     def test_fake_window_accepts_acs_int_in_addch(self):
         win = FakeWin([], rows=4, cols=20)
-        win.addch(0, 0, 104, 0)            # 真 curses 允许 addch 收 ACS int
+        win.addch(0, 0, 104, 0)  # 真 curses 允许 addch 收 ACS int
         self.assertEqual(win.cell_count, 1)
 
 
@@ -190,7 +194,7 @@ class ResponsiveLayout(TuiTestCase):
         text = "\n".join(self.render(app, 100, 30).screen)
         self.assertIn("① 图片", text)
         self.assertIn("② 识别到的文字", text)
-        self.assertIn("张", text)                     # 右上角的 "N/M 张"
+        self.assertIn("张", text)  # 右上角的 "N/M 张"
 
     def test_phone_shows_single_panel_with_size_marker(self):
         app = self.make_app()

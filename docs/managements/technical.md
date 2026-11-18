@@ -45,7 +45,7 @@ tools/                       工程工具（不进运行时包）
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
   pre-commit                 提交前：ruff + guards + 全量用例
   install-hooks.sh           启用 / --off 关闭
-.github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf / windows
+.github/workflows/ci.yml     CI：test / lint / typecheck / guards / perf / windows / audit
 pyproject.toml               单一配置源：依赖、可选依赖、ruff、mypy、pytest、coverage
 constraints.txt              锁定的依赖组合（pip -c 使用；升级须跑全量用例）
 
@@ -391,6 +391,14 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 - 自动测试：`src/test/` 按 `core/`（含 `primitives/` `layout/` `font/` `color/` `format/` `background/` `pipeline/`）、`cli/`、`tui/` 分目录，用例数随迭代变化（`unittest` 写、`pytest` 与 `unittest` 都能跑），覆盖匹配规则、
   块级任务、渲染与字距、图片读写格式表、合成图端到端（其它区域像素不变、memo 两次结果一致）、输出覆盖保护（`same_file` 与
   CLI 拒绝覆盖）、写盘日志（字段/追加/预演不记/日志失败不毁结果）、TUI 按键归一（转义序列/方向键/数字跳图/单 Esc 不退出）。
+- 界面快照：`src/test/tui/test_screen_snapshots.py` 把 5 个尺寸 × 8 种状态的整屏文本存进
+  `src/test/snapshots/tui.json`；布局漂移必须显式更新快照（`UPDATE_SNAPSHOTS=1`），
+  这是"改界面要留证据"的门槛。
+- 属性测试：`src/test/core/test_properties.py`（hypothesis）验证 `norm_map` 下标可回溯、
+  `cut/pad` 不超预算、`parse_color` 只有两种结果、`unique_path` 不吞扩展名、`plan_jobs` 的 span 精准。
+- 覆盖率门禁：`tools/check_coverage.py` 校验总量 75%、9 个高风险模块 80~90%、skip ≤15%。
+- 入口冒烟：`src/test/cli/test_entry_smoke.py` 逐个跑 `--version/--help` 与 `launch` 的错误码。
+- 变异测试（opt-in）：`tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
 - 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），
   `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` 可在本地模拟"无中文字体"的机器。
 - 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-cov、pytest-html、ruff、mypy）；

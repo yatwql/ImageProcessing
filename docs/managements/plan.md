@@ -110,3 +110,9 @@
 | PLAN-76 | 扩测（功能） | `test_feature_edges.py`：映射规则/颜色解析/区域任务/日志轮转/格式表与质量校验 | 完成 |
 | PLAN-77 | 扩测（交互） | `test_interaction_edges.py`：样式面板非法输入与全角数字、映射增删改与坏 JSON、目录边界、批量取消与翻页/等价键 | 完成 |
 | PLAN-78 | 扩测（跨平台/稳定） | `test_platform_stability.py`：平台默认值打桩、配置解析与编码、路径处理与原子占名、CoreError 契约、40 块规模与字节级幂等 | 完成 |
+| PLAN-79 | 界面快照 | `src/test/snapshots/tui.json`：5 尺寸 × 8 状态整屏文本；`UPDATE_SNAPSHOTS=1` 更新 | 完成 |
+| PLAN-80 | 属性测试 | `test_properties.py`（hypothesis）：`norm_map` 下标、`cut/pad` 预算、颜色两种结果、`unique_path` 扩展名、`plan_jobs` span | 完成 |
+| PLAN-81 | 推送门禁 | `.githooks/pre-push` 跑 `check_all` 全量；CI 增加环境指纹与失败产物归档 | 完成 |
+| PLAN-82 | 覆盖率分模块 | `tools/check_coverage.py`：总量 75%、9 个高风险模块 80~90%、skip ≤15%；接入 `check_all` | 完成 |
+| PLAN-83 | 变异测试 | `tools/mutation_check.py`（opt-in，mutmut），默认试点 `core/match.py` | 完成 |
+| PLAN-84 | 依赖审计与入口冒烟 | CI `audit` 作业（pip-audit --strict）、`tools/update_constraints.py`、`test_entry_smoke.py`（含 shell 薄壳语法检查） | 完成 |

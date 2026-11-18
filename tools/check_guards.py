@@ -484,6 +484,9 @@ CHECKS = [
 def main(argv: Sequence[str] = ()) -> int:
     # 空序列表示"没传参"，避免 `x is None` 形式的静态规则噪音
     args = list(argv) if argv else sys.argv[1:]
+    if "-h" in args or "--help" in args:
+        print(__doc__)
+        return 0
     quiet = "--ci" in args
     failed = 0
     for name, fn in CHECKS:

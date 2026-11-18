@@ -71,7 +71,7 @@ def draw_main(win, app: App) -> None:
     # ── 分隔线 + 底部三行（详情 / 状态 / 键位）+ 底边框
     divider(win, h - 5, 1, w - 2, attr("frame"))
     _draw_footer(win, app, h, w, img)
-    win.refresh()          # 主界面必须自己 flush：漏了这一行就是一片黑屏
+    win.refresh()  # 主界面必须自己 flush：漏了这一行就是一片黑屏
 
 
 def _draw_footer(win, app: App, h: int, w: int, img) -> None:
@@ -91,11 +91,16 @@ def _draw_footer(win, app: App, h: int, w: int, img) -> None:
     # 路径一长（CI 的临时目录比本机深）就被裁掉——本机绿、CI 红的经典来源。
     size_marker = f"[{w}x{h}]" if w < 60 else ""
     marker_cols = dwidth(size_marker) + 1 if size_marker else 0
-    put(win, h - 3, 2, _status_text(app, max(0, w - 4 - marker_cols)), w - 4 - marker_cols,
-        attr("ok"))
+    put(
+        win,
+        h - 3,
+        2,
+        _status_text(app, max(0, w - 4 - marker_cols)),
+        w - 4 - marker_cols,
+        attr("ok"),
+    )
     if size_marker:
-        put(win, h - 3, w - 1 - dwidth(size_marker), size_marker, dwidth(size_marker),
-            attr("dim"))
+        put(win, h - 3, w - 1 - dwidth(size_marker), size_marker, dwidth(size_marker), attr("dim"))
     put(win, h - 2, 2, f" {_keys_hint(app, w)} ", w - 4, attr("sel"))
 
 

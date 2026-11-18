@@ -5,6 +5,30 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 质量管理加固（快照 / 属性 / 门禁 / 变异 / 审计）
+
+### 新增
+
+- 界面快照 `src/test/snapshots/tui.json`：5 尺寸 × 8 状态（正常/文字块/长路径/识别中/空目录/
+  映射面板/样式面板/帮助）整屏文本；`UPDATE_SNAPSHOTS=1` 更新，diff 随代码提交。
+- 属性测试 `src/test/core/test_properties.py`（hypothesis）：`norm_map` 下标可回溯、
+  `cut/pad` 不超预算、`parse_color` 只有合法三元组或 `CoreError`、`unique_path` 不吞扩展名、
+  `plan_jobs` 的 span 精准切片。
+- `tools/check_coverage.py`：总量 ≥75%，`core/match|options` ≥90%，`core/edit|render|image|audit`
+  与 `tui/ui_draw` ≥85%，`tui/app|ui_actions` ≥80%，正常模式 skip ≤15%；接入 `check_all`。
+- `.githooks/pre-push`：推送前跑 `check_all` 全量（含覆盖率与无字体复跑）。
+- `tools/mutation_check.py`：mutmut 试点脚本（opt-in），先跑 `core/match.py`。
+- `tools/update_constraints.py`：`--check` 看可升级项、`--write` 按当前环境重写锁定（保留分档标记）。
+- `src/test/cli/test_entry_smoke.py`：11 例入口冒烟（`--version/--help/launch` 错误码、tools `--help`、
+  shell 薄壳语法检查）。
+- CI：新增 `audit` 作业（`pip-audit --strict`）、环境指纹（python/platform/pip freeze/字体清单）
+  与失败产物归档。
+
+### 变更
+
+- `pyproject.toml`：dev 依赖加 `hypothesis`、`pip-audit`；`coverage.fail_under` 70 → 75。
+- `tools/{check_guards,check_coverage,check_perf}.py` 支持 `--help`（入口冒烟要求）。
+
 ## 2026-11-18 — 扩测：功能 / 交互 / 跨平台 / 稳定性
 
 ### 新增测试（70 例，3 个文件）

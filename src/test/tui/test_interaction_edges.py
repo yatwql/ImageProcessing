@@ -110,7 +110,7 @@ class MappingEdits(TuiTestCase):
         blk = self.app.blocks()[0]
         blk.override = "改后"
         self.app.add_to_mapping()
-        if self.app.mapping:                       # 没有原文时不会加，属正常分支
+        if self.app.mapping:  # 没有原文时不会加，属正常分支
             self.assertTrue(all(isinstance(k, str) for k in self.app.mapping))
 
 

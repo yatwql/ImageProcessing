@@ -184,7 +184,7 @@ class App:
             try:
                 self.ensure_blocks()
                 self.message = f"{self.dir or ''}：{len(self.images)} 张图片"
-            except Exception as exc:                    # 后台线程不能把异常抛给界面
+            except Exception as exc:  # 后台线程不能把异常抛给界面
                 self.message = f"识别失败: {exc}"
             finally:
                 self.loading = False

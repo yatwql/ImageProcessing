@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+# 推送前门禁：跑与 CI 完全一致的全量检查（含覆盖率与"无字体"复跑）。
+#
+#   sh .githooks/install-hooks.sh       # 启用（会同时装上 pre-commit 与 pre-push）
+#   IMG_P_SKIP_HOOK=1 git push ...      # 紧急跳过（有理由再用）
+#
+# 为什么还要 pre-push：pre-commit 为了速度只跑 --quick，覆盖率不进、无字体模式不跑，
+# 而 CI 恰恰在那两项上翻过车。推送前补一次全量，才算"推之前等于 CI"。
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+if [ "${IMG_P_SKIP_HOOK:-0}" = "1" ]; then
+  echo "[pre-push] IMG_P_SKIP_HOOK=1，跳过"
+  exit 0
+fi
+
+PY=".venv/bin/python"
+if [ ! -x "$PY" ]; then
+  echo "[pre-push] 缺少 .venv，先跑 ./scripts/setup.sh（已跳过门禁）" >&2
+  exit 0
+fi
+
+echo "[pre-push] check_all（全量：覆盖率 + 无字体复跑）"
+exec "$PY" tools/check_all.py

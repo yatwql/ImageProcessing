@@ -35,11 +35,14 @@ class NormMap(unittest.TestCase):
 
 class PlanJobs(unittest.TestCase):
     def regions(self, *texts):
-        return [{"text": t, "rect": (0, i * 40, 200, 30), "score": 1.0}
-                for i, t in enumerate(texts)]
+        return [
+            {"text": t, "rect": (0, i * 40, 200, 30), "score": 1.0} for i, t in enumerate(texts)
+        ]
 
     def test_whole_line_match_produces_one_job(self):
-        out = match.plan_jobs(self.regions("年度报告2023"), {"年度报告2023": "年度总结2024"}, warn=False)
+        out = match.plan_jobs(
+            self.regions("年度报告2023"), {"年度报告2023": "年度总结2024"}, warn=False
+        )
         self.assertEqual(len(out), 1)
         self.assertIsNone(out[0].span)
 
@@ -56,15 +59,18 @@ class PlanJobs(unittest.TestCase):
         self.assertEqual(len(out), 2)
 
     def test_unmatched_text_produces_nothing(self):
-        self.assertEqual(match.plan_jobs(self.regions("无关文字"), {"2023": "2024"}, warn=False), [])
+        self.assertEqual(
+            match.plan_jobs(self.regions("无关文字"), {"2023": "2024"}, warn=False), []
+        )
 
     def test_empty_mapping_produces_nothing(self):
         self.assertEqual(match.plan_jobs(self.regions("年度报告2023"), {}, warn=False), [])
 
     def test_warning_sink_receives_fuzzy_hint(self):
         seen: list[str] = []
-        match.plan_jobs(self.regions("年度报告2O23"), {"年度报告2023": "新"}, warn=True,
-                        sink=seen.append)
+        match.plan_jobs(
+            self.regions("年度报告2O23"), {"年度报告2023": "新"}, warn=True, sink=seen.append
+        )
         self.assertTrue(seen, "模糊匹配时应通过 sink 提示，而不是 print")
 
 
@@ -102,7 +108,7 @@ class ColorParsing(unittest.TestCase):
 
 class LogRotation(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()          # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(self.tmp.cleanup)
 
     def write_log(self, day: dt.date) -> str:
@@ -147,7 +153,7 @@ class ImageFormatTable(unittest.TestCase):
     """格式表与保存行为：不支持的扩展名必须是一句 CoreError，而不是 traceback。"""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()          # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
         self.addCleanup(self.tmp.cleanup)
         self.rgb = np.full((20, 30, 3), 200, np.uint8)
 
@@ -165,8 +171,9 @@ class ImageFormatTable(unittest.TestCase):
         for quality in (0, 101, -5):
             with self.subTest(quality=quality):
                 with self.assertRaises(CoreError):
-                    save_image(self.rgb, None, os.path.join(self.tmp.name, "out.jpg"),
-                               quality=quality)
+                    save_image(
+                        self.rgb, None, os.path.join(self.tmp.name, "out.jpg"), quality=quality
+                    )
 
     def test_alpha_is_flattened_for_jpeg(self):
         from src.python.core.image import save_image

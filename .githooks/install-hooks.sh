@@ -14,6 +14,9 @@ if [ "${1:-}" = "--off" ]; then
   exit 0
 fi
 
-chmod +x .githooks/pre-commit
+chmod +x .githooks/pre-commit .githooks/pre-push
 git config core.hooksPath .githooks
-echo "已启用 .githooks/pre-commit：ruff + guards + pytest（IMG_P_SKIP_HOOK=1 可临时跳过）"
+echo "已启用仓库钩子："
+echo "  pre-commit  → tools/check_all.py --quick（ruff/mypy/guards/perf/用例）"
+echo "  pre-push    → tools/check_all.py（再加覆盖率与无字体复跑）"
+echo "  IMG_P_SKIP_HOOK=1 可临时跳过"

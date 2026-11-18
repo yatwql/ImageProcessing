@@ -24,6 +24,8 @@ dev = [
   "pytest-html>=4.1",
   "ruff>=0.5",
   "mypy>=1.10",
+  "hypothesis>=6.100",
+  "pip-audit>=2.7",
 ]
 
 [project.scripts]
@@ -94,4 +96,4 @@ exclude_lines = [
   "raise NotImplementedError",
 ]
 # 阈值取当前实测值向下取整（见 guards 守护与 CI）；只降不升说明退化。
-fail_under = 70
+fail_under = 75

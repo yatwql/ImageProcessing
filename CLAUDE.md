@@ -48,12 +48,21 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 入口：`./scripts/cli.sh`（= `python -m src.python.cli`）、`./scripts/tui.sh`（= `python -m src.python.tui`）；
   Windows 用 `scripts\cli.ps1` / `tui.ps1` / `setup.ps1` / `test.ps1`，虚拟环境解释器在 `.venv\Scripts\python.exe`。
 
-**推送前只跑一条命令**（与 CI 的六个作业对齐，绿了再推）：
+**推送前只跑一条命令**（与 CI 的七个作业对齐，绿了再推）：
 
 ```bash
 .venv/bin/python tools/check_all.py           # ruff → mypy → guards → perf → 用例(含覆盖率) → 无字体复跑
 .venv/bin/python tools/check_all.py --quick   # 跳过覆盖率与无字体复跑（提交前钩子用这个）
 ```
+
+- 提交前钩子 `pre-commit` 跑 `--quick`，推送前钩子 `pre-push` 跑全量（含覆盖率门禁与无字体复跑）。
+- 覆盖率门禁：总量 ≥75%，且 `core/{match,options}` ≥90%、`core/{edit,render,image,audit,render}` 与
+  `tui/{ui_draw}` ≥85%、`tui/{app,ui_actions}` ≥80%；正常模式 skip ≤15%（`tools/check_coverage.py`）。
+- 界面快照：`src/test/snapshots/tui.json`（5 尺寸 × 8 状态）。有意改界面后
+  `UPDATE_SNAPSHOTS=1 .venv/bin/python -m pytest src/test/tui/test_screen_snapshots.py`，
+  把快照 diff 一起提交。
+- 变异测试（opt-in）：`python tools/mutation_check.py`（需 `pip install mutmut`），
+  先跑 `core/match.py`、`core/options.py`，存活变异体说明断言太松。
 
 ```bash
 .venv/bin/ruff check src/ tools/                                   # 静态检查

@@ -56,8 +56,10 @@ class EntryShimGaps(unittest.TestCase):
 class LogQueryGaps(unittest.TestCase):
     def test_core_error_from_reader_is_reported(self):
         err = io.StringIO()
-        with mock.patch.object(log_query, "read_entries", side_effect=CoreError("读不了")), \
-                contextlib.redirect_stderr(err):
+        with (
+            mock.patch.object(log_query, "read_entries", side_effect=CoreError("读不了")),
+            contextlib.redirect_stderr(err),
+        ):
             code = log_query.main(["--log-dir", "/tmp/x"])
         self.assertEqual(code, 2)
         self.assertIn("读不了", err.getvalue())
@@ -66,10 +68,13 @@ class LogQueryGaps(unittest.TestCase):
 class CliReportGaps(unittest.TestCase):
     def test_unwritable_report_path_is_reported_not_raised(self):
         err = io.StringIO()
-        with mock.patch("builtins.open", side_effect=OSError("no space")), \
-                contextlib.redirect_stderr(err):
-            cli_main.write_report("/nope/report.json", [], [], [], 0, 0,
-                                  dry_run=False, out_dir="/tmp")
+        with (
+            mock.patch("builtins.open", side_effect=OSError("no space")),
+            contextlib.redirect_stderr(err),
+        ):
+            cli_main.write_report(
+                "/nope/report.json", [], [], [], 0, 0, dry_run=False, out_dir="/tmp"
+            )
         self.assertIn("写摘要失败", err.getvalue())
 
 
@@ -78,8 +83,9 @@ class ConfigGaps(unittest.TestCase):
         opts = options.Options()
         opts.size = None
         opts.tracking = None
-        with mock.patch.object(config, "option_defaults",
-                               return_value={"size": 30, "tracking": 1.5}):
+        with mock.patch.object(
+            config, "option_defaults", return_value={"size": 30, "tracking": 1.5}
+        ):
             config.apply_to_options(opts)
         self.assertEqual(opts.size, 30)
         self.assertAlmostEqual(opts.tracking or 0, 1.5, places=3)
@@ -105,28 +111,39 @@ class AuditGaps(unittest.TestCase):
 class EditGaps(unittest.TestCase):
     def test_debug_log_failure_only_warns(self):
         rgb = np.full((80, 160, 3), 255, np.uint8)
-        info = {"mask": np.zeros((80, 160), bool), "ink_box": (5, 5, 100, 30),
-                "text_color": (0, 0, 0), "stroke": 2.0, "stroke_core": 2.0, "slant": 0.0}
+        info = {
+            "mask": np.zeros((80, 160), bool),
+            "ink_box": (5, 5, 100, 30),
+            "text_color": (0, 0, 0),
+            "stroke": 2.0,
+            "stroke_core": 2.0,
+            "slant": 0.0,
+        }
         warnings: list[str] = []
         with tempfile.TemporaryDirectory() as tmp:
             opts = options.Options(debug=tmp, log_dir=tmp, quiet=True, font=FONT_CJK)
             opts.warn = warnings.append
-            with mock.patch.object(edit, "analyze", return_value=info), \
-                    mock.patch.object(edit, "record_write", side_effect=CoreError("日志满了")):
+            with (
+                mock.patch.object(edit, "analyze", return_value=info),
+                mock.patch.object(edit, "record_write", side_effect=CoreError("日志满了")),
+            ):
                 _out, _alpha, report = edit.replace_image(
-                    rgb, None, [edit.Job((5, 5, 100, 25), "原文", "新文")], opts, [])
+                    rgb, None, [edit.Job((5, 5, 100, 25), "原文", "新文")], opts, []
+                )
         self.assertEqual(len(report), 1, "记日志失败不该影响替换结果")
         self.assertTrue(any("日志满了" in w for w in warnings))
 
 
 class FontGaps(unittest.TestCase):
     def test_empty_pool_raises_core_error_with_hint(self):
-        with mock.patch.object(fonts, "font_dirs", return_value=["/no/such/dir"]), \
-                mock.patch.object(fonts, "fc_list_files", return_value=[]), \
-                mock.patch.object(fonts, "fc_lang_files", return_value=set()), \
-                mock.patch.object(fonts, "fc_charset_files", return_value=set()), \
-                mock.patch.object(fonts, "_read_cache", return_value={}), \
-                mock.patch.object(fonts, "_write_cache"):
+        with (
+            mock.patch.object(fonts, "font_dirs", return_value=["/no/such/dir"]),
+            mock.patch.object(fonts, "fc_list_files", return_value=[]),
+            mock.patch.object(fonts, "fc_lang_files", return_value=set()),
+            mock.patch.object(fonts, "fc_charset_files", return_value=set()),
+            mock.patch.object(fonts, "_read_cache", return_value={}),
+            mock.patch.object(fonts, "_write_cache"),
+        ):
             with self.assertRaises(CoreError):
                 fonts.build_font_pool(["年度"], None, 10)
 
@@ -183,7 +200,7 @@ class StyleGaps(unittest.TestCase):
         mask = np.zeros((200, 600), np.uint8)
         top, left = 20, 20
         h, w = arr.shape
-        mask[top:top + h, left:left + w] = arr
+        mask[top : top + h, left : left + w] = arr
         ink_box = (left + box[0], top + box[1], left + box[2], top + box[3])
         found = style.fit_font(text, mask > 127, ink_box, [face], 4)
         self.assertIsNotNone(found, "大间距的标题应当能在放宽范围后匹配到")
@@ -218,7 +235,9 @@ class TuiGaps(TuiTestCase):
         app = self.make_app(count=1)
         win = FakeWin([], rows=26, cols=100)
         win.keys.extend(["x", "y", "q"])
-        with mock.patch.object(ui, "handle", side_effect=[curses_error(), CoreError("坏"), RuntimeError("炸")]):
+        with mock.patch.object(
+            ui, "handle", side_effect=[curses_error(), CoreError("坏"), RuntimeError("炸")]
+        ):
             with contextlib.suppress(KeyboardInterrupt):
                 ui.loop(win, app)
         self.assertIn("操作出错", app.message)
@@ -253,7 +272,7 @@ class TuiGaps(TuiTestCase):
         update.assert_called_once()
 
     def test_escape_sequence_ends_when_a_keycode_arrives(self):
-        win = FakeWin(["\x1b", 65])          # ESC 后直接来个功能键码
+        win = FakeWin(["\x1b", 65])  # ESC 后直接来个功能键码
         self.assertEqual(ui_input.read_key(win), "ESC")
 
 

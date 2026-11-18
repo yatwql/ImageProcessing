@@ -125,3 +125,4 @@
 | PLAN-91 | 架构约束可执行 | 新增 `tools/check_import_surface.py`（core 不导入 cli/tui、渠道互不导入），并入守护第 14 项；`contracts.md` 写清 AR-1..7 与 API/CLI/数据/界面契约 | 完成 |
 | PLAN-92 | 文档索引 | 新增 `docs/README.md` 统一索引 + 守护第 15 项（每份管理文档/手册必须被索引引用） | 完成 |
 | PLAN-93 | 发布流程 | 新增 `tools/release.py`（check/prepare/gate/build/tag/publish，副作用步骤需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（推 `v*` 标签：全量门禁 → 构建 → 建 Release） | 完成 |
+| PLAN-94 | 覆盖率冲刺 | 新增 6 个补测文件（gaps1..3 共 83 例）：错误分支/空输入/平台分支/终端异常/入口薄壳；总量 84% → 96%，门槛 75% → 96%（`fail_under` 与 `check_coverage.TOTAL_MIN` 同步） | 完成 |

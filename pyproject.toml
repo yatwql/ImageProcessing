@@ -100,4 +100,4 @@ exclude_lines = [
   "if __name__ == .__main__.:",
 ]
 # 阈值取当前实测值向下取整（见 guards 守护与 CI）；只降不升说明退化。
-fail_under = 75
+fail_under = 96

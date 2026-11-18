@@ -45,7 +45,7 @@ MODULE_MIN = {
     "cli/main.py": 0.85,
     "cli/log_query.py": 0.90,
 }
-TOTAL_MIN = 0.75
+TOTAL_MIN = 0.96
 SKIP_MAX = 0.15
 
 UNIT_DIRS = (

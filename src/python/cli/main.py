@@ -234,11 +234,8 @@ def _run(argv: list[str] | None = None) -> int:
                     continue
             used_names.add(os.path.basename(dst))
         shown = dst
-
-        if same_file(dst, path):
-            print(f"! {dst} 就是原图，拒绝覆盖（换 --out-dir 或 -o）", file=sys.stderr)
-            fail += 1
-            continue
+        # 覆盖保护已在上面做过一次；reserve_path 只会给出不同的名字，
+        # 所以这里不再重复判断（重复分支永远进不去，等于死代码）。
 
         if not args.dry_run:
             try:

@@ -34,7 +34,7 @@ MODULE_MIN = {
     "cli/main.py": 0.85,
     "cli/log_query.py": 0.90,
 }
-TOTAL_MIN = 0.75
+TOTAL_MIN = 0.96
 SKIP_MAX_RATIO = 0.15  # 正常模式（有中文字体）下，跳过用例不该超过 15%
 
 

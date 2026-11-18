@@ -34,7 +34,7 @@ PY_C_SNIPPET = re.compile(r'python\s+-c\s+"([^"]+)"')
 def load_yaml(path: Path) -> dict:
     try:
         import yaml
-    except ImportError:                     # CI 上装了 pyyaml；本地缺就跳过解析
+    except ImportError:  # CI 上装了 pyyaml；本地缺就跳过解析
         return {}
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
@@ -54,7 +54,7 @@ def check_run_blocks(workflow: dict) -> list[str]:
             continue
         name = step.get("name", "(unnamed)")
         if step.get("shell", "bash") != "bash":
-            continue                        # 非 bash 的步骤只做 YAML 解析
+            continue  # 非 bash 的步骤只做 YAML 解析
         with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False, encoding="utf-8") as f:
             f.write(script)
             temp_path = Path(f.name)
@@ -88,7 +88,9 @@ def check_release_job(workflow: dict) -> list[str]:
     problems = []
     trigger = str(job.get("if", ""))
     if "refs/tags/v" not in trigger:
-        problems.append("release 作业必须只在 v* 标签触发（if: startsWith(github.ref, 'refs/tags/v')）")
+        problems.append(
+            "release 作业必须只在 v* 标签触发（if: startsWith(github.ref, 'refs/tags/v')）"
+        )
     if (job.get("permissions") or {}).get("contents") != "write":
         problems.append("release 作业需要 permissions.contents: write 才能建 Release")
     return problems

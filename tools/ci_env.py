@@ -26,17 +26,18 @@ def write(out: Path) -> list[Path]:
     written: list[Path] = []
 
     python_info = out / "python.txt"
-    python_info.write_text(
-        f"{sys.version}\n{sys.executable}\n", encoding="utf-8")
+    python_info.write_text(f"{sys.version}\n{sys.executable}\n", encoding="utf-8")
     written.append(python_info)
 
     platform_info = out / "platform.txt"
     platform_info.write_text(
-        f"{platform.platform()}\n{sys.platform}\n{os.cpu_count()} cpus\n", encoding="utf-8")
+        f"{platform.platform()}\n{sys.platform}\n{os.cpu_count()} cpus\n", encoding="utf-8"
+    )
     written.append(platform_info)
 
-    freeze = subprocess.run([sys.executable, "-m", "pip", "freeze"],
-                            capture_output=True, text=True, check=False)
+    freeze = subprocess.run(
+        [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True, check=False
+    )
     freeze_path = out / "pip-freeze.txt"
     freeze_path.write_text(freeze.stdout, encoding="utf-8")
     written.append(freeze_path)
@@ -46,7 +47,8 @@ def write(out: Path) -> list[Path]:
         listing = subprocess.run(["fc-list"], capture_output=True, text=True, check=False)
         lines = listing.stdout.splitlines()[:FONT_LIMIT]
         fonts_path.write_text(
-            "\n".join(lines) if lines else "(no fonts / fc-list 不可用)\n", encoding="utf-8")
+            "\n".join(lines) if lines else "(no fonts / fc-list 不可用)\n", encoding="utf-8"
+        )
     except (OSError, subprocess.SubprocessError):
         fonts_path.write_text("(fc-list 不可用)\n", encoding="utf-8")
     written.append(fonts_path)

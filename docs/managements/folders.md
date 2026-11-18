@@ -15,8 +15,8 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 30 | 4,259 | `src/python/**/*.py`（不含测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 54 | 6,059 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 502 | `git grep -c "def test_"` 行数口径 |
+| 测试代码 | Python | 57 | 7,463 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 621 | `git grep -c "def test_"` 行数口径 |
 | 工程工具 | Python | 10 | 1,754 | `tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 326 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
@@ -24,7 +24,7 @@
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 431 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 示例图 | PNG | 0 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **126** | **15,937** | 主程序 : 测试 ≈ 1 : 1.42；仓库共 133 个跟踪文件（含示例图与 docs/README.md 索引） |
+| **合计（不含示例图）** | — | **126** | **15,937** | 主程序 : 测试 ≈ 1 : 1.42；仓库共 138 个跟踪文件（含示例图与 docs/README.md 索引） |
 
 ## 目录树
 
@@ -145,6 +145,8 @@ ImageProcessing/
 │   │   │   ├── test_cancel_pipeline.py       # 替换过程中的中断：`replace_image(should_stop=...)` 要在块与块之间能停手
 │   │   │   ├── test_config_file.py           # 配置文件（<配置目录>/retype.json，兼容旧 img-p.json）：读取、容错与优先级
 │   │   │   ├── test_coverage_gaps.py         # 补齐覆盖率薄弱点：把每个模块最后的"难触达分支"逐个打掉
+│   │   │   ├── test_coverage_gaps2.py        # 覆盖率收尾（core / cli 侧）：把最后几十行"错误分支与空输入"补齐
+│   │   │   ├── test_coverage_gaps3.py        # 覆盖率收尾：把最后二十几行"只有出错才会走到"的分支补齐
 │   │   │   ├── test_error_contract.py        # 错误契约测试：核心层用 CoreError 报可预期失败，不直接退出进程
 │   │   │   ├── test_feature_edges.py         # 功能边界：映射规则、颜色解析、任务构造、日志轮转等容易漏的输入
 │   │   │   ├── test_log_query.py             # 日志查询：按日期/原图/渠道过滤，并汇总替换次数

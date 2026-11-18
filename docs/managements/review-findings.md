@@ -266,6 +266,14 @@
 | RF-115 | 发布无流程 | 发布靠手动改版本号 + 手推标签，没有预检/门禁/产物/回滚说明；CI 也没有 tag 触发链路 | 新增 `tools/release.py`（check/prepare/gate/build/tag/publish，副作用需 `--yes`）与 `releasing.md`；CI 增加 `release` 作业（`v*` 标签：全量门禁 → wheel/sdist+SHA256SUMS → `gh release create`） | 已修 |
 | RF-116 | 文档无统一入口 | 文档散在 README 与管理目录，新增文档没人知道；也没有检查 | 新增 `docs/README.md` 索引 + 守护第 15 项「文档索引」（漏链即红） | 已修 |
 
+## 2026-11-18 覆盖率冲刺（84% → 96%）
+
+| 编号 | 类别 | 问题 | 处理 | 状态 |
+| --- | --- | --- | --- | --- |
+| RF-117 | 覆盖薄弱 | 大量"只有出错才走到"的分支从未被执行：占位文件清理、锁失败、缓存坏 JSON、调试图目录不可建、`--date` 无日志、CLI 读图失败、入口薄壳、Ctrl-U/DC 键等 | 新增 6 个补测文件共 83 例（`test_coverage_gaps{,2,3}.py`），逐分支对准 | 已修 |
+| RF-118 | 死代码 | `cli/main.py` 里 `reserve_path` 之后还重复判了一次 `same_file`（占名成功必然是不同路径，永远进不去） | 删除重复分支并注明理由 | 已修 |
+| RF-119 | 门槛偏低 | 覆盖率门槛停在 75%，补测成果无法锁定 | `fail_under` 与 `TOTAL_MIN` 提到 96%（贴实测下沿） | 已修 |
+
 ## 已验证项
 
 - `ruff check src/ scripts/`：零告警；`python -m mypy`：零错误；`tools/check_guards.py`：6/6 通过。

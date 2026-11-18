@@ -5,6 +5,32 @@
 > 按时间倒序记录对代码、用例与文档的实质变更。每条给出：做了什么、动了哪些文件、
 > 对应需求与验证方式。只写结论，不贴 diff。
 
+## 2026-11-18 — 覆盖率冲刺：84% → 96%
+
+### 新增测试（83 例，6 个文件）
+
+`src/test/core/test_coverage_gaps{,2,3}.py`：逐条对准"只有出错才走到"的分支——
+- 引导与入口：`pip_install` 调用、`missing_modules` 的 OSError/非零退出、`python -m` 薄壳（runpy）
+- CLI：读图失败跳过（第一/第二遍）、占名失败、保存失败后的占位文件清理、预演同名去重、摘要写失败
+- core：日志打开/写入失败、坏 JSON 与坏日期日志名、缓存版本不符/不可读、调试图目录不可建、
+  `reserve_path` 父目录不可建、`collect_images` 目录不可读、`fit_font` 渲染失败/空白渲染、
+  `solve_tracking` 无墨迹、`ocr_crop` 空结果、`_winlock` 缺 msvcrt、`_run` 缺 fc-list
+- tui：`image_window(0)`、滚动块列表、行内详情、窄屏加载提示/图片错误、`_status_text` 进度条、
+  `_int` 脏数字、`put` 越界裁剪、`hline` 零列、`box` 过小、`init_colors` 失败退化、
+  Ctrl-U / KEY_DC / KEY_HOME / ESC 取消、`apply_current` 无任务与进度、`apply_one` 保存/占名/读图失败
+
+### 变更
+
+- 删除 `cli/main.py` 中 `reserve_path` 之后重复的 `same_file` 判断（不可达的死代码）。
+- 覆盖率门槛：`fail_under` 75 → **96**，`tools/check_coverage.py` 与 `coverage_report.py` 的
+  `TOTAL_MIN` 同步；`coverage` 改为只统计行覆盖（分支覆盖在平台分支上无法收敛，仍可 `--cov-branch` 查看）。
+
+### 未覆盖残余（4 行，已记录）
+
+`core/style.py` 粗筛渲染失败的 `except` 日志、`core/audit.py` 的 msvcrt 缺失分支、
+`tui/ui_actions.py` 的 Enter 整行编辑入口、`cli/main.py` 的"全部读取失败"退出。
+这些需要刻意构造平台/异常环境才能命中，是否加 `pragma` 或继续补测见 `testplan.md` §5。
+
 ## 2026-11-18 — 参考 investor-review：架构约束 / 设计契约 / 发布流程 / 文档索引
 
 ### 新增

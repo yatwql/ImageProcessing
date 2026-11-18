@@ -15,6 +15,13 @@
 - CI「失败用例摘要」步自己红了（`UnicodeEncodeError: 'charmap'`，Windows 控制台 cp1252 打印中文）：
   逻辑搬进 `src/python/tools/junit_summary.py`（`ensure_utf8_stdio()`），工作流只留一行 `python -m ...`。
 
+### 修复（windows 作业「类型检查」红）
+
+- `src/python/core/audit.py`：`import fcntl` 在 Windows 的 typeshed 里没有 `flock`/`LOCK_EX` 等属性，
+  `mypy` 在 windows 作业上直接红。改为 `fcntl: Any = _fcntl_module` 间接引用（运行时行为不变）。
+- `src/test/tui/test_tui_real_terminal.py`：`os.mkfifo` 同样是 POSIX-only 属性，改成 `cast(Any, os).mkfifo(...)`。
+- `check_all` 新增「mypy (win32 平台)」一步（`--platform win32`）：这类差异现在本地就红。
+
 ### 新增
 
 - `src/python/tools/junit_summary.py` + `src/test/tools/test_junit_summary.py`（5 例）：失败/错误用例

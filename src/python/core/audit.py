@@ -23,9 +23,12 @@ from .errors import CoreError
 from .options import Options
 
 try:  # POSIX
-    import fcntl
+    import fcntl as _fcntl_module
 except ImportError:  # pragma: no cover - 只在 Windows 上发生
-    fcntl = None  # type: ignore[assignment]
+    _fcntl_module = None  # type: ignore[assignment]
+# 声明成 Any：Windows 上 typeshed 里的 fcntl 没有 flock/LOCK_EX 这些属性，
+# 直接写 `import fcntl` 会让 `mypy --platform win32` 报 attr-defined（守卫会跑这一档）。
+fcntl: Any = _fcntl_module
 
 
 def _winlock() -> Any:

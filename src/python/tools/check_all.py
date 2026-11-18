@@ -50,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     steps: list[tuple[str, list[str], dict[str, str] | None]] = [
         ("ruff", [PY, "-m", "ruff", "check", "src/"], None),
         ("mypy", [PY, "-m", "mypy"], None),
+        # 同一棵树按 Windows 的 typeshed 再检查一遍：fcntl / os.mkfifo 这类
+        # 「Linux 有、Windows 没有」的属性，只有这一档能在本地提前发现。
+        ("mypy (win32 平台)", [PY, "-m", "mypy", "--platform", "win32"], None),
         ("guards", [PY, "-m", "src.python.tools.check_guards"], None),
         ("perf", [PY, "-m", "src.python.tools.check_perf", "--ci"], None),
     ]

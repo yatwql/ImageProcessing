@@ -16,6 +16,7 @@
 | 编号 | 任务 | 验收标准 | 状态 |
 | --- | --- | --- | --- |
 | PLAN-104 | CI/测试 | v0.2 的 windows 作业仍红两条：宽字距断言仍依赖平台字体、失败摘要步自身编码崩 | 期望宽度改用 pipeline 报告的 font/size/tracking 并取「同字体无字距」为下限；摘要搬进 `tools/junit_summary.py` 且工作流禁 heredoc；守护与用例同步 | 完成 |
+| PLAN-105 | 门禁 | windows 作业「类型检查」红：`fcntl`/`os.mkfifo` 在 Windows 的 typeshed 里不存在 | `audit.py` 用 `Any` 间接引用、真终端冒烟走 `getattr`；`check_all` 新增 `mypy --platform win32` 档，本地即可复现 | 完成 |
 
 ## 归档
 

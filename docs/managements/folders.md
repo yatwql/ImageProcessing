@@ -15,7 +15,7 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 30 | 4,259 | `src/python/**/*.py`（不含测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 60 | 7,882 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试代码 | Python | 60 | 7,899 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
 | 测试用例 | — | — | 631 | `git grep -c "def test_"` 行数口径 |
 | 工程工具 | Python | 10 | 1,754 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
@@ -24,7 +24,7 @@
 | 使用手册 | Markdown | 1 | 418 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 431 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 示例图 | PNG | 0 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **126** | **15,937** | 主程序 : 测试 ≈ 1 : 1.42；仓库共 144 个跟踪文件（含示例图与 docs/README.md 索引） |
+| **合计（不含示例图）** | — | **126** | **15,937** | 主程序 : 测试 ≈ 1 : 1.42；仓库共 147 个跟踪文件（含示例图与 docs/README.md 索引） |
 
 ## 目录树
 

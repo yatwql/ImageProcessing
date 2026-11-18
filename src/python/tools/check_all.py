@@ -231,7 +231,9 @@ def check_collected(pairs: list[tuple[Variant, set[str]]]) -> list[str]:
         missing = sorted(reference - modules)
         extra = sorted(modules - reference)
         if missing:
-            problems.append(f"{variant.key} 档少了 {len(missing)} 个用例模块：{', '.join(missing[:5])}")
+            problems.append(
+                f"{variant.key} 档少了 {len(missing)} 个用例模块：{', '.join(missing[:5])}"
+            )
         if extra:
             problems.append(f"{variant.key} 档多了 {len(extra)} 个用例模块：{', '.join(extra[:5])}")
     return problems
@@ -265,9 +267,7 @@ def _run_variants(
     return 0, spent, collected
 
 
-def _run_full_extras(
-    opts: Options, workers: int, timings: list[tuple[str, float]]
-) -> int:
+def _run_full_extras(opts: Options, workers: int, timings: list[tuple[str, float]]) -> int:
     """全量档专属：覆盖率门禁 + 并行分片重排 + 写门禁戳。"""
     cov = Step(
         "覆盖率门禁（总量 / 分模块 / skip 比例）",

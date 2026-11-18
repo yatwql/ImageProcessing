@@ -20,6 +20,10 @@ from unittest import mock
 
 from src.python.tools import _parallel, check_all, release
 
+#: `release.sh` 是 Python 函数（内部跑 git 命令），不是 shell 解释器——
+#: 守护「跨平台」扫的是 shell 字面量，这里显式标成平台无关，绑成常量后只标一处
+_RELEASE_SH = "sh"  # platform-safe
+
 
 class WorkerPlan(unittest.TestCase):
     """worker 数规则：上限 8，且三种覆盖方式优先级固定。"""
@@ -49,9 +53,10 @@ class WorkerPlan(unittest.TestCase):
             self.assertEqual(_parallel.worker_count(), 0)
 
     def test_explicit_argument_beats_everything(self):
-        with mock.patch.dict(
-            os.environ, {_parallel.SERIAL_ENV: "1"}, clear=False
-        ), mock.patch.object(_parallel.os, "cpu_count", return_value=16):
+        with (
+            mock.patch.dict(os.environ, {_parallel.SERIAL_ENV: "1"}, clear=False),
+            mock.patch.object(_parallel.os, "cpu_count", return_value=16),
+        ):
             self.assertEqual(_parallel.worker_count(5), 5)
 
     def test_single_process_adds_no_xdist_flags(self):
@@ -178,8 +183,10 @@ class ReleaseFailFast(unittest.TestCase):
     """发布预检：结构性预检红了就别跑门禁（白跑几分钟）。"""
 
     def test_dirty_workspace_stops_before_running_the_gate(self):
-        dirty = subprocess.CompletedProcess(args=[], returncode=0, stdout=" M src/x.py\n", stderr="")
-        with mock.patch.object(release, "sh", return_value=dirty):  # platform-safe：release.sh 是 Python 函数，不是 shell
+        dirty = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=" M src/x.py\n", stderr=""
+        )
+        with mock.patch.object(release, _RELEASE_SH, return_value=dirty):
             with mock.patch.object(release.subprocess, "run") as gate:
                 code = self._capture(release.cmd_check)
         self.assertEqual(code, 1)
@@ -187,11 +194,12 @@ class ReleaseFailFast(unittest.TestCase):
 
     def test_matching_stamp_skips_the_gate(self):
         clean = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
-        with mock.patch.object(release, "sh", return_value=clean), mock.patch.object(  # platform-safe：release.sh 是 Python 函数，不是 shell
-            release, "read_version", return_value=("0.3-dev", "2026-01-01")
-        ), mock.patch.object(release.gate_stamp, "stamp_matches", return_value=True), mock.patch.object(
-            release.subprocess, "run"
-        ) as gate:
+        with (
+            mock.patch.object(release, _RELEASE_SH, return_value=clean),
+            mock.patch.object(release, "read_version", return_value=("0.3-dev", "2026-01-01")),
+            mock.patch.object(release.gate_stamp, "stamp_matches", return_value=True),
+            mock.patch.object(release.subprocess, "run") as gate,
+        ):
             code = self._capture(release.cmd_check)
         self.assertEqual(code, 0)
         gate.assert_not_called()
@@ -199,11 +207,12 @@ class ReleaseFailFast(unittest.TestCase):
     def test_stale_stamp_runs_the_full_gate(self):
         clean = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
         done = subprocess.CompletedProcess(args=[], returncode=0)
-        with mock.patch.object(release, "sh", return_value=clean), mock.patch.object(  # platform-safe：release.sh 是 Python 函数，不是 shell
-            release, "read_version", return_value=("0.3-dev", "2026-01-01")
-        ), mock.patch.object(
-            release.gate_stamp, "stamp_matches", return_value=False
-        ), mock.patch.object(release.subprocess, "run", return_value=done) as gate:
+        with (
+            mock.patch.object(release, _RELEASE_SH, return_value=clean),
+            mock.patch.object(release, "read_version", return_value=("0.3-dev", "2026-01-01")),
+            mock.patch.object(release.gate_stamp, "stamp_matches", return_value=False),
+            mock.patch.object(release.subprocess, "run", return_value=done) as gate,
+        ):
             code = self._capture(release.cmd_check)
         self.assertEqual(code, 0)
         # 跑的是全量门禁（含覆盖率与矩阵），不是以前那档 --quick + 两档矩阵

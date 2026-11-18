@@ -317,7 +317,9 @@ def cmd_gate(force: bool = False) -> int:
         return 0
     started = time.perf_counter()
     code = subprocess.run([PY, "-m", "src.python.tools.check_all"], cwd=str(ROOT)).returncode
-    print(f"[{'ok' if code == 0 else 'FAIL'}] 全量门禁{'通过' if code == 0 else '未通过'}（{_elapsed(started)}）")
+    print(
+        f"[{'ok' if code == 0 else 'FAIL'}] 全量门禁{'通过' if code == 0 else '未通过'}（{_elapsed(started)}）"
+    )
     return code
 
 

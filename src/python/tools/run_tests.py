@@ -97,15 +97,13 @@ def has_module(name: str) -> bool:
 
 def cleanup_repo() -> None:
     """仓库里不留运行产物：字节码缓存与 pytest 缓存都清掉（清不掉也不影响结果）。"""
-    # 清理失败不该影响测试结果：逐项 try/except，而不是让整轮因为一个只读目录炸掉
-    try:
-        for cache in ROOT.rglob("__pycache__"):
-            shutil.rmtree(cache, ignore_errors=True)
-    except OSError:
-        pass
+    with contextlib.suppress(OSError):   # rglob 可能中途读不了某个目录
+        for cache in list(ROOT.rglob("__pycache__")):
+            with contextlib.suppress(OSError):   # 单个目录只读/被占用，不该炸掉整轮
+                shutil.rmtree(cache)
     for name in (".pytest_cache", ".ruff_cache"):
         with contextlib.suppress(OSError):
-            shutil.rmtree(ROOT / name, ignore_errors=True)
+            shutil.rmtree(ROOT / name)
 
 
 def _junit_suite(path: Path) -> ET.Element | None:

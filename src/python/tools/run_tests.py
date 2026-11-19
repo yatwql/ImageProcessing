@@ -160,6 +160,11 @@ def summarize(report_dir: Path, fast: bool) -> str:
 def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
+    if "-h" in args or "--help" in args:
+        # 必须早于 prepare_tmp/prepare_report_dir：那两个会清掉 reports/ 里的旧报告，
+        # 「看帮助」绝不该弄丢别人刚生成的门禁产物（曾因此把覆盖率报告删掉，门禁恒红）
+        print(__doc__)
+        return 0
     fast = "--fast" in args
     extra = [a for a in args if a != "--fast"]
     prepare_tmp()

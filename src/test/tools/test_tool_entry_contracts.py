@@ -55,6 +55,21 @@ class HelpExit(unittest.TestCase):
                 self.assertTrue(run_help(module).strip(), f"{module.__name__} --help 没有输出")
 
 
+class HelpHasNoSideEffects(unittest.TestCase):
+    """`--help` 只打印说明：不许建目录、不许清报告（曾经的现场事故见下）。"""
+
+    def test_run_tests_help_does_not_touch_reports(self):
+        # 旧实现先 prepare_report_dir() 再解析参数：看帮助会把 reports/coverage.xml
+        # 清掉，而门禁的覆盖率步骤紧接着就要读它 → 全量门禁恒红。
+        with (
+            mock.patch.object(run_tests, "prepare_report_dir") as prepare,
+            mock.patch.object(run_tests, "prepare_tmp") as make_tmp,
+        ):
+            self.assertEqual(run_tests.main(["--help"]), 0)
+        prepare.assert_not_called()
+        make_tmp.assert_not_called()
+
+
 class CIMode(unittest.TestCase):
     """`--ci` 是门禁形态：只输出结论，不逐条刷屏。"""
 

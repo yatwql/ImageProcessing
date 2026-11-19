@@ -7,12 +7,6 @@
 > `plan.md` 里的任务一律 `PLAN-x`。
 > 状态：`已修` / `待办` / `待定` / `不修（有理由）`。
 
-## 当前记录（v0.3 开发中）
-
-> v0.2 已发布：`RF-1`~`RF-148` 全部随发布归档（见下方索引）。新条目从 **RF-149** 起编号，不复用。
-> 每条按「编号 / 类型 / 发现 / 处理 / 状态」写；CI 失败另按「CI 红复盘模板」（见归档内说明）补一条。
-
-
 ## 归档
 
 > 已发布版本的旧内容整块搬进 `docs/archive/`，本文件只留当前开发版本的内容；
@@ -21,24 +15,5 @@
 
 | 系列 | 归档文件 | 涵盖版本 | 归档时间 |
 | --- | --- | --- | --- |
+| v0.3.x | [`archived_review-findings.0.3.x.md`](../archive/v0.3.x/archived_review-findings.0.3.x.md) | v0.3 | 2026-11-20（v0.3 发布，本系列首份） |
 | v0.2.x | [`archived_review-findings.0.2.x.md`](../archive/v0.2.x/archived_review-findings.0.2.x.md) | v0.2 | 2026-11-18（v0.2 发布，本系列首份） |
-
-## 2026-11-18 v0.2 发布后 windows 作业仍红（复盘）
-
-| 编号 | 类型 | 发现 | 处理 | 状态 |
-| --- | --- | --- | --- | --- |
-| RF-149 | 断言依赖本机事实 | 上轮把宽字距断言改成"与本机 fit 的排版宽度比"，但 pipeline 内部会再 fit 一次，字体/字号/字距未必相同；Windows（msyh）上期望 193、实际画 111，仍然红 | 期望宽度改用 `report` 里 pipeline 自己报告的 font/size/tracking 计算，并以「同字体、字距 0」的宽度为下限（收紧到 0 才算回归） | 已修 |
-| RF-150 | 门禁缺口 | CI 的「失败用例摘要」本来写在 `run:` 的 heredoc 里，Windows 控制台 cp1252 打印中文直接 `UnicodeEncodeError`——摘要步自己红了，还掩盖了真实失败列表 | 逻辑搬进 `src/python/tools/junit_summary.py`（`ensure_utf8_stdio()`）+ 5 例；守护「工作流」禁止 `run:` 内联 python（heredoc / `python -c`） | 已修 |
-| RF-151 | 门禁缺口 | windows 作业「类型检查」红：`mypy` 在 Windows 的 typeshed 下把 `fcntl.flock`/`LOCK_EX` 与 `os.mkfifo` 判为不存在——本地 Linux 跑 `mypy` 永远绿 | 属性访问改间接引用（`fcntl: Any`、`cast(Any, os).mkfifo`）；`check_all` 增加 `mypy --platform win32` 档，本地复现 | 已修 |
-| RF-152 | 门禁缺口 | windows 作业「工程守护」红两处：① 四个工具 `main()` 没调 `ensure_utf8_stdio()`，cp1252 控制台打印中文 `UnicodeEncodeError`；② 五个工具 `subprocess.run(text=True)` 缺 `encoding=`，解码炸后 `stdout` 变 None 再 `AttributeError` | 全部补齐；守护「跨平台」加 stdio 规则、子进程编码改按整次调用判断；3 例用例覆盖 | 已修 |
-| RF-153 | 门禁缺口 | `check_workflows` 在工作流自检里直接 `bash -n`：windows 上的 `bash` 是 WSL 存根，于是每个 run 块都被判"语法错误"（守护假红，掩盖本来就红的那条） | 先探测能否执行 `bash -c "exit 0"`；不可用则跳过 bash 检查；新增 `tools/test_workflow_checks.py`（5 例）覆盖探测跳过与 heredoc 禁令 | 已修 |
-
-
-## 2026-11-19 归档遗留项收尾（RF-6 / RF-16）
-
-> 两条在 v0.2 归档里长期挂 `待定`，一直没人接；这次按「已归档不改、另开新号跟进」的规矩收掉。
-
-| 编号 | 类型 | 发现 | 处理 | 状态 |
-| --- | --- | --- | --- | --- |
-| RF-154 | 字段歧义（承接归档 RF-6） | 行内替换时报告与日志里 `old` 是整行文字、`new` 只是替换片段，两者不对等，事后看日志分不清「命中的是哪个子串」 | 报告与写盘日志的每条 operation 补 `fragment`（命中的原文子串）与 `span`（在整行里的字符区间 `[起, 止)`）；`old`/`new`/`mode` 语义不变，整行替换时两者为 `None`；日志字段只增不减，旧记录缺字段读成 `None`；`tools/…` 无改动，新增 `test_report_inline_fragment.py`（5 例）守住行内/整行两档与旧日志兼容 | 已修 |
-| RF-155 | 测试卫生（承接归档 RF-16） | 早期用例不带 `--out-dir`，产物堆在仓库 `data/output/`（一次全量跑就多出 4 张，历史累计 961 张 `report-*.png`） | `test_write_audit_log.py` 四处 `run_cli` 改走临时输出目录，历史产物清空；新增 `src/test/conftest.py`（会话级快照钩子）作为**本地拦截**：任何时候有用例往 `data/output/` 写文件，会话结束即红并点名文件 | 已修 |

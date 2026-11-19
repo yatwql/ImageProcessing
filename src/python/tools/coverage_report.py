@@ -24,31 +24,13 @@ from ..stdio import ensure_utf8_stdio
 from ..version import VERSION
 from ._paths import ROOT
 
+# 阈值只在 check_coverage.py 定义一处；本模块只负责把它们画进文档，不再抄一份。
+from .check_coverage import MODULE_MIN, TOTAL_MIN
+from .check_coverage import SKIP_MAX_RATIO as SKIP_MAX
+
 COVERAGE = ROOT / "reports" / "coverage.xml"
 JUNIT = ROOT / "reports" / "junit.xml"
 OUTPUT = ROOT / "docs" / "managements" / "test-coverage.md"
-
-# 覆盖率下限与 src/python/tools/check_coverage.py 保持一致
-MODULE_MIN = {
-    "core/match.py": 0.90,
-    "core/options.py": 0.90,
-    "core/edit.py": 0.85,
-    "core/render.py": 0.85,
-    "core/image.py": 0.85,
-    "core/audit.py": 0.85,
-    "tui/ui_actions.py": 0.80,
-    "tui/ui_draw.py": 0.85,
-    "tui/app.py": 0.80,
-    "bootstrap.py": 0.90,
-    "launch.py": 0.90,
-    "tui/ui.py": 0.90,
-    "tui/ui_input.py": 0.80,
-    "tui/ui_base.py": 0.80,
-    "cli/main.py": 0.85,
-    "cli/log_query.py": 0.90,
-}
-TOTAL_MIN = 0.96
-SKIP_MAX = 0.15
 
 UNIT_DIRS = (
     "src.test.core.primitives",
@@ -290,7 +272,8 @@ def build() -> str:
         ".venv/bin/python -m src.python.tools.coverage_report --write  # 重新生成本文件",
         "```",
         "",
-        "覆盖率门槛由 `src/python/tools/check_coverage.py` 把关（总量 96%、16 个高风险模块、skip ≤15%），",
+        f"覆盖率门槛由 `src/python/tools/check_coverage.py` 把关"
+        f"（行 + 分支总量 {TOTAL_MIN:.0%}、{len(MODULE_MIN)} 个高风险模块、skip ≤{SKIP_MAX:.0%}），",
         "所以本文件里的 ❌ 会同时让 `check_all` 变红。",
         "",
     ]

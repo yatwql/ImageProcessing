@@ -117,14 +117,14 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
      匹配规则、渲染与字距、字色/字号反解、擦除重绘、图片读写；
   2. **交互**（`src/test/tui/`、`src/test/cli/`）：按键归一、面板编辑、布局渲染、参数解析、批量流程与中断；
   3. **稳定**（跨档）：错误契约、幂等重跑、输出覆盖保护、缓存失效、异常不外溢。
-- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`src/python/tools/check_guards.py` 十八项全过、
+- 门禁（本地与 CI 同源）：`ruff` 零告警、`mypy` 全树、`src/python/tools/check_guards.py` 二十三项全过、
   `check-perf.py` 不超阈值、覆盖率不低于 `pyproject.toml` 的 `fail_under`。
 - **文件名与用例名必须写出被测内容**：`test_mapping_rules.py::test_fragment_key_only_covers_that_fragment`，
   禁止 `test_core.py`、`test_misc.py` 这类泛化命名。
 - **修复缺陷必须补回归用例**（直接断言缺陷场景）；**新增功能必须带用例**；全部用例须保持全绿。
 - `pytest` 与 `unittest` 都能跑；依赖 CJK 字体的用例**必须**走 `_support.cjk_font(size)`：
   它会逐个候选字体、逐个 ttc index 试，找不到就 `SkipTest`。禁止写
-  `ImageFont.truetype(FONT_CJK, size, index=2)`（守护第 13 项会拦）——
+  `ImageFont.truetype(FONT_CJK, size, index=2)`（守护「测试字体」会拦）——
   Windows 的 `msyh.ttc` 没有 index 2，硬编码就是 `OSError: invalid argument`。
 - 想在本机复现"没有中文字体"的 CI 场景：`IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q`
   （应全绿，字体相关用例自动 skip）。
@@ -154,7 +154,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 - 发布走 `docs/managements/releasing.md` + `src/python/tools/release.py`
   （check → archive → prepare → gate → build → tag → publish）；
-  文档索引在 `docs/README.md`，新增文档必须加进索引（守护第 15 项）。
+  文档索引在 `docs/README.md`，新增文档必须加进索引（守护「文档索引」）。
 - 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`  （后者由 `.venv/bin/python -m src.python.tools.coverage_report --write` 生成，别手改数字）。
 - 三份文档随实现同步：
 - `docs/managements/plan.md` 的任务编号一律 `PLAN-x`，`docs/managements/review-findings.md`

@@ -43,7 +43,7 @@ COMPLEXITY_CEILING = 50  # 单个函数的圈复杂度红线：超过就必须�
 
 
 def check_complexity_ceiling() -> list[str]:
-    """圈复杂度上限（守护第 22 项）。
+    """圈复杂度上限（守护「复杂度上限」）。
 
     现有几个"搜索/交互"函数天然偏长（`ui_actions.handle` 48、`fit_font` 27、
     `edit.replace_image` 30），一次拆完风险大于收益；这里钉住**上限**，只防"更糟"。

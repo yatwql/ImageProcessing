@@ -12,7 +12,7 @@
 | 编号 | 目标 | 判定方式 | 门槛 |
 | --- | --- | --- | --- |
 | QG-1 | 静态质量 | `ruff check src/ tools/` + `mypy`（全树） | 零告警 / 零错误 |
-| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 18 项全过 |
+| QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 23 项全过 |
 | QG-3 | 行 + 分支覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 93%（实测 93.9%） |
 | QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%；edit/render/image/audit/ui_draw/bootstrap/launch/ui/cli-main/cli-log_query ≥85~90%；app/ui_actions/ui_base/ui_input ≥80%） | 逐项达标 |
 | QG-5 | 跳过率 | 同上（正常模式，即机器上有中文字体） | ≤ 15% |
@@ -53,7 +53,7 @@
 | 真终端 | 真 curses 渲染 | `tui/test_tui_real_terminal.py`（`script(1)` 伪终端） | POSIX + `script` 才跑，其余平台 skip |
 | 性能 | 热路径耗时 | `src/python/tools/check_perf.py` | 阈值 = 实测 × 5 以上，只挡数量级退化 |
 | 变异（opt-in） | 验证断言强度 | `src/python/tools/mutation_check.py`（mutmut） | 默认试点 `core/match.py`、`core/options.py` |
-| 架构约束 | 依赖方向不被破坏 | `src/python/tools/check_import_surface.py`（守护第 14 项） | `core` 不导入渠道、渠道互不导入 |
+| 架构约束 | 依赖方向不被破坏 | `src/python/tools/check_import_surface.py`（守护「导入方向」） | `core` 不导入渠道、渠道互不导入 |
 | 发布 | 发行物可复现 | `src/python/tools/release.py`（check/gate/build/tag/publish） | 见 `releasing.md` |
 
 ## 4. 用例编写标准
@@ -72,7 +72,7 @@
 
 ## 5. 覆盖率标准
 
-- 总量 ≥ 96%（实测 97%）；16 个高风险模块单独设限（见 `src/python/tools/check_coverage.py` 的 `MODULE_MIN`）。
+- 总量 ≥ 93%（行 + 分支同算，实测 93.7%）；16 个高风险模块单独设限（见 `src/python/tools/check_coverage.py` 的 `MODULE_MIN`）。
   剩余未覆盖行集中在平台分支（msvcrt 锁）与防御性 `except`，逐条在 `review-findings.md` 记录。
 - 新增模块：若属于"判断密集/出错代价高"的类别，必须同时加进 `MODULE_MIN`。
 - 现有门槛（贴实测下沿，防止回落）：`core/{match,options}` 90%，`core/{edit,render,image,audit}`、

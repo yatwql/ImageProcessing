@@ -8,7 +8,7 @@
   ids   台账编号连续性 / 唯一性 / 归档占号
   docs  目录树文档、文档索引、归档目录与台账索引
   code  分层方向、单文件长度、显式编码、测试目录与字体、脚本类型与编码
-  scripts 脚本命名与契约（前缀/运行示例/被用例引用/`--ci`）、文档死链、用例对照表
+  scripts 脚本命名与契约（前缀/运行示例/被用例引用/`--ci`）、文档死链、用例对照表、守护引用
   meta  版本/名称、依赖锁、导入方向、工作流、跨平台安全
 """
 
@@ -38,7 +38,12 @@ from .guards.meta import (
     check_version_consistency,
     check_workflows,
 )
-from .guards.scripts import check_docs_links, check_script_names, check_test_doc_table
+from .guards.scripts import (
+    check_docs_links,
+    check_guard_references,
+    check_script_names,
+    check_test_doc_table,
+)
 
 CHECKS = [
     ("编号-plan", check_plan_ids),
@@ -63,6 +68,7 @@ CHECKS = [
     ("脚本契约", check_script_names),
     ("文档链接", check_docs_links),
     ("用例对照", check_test_doc_table),
+    ("守护引用", check_guard_references),
 ]
 
 

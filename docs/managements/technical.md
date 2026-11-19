@@ -39,7 +39,7 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   run-test.sh / run-test.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
-  check_guards.py            工程守护入口（18 项，编排 + 汇总；各项按类拆在 guards/）
+  check_guards.py            工程守护入口（23 项，编排 + 汇总；各项按类拆在 guards/）
   guards/                    守护实现：ids 编号 / docs 目录树与归档 / code 分层编码长度 / meta 版本依赖工作流
     common.py                共用路径、阈值常量与正则）
   check_all.py               本地全量门禁：静态并发 + 四档环境矩阵 × `-n 8` + 覆盖率 + 分片重排
@@ -94,7 +94,7 @@ src/
 ## 1.2 依赖方向（硬约束）
 
 `core` 不导入 `cli`/`tui`；`cli` 与 `tui` 互不导入——由 `src/python/tools/check_import_surface.py`
-（守护第 14 项）逐文件核对 `src.python.X` 形式的导入。完整契约见 `contracts.md`。
+（守护「导入方向」）逐文件核对 `src.python.X` 形式的导入。完整契约见 `contracts.md`。
 
 ## 2. 模块与职责
 
@@ -222,6 +222,7 @@ class Options:                # 渠道无关的运行选项
 | 新增源文件/测试文件必须进目录树与用例对照表 | `CLAUDE.md` 文档纪律 | 目录树文档、用例对照 |
 | 每份管理文档/手册必须进索引 | `docs/README.md` | 文档索引 |
 | 文档相对链接必须能落地 | 本表 | 文档链接 |
+| 引用守护一律写名字，不写「第 N 项」（序号会漂移） | 本表 | 守护引用 |
 | 脚本命名：`scripts/` kebab-case 薄壳；`tools/` 按活动类型前缀（`check_`/`run_`/`gen_`/…） | `CLAUDE.md` 脚本约定、本文件 §1.1 | 脚本契约 |
 | `check_*` 工具必须支持 `--ci`（一行一结论） | 本文件 §2 | 脚本契约 |
 | 每个 `tools/*` 必须被用例引用、docstring 写明怎么跑 | 本表 | 脚本契约 |
@@ -470,7 +471,7 @@ CLI 两遍流程复用第一遍的解码结果（512MB 预算内）；`--dry-run
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树；core 严格注解、
   渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
   测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流/跨平台，
-  共 18 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
+  共 23 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
   覆盖率阈值 `fail_under = 93`（行 + 分支同算，实测 93.9%；分支漏 95 条）。
 
 ### 10.0 门禁的并行与对账（速度 × 质量）
@@ -601,7 +602,7 @@ CLI 两遍流程复用第一遍的解码结果（512MB 预算内）；`--dry-run
 `/test-reports/{junit.xml,test-report.html,coverage/index.html,summary.md}`（`--fast` 跳过覆盖率与 HTML）；
 目录不可写时退回 `./reports`。测试中间文件统一写 `/data/tmp`（`PYTHONPYCACHEPREFIX`、`TMPDIR`、
 `COVERAGE_FILE` 都指过去），脚本结束时清掉仓库里的 `__pycache__` / `.pytest_cache`。
-覆盖率基线约 80% 行覆盖，阈值写在 `pyproject.toml` 的 `fail_under`；入口文件（`cli/__main__.py`、`tui/__main__.py`）只有 4 行、不单独覆盖。
+覆盖率基线约 93%（行 + 分支），阈值写在 `pyproject.toml` 的 `fail_under`；入口文件（`cli/__main__.py`、`tui/__main__.py`）只有 4 行、不单独覆盖。
 
 ## 10.1 自测命令
 
@@ -612,7 +613,7 @@ sh .githooks/install-hooks.sh                                 # 启用提交前�
 .venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
 .venv/bin/python -m mypy                                      # 类型检查，守 core
 .venv/bin/python -m src.python.tools.check_all                        # 全量门禁（含覆盖率 + 三档矩阵）
-.venv/bin/python -m src.python.tools.check_guards                      # 工程守护（18 项，含版本/依赖锁/归档）
+.venv/bin/python -m src.python.tools.check_guards                      # 工程守护（23 项，含版本/依赖锁/归档/脚本契约/复杂度）
 .venv/bin/python -m src.python.tools.check_perf                        # 耗时守卫
 .venv/bin/python -m src.python.tools.run_tests --fast                    # 测试编排（scripts/run-test.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数

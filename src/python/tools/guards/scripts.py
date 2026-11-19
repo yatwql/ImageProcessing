@@ -56,7 +56,7 @@ def _test_blobs(root: Path) -> str:
 
 
 def check_script_names(root: Path = ROOT) -> list[str]:
-    """脚本命名与契约：命名、可运行说明、被用例引用、`check_*` 支持 `--ci`（守护第 19 项）。"""
+    """脚本命名与契约：命名、可运行说明、被用例引用、`check_*` 支持 `--ci`（守护「脚本契约」）。"""
     problems: list[str] = []
     scripts = root / "scripts"
     if scripts.is_dir():
@@ -106,7 +106,7 @@ def _doc_files(root: Path) -> list[Path]:
 
 
 def check_docs_links(root: Path = ROOT) -> list[str]:
-    """文档死链：相对链接的落点必须真实存在（守护第 20 项）。
+    """文档死链：相对链接的落点必须真实存在（守护「文档链接」）。
 
     只查"落点存在"：锚点校验对中文标题容易误报，收益低于噪音。
     """
@@ -130,7 +130,7 @@ def check_docs_links(root: Path = ROOT) -> list[str]:
 
 
 def check_test_doc_table(root: Path = ROOT) -> list[str]:
-    """用例对照表：每个测试文件都要在 technical.md 里说明"守的是什么"（守护第 21 项）。"""
+    """用例对照表：每个测试文件都要在 technical.md 里说明"守的是什么"（守护「用例对照」）。"""
     doc = root / "docs" / "managements" / "technical.md"
     try:
         text = doc.read_text(encoding="utf-8")
@@ -142,4 +142,34 @@ def check_test_doc_table(root: Path = ROOT) -> list[str]:
             problems.append(
                 f"{path.relative_to(root).as_posix()} 未出现在 technical.md 的用例对照表里"
             )
+    return problems
+
+
+# 位置序号会随"在中间插一条守护"整体后移，写死序号等于给未来埋漂移；
+# 引用守护一律写名字（`守护「导入方向」`），名字不会变。
+POSITIONAL_GUARD_REF = re.compile(r"守护第\s*\d+(?:\s*[~-]\s*\d+)?\s*项")
+REF_SCAN_DIRS = ("src/python", "docs/managements", "docs/manuals")
+
+
+def check_guard_references(root: Path = ROOT) -> list[str]:
+    """守护引用：文档与代码里不许用「守护第 N 项」这种位置序号（守护「守护引用」）。"""
+    problems: list[str] = []
+    files: list[Path] = [root / "README.md", root / "CLAUDE.md", root / "docs" / "README.md"]
+    for rel in REF_SCAN_DIRS:
+        base = root / rel
+        if base.is_dir():
+            files += sorted(base.rglob("*.md")) + sorted(base.rglob("*.py"))
+    for path in files:
+        if not path.is_file() or "archive" in path.parts:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for lineno, line in enumerate(text.splitlines(), 1):
+            if POSITIONAL_GUARD_REF.search(line):
+                rel = path.relative_to(root).as_posix()
+                problems.append(
+                    f"{rel}:{lineno} 用位置序号引用守护（「守护第 N 项」）：改用守护名字，序号会漂移"
+                )
     return problems

@@ -2,7 +2,7 @@
 
 > 版本：v0.4-dev
 
-本仓所有文档的入口。`src/python/tools/check_guards.py` 的第 15 项「文档索引」会核对：
+本仓所有文档的入口。`src/python/tools/check_guards.py` 的「文档索引」会核对：
 每份管理文档与手册都必须出现在下面的表里，漏链即红。
 
 ## 推荐阅读顺序

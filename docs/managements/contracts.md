@@ -87,7 +87,7 @@
 
 | 约束 | 守护 / 用例 |
 | --- | --- |
-| AR-1/AR-2 | `src/python/tools/check_import_surface.py`（守护第 14 项） |
+| AR-1/AR-2 | `src/python/tools/check_import_surface.py`（守护「导入方向」） |
 | AR-3 | `check_guards.py` 分层（core 禁 argparse/curses/sys.exit） |
 | AR-5 | `core/test_feature_edges.py`、`tui/test_*` 断言渠道只编排不实现 |
 | AR-6 | `check_guards.py` 文件长度 / scripts 薄壳 |

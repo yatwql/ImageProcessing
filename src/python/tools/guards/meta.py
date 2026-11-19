@@ -184,7 +184,7 @@ def check_workflows() -> list[str]:
 
 
 def check_platform_safety() -> list[str]:
-    """跨平台安全：POSIX 路径 / 子进程编码 / POSIX-only 模块（守护第 17 项）。"""
+    """跨平台安全：POSIX 路径 / 子进程编码 / POSIX-only 模块（守护「跨平台」）。"""
     result = subprocess.run(
         [sys.executable, "-m", "src.python.tools.check_platform_safety"],
         cwd=str(ROOT),

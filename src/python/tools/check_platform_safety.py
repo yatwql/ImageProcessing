@@ -32,8 +32,10 @@ IMPORT_POSIX = re.compile(
 FONT_FAMILY = re.compile(
     r'"(Noto[^"]*|Source Han[^"]*|Microsoft YaHei|msyh[^"]*|PingFang[^"]*|SimSun[^"]*|微软雅黑)'
 )
-# 裸 bash/sh：windows-latest 上的 `bash` 常是 WSL 存根，`bash -n` 退 1 且 stderr 为空
-BARE_SHELL = re.compile(r'"(?:bash|sh)"')
+# 裸 bash/sh：windows-latest 上的 `bash` 常是 WSL 存根，`bash -n` 退 1 且 stderr 为空。
+# 只认"当作命令用"的字面量（`["bash", "-n", ...]` / `run("sh", ...)`）——
+# `mock.patch.object(release, "sh")` 这种属性名不能被误判成命令行。
+BARE_SHELL = re.compile(r'["\[]"{0,1}(?:bash|sh)"\s*[,\]]|run\(\s*"(?:bash|sh)"')
 # 直接碰 fcntl：Windows 没有这个模块，属性访问会 AttributeError
 FCNTL_ATTR = re.compile(r"\.fcntl\b")
 # 断言里写死绝对像素阈值（`assertGreaterEqual(out_w, 111)`）：换平台字体度量就变。

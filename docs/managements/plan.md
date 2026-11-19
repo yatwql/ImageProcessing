@@ -1,6 +1,6 @@
 # 计划任务
 
-> 版本：v0.3
+> 版本：v0.4-dev
 
 > 范围：`retype`（图片文字替换）。本文件只列任务与验收口径，不写实现细节；
 > 实现细节进 `technical.md`，结果进 `changelog.md`，问题进 `review-findings.md`。

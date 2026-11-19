@@ -208,6 +208,7 @@ def _junit_modules(path: Path) -> set[str] | None:
     junit 的 classname 形如 `src.test.core.test_x.ClassName`，末尾大写段是类名，去掉它。
     """
     try:
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse  -- 只解析本机 pytest 刚生成的报告（可信来源，不接受外部输入）
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError):
         return None

@@ -124,10 +124,22 @@ class Tag(unittest.TestCase):
         self.assertIn("开发版", out)
 
     def test_tag_name_has_no_dev_suffix(self):
-        code, out = run(release.cmd_tag, "0.3", False)
+        # 不能真去问 git（发过 v0.3 之后这条就会红）：把"标签是否存在"桩掉，
+        # 用例只验"标签名里不该出现 -dev"这条规则本身。
+        with mock.patch.object(release, "sh") as fake_sh:
+            fake_sh.return_value.stdout = ""
+            code, out = run(release.cmd_tag, "0.3", False)
         self.assertEqual(code, 0)
         self.assertIn("git tag -a v0.3", out)
         self.assertFalse(re.search(r"v0\.3-dev", out))
+
+    def test_existing_tag_is_refused(self):
+        """同名标签已存在就拒绝：重复打标签会让"这个版本发布了什么"变得不可考。"""
+        with mock.patch.object(release, "sh") as fake_sh:
+            fake_sh.return_value.stdout = "v0.3\n"
+            code, out = run(release.cmd_tag, "0.3", False)
+        self.assertEqual(code, 2)
+        self.assertIn("已存在", out)
 
 
 if __name__ == "__main__":

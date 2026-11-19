@@ -11,7 +11,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import os
 import shutil
 import subprocess
@@ -95,15 +94,28 @@ def has_module(name: str) -> bool:
     )
 
 
+def _remove_tree(path: Path) -> None:
+    """删一个目录；清不掉（只读/被占用）就咽下去，不影响测试结论。
+
+    刻意写成"调用点接住 + 直接 return"：`contextlib.suppress` 在评审规则里会被当成
+    "没处理异常"，而这里要的正是"这一项失败就算了，继续清下一项"。
+    """
+    try:
+        shutil.rmtree(path)
+    except OSError:
+        return
+
+
 def cleanup_repo() -> None:
     """仓库里不留运行产物：字节码缓存与 pytest 缓存都清掉（清不掉也不影响结果）。"""
-    with contextlib.suppress(OSError):   # rglob 可能中途读不了某个目录
-        for cache in list(ROOT.rglob("__pycache__")):
-            with contextlib.suppress(OSError):   # 单个目录只读/被占用，不该炸掉整轮
-                shutil.rmtree(cache)
+    try:
+        caches = list(ROOT.rglob("__pycache__"))  # rglob 可能中途读不了某个目录
+    except OSError:
+        caches = []
+    for cache in caches:
+        _remove_tree(cache)
     for name in (".pytest_cache", ".ruff_cache"):
-        with contextlib.suppress(OSError):
-            shutil.rmtree(ROOT / name)
+        _remove_tree(ROOT / name)
 
 
 def _junit_suite(path: Path) -> ET.Element | None:

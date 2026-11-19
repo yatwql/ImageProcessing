@@ -32,7 +32,7 @@
 | P0 提交前 | `git commit` → `.githooks/pre-commit` | `check_all.py --quick`：ruff / mypy / guards（并发）→ perf → 本机单档用例（`-n 8`） | 拒绝提交 |
 | P1 推送前 | `git push` → `.githooks/pre-push` | `check_all.py` 全量：再加覆盖率门禁 + 无字体复跑 | 拒绝推送 |
 | P2 CI | push / PR | 八个常驻作业：test（3.10/3.12/3.13）、lint、typecheck、guards、perf、windows、audit（release 只在打 tag 时跑） | 红则不合入 |
-| 手工 | 改界面/改依赖后 | `UPDATE_SNAPSHOTS=1` 重生成快照、`src/python/tools/update_constraints.py --write` | 快照/锁文件 diff 随提交 |
+| 手工 | 改界面/改依赖后 | `UPDATE_SNAPSHOTS=1` 重生成快照、`src/python/tools/make_constraints.py --write` | 快照/锁文件 diff 随提交 |
 
 **例外**：`IMG_P_SKIP_HOOK=1` 可跳过 P0/P1，但**不允许**跳过 P2；跳过后必须在推送前手动跑
 `check_all.py` 全量并在提交信息里写明原因。
@@ -52,7 +52,7 @@
 | 入口冒烟 | 对外入口可用 | `cli/test_entry_smoke.py` | `--version/--help` 退出码 + shell 薄壳语法 |
 | 真终端 | 真 curses 渲染 | `tui/test_tui_real_terminal.py`（`script(1)` 伪终端） | POSIX + `script` 才跑，其余平台 skip |
 | 性能 | 热路径耗时 | `src/python/tools/check_perf.py` | 阈值 = 实测 × 5 以上，只挡数量级退化 |
-| 变异（opt-in） | 验证断言强度 | `src/python/tools/mutation_check.py`（mutmut） | 默认试点 `core/match.py`、`core/options.py` |
+| 变异（opt-in） | 验证断言强度 | `src/python/tools/eval_mutation.py`（mutmut） | 默认试点 `core/match.py`、`core/options.py` |
 | 架构约束 | 依赖方向不被破坏 | `src/python/tools/check_import_surface.py`（守护「导入方向」） | `core` 不导入渠道、渠道互不导入 |
 | 发布 | 发行物可复现 | `src/python/tools/release.py`（check/gate/build/tag/publish） | 见 `releasing.md` |
 
@@ -144,9 +144,9 @@
 | `release.py check` | 矩阵前置（locale + 字体）失败即红 | `testplan` §8 + CI `release` 作业 |
 | `check_guards`「归档」/「编号」 | 目录命名、头部四项、索引存在；编号唯一/递增/不复用 | `tools/test_platform_safety_rules.py`、`check_guards --ci` |
 | `check_platform_safety` | 五条用例卫生规则 × `# platform-safe` 豁免 | `tools/test_platform_safety_rules.py` |
-| `gen_folders` | 目录树生成、统计表数字重算、`alt`/指定字体模式 | `tools/test_gen_folders_stats.py` |
-| `junit_summary` | 失败/错误用例提取、报告缺失、用法提示 | `tools/test_junit_summary.py` |
-| `gate_stamp` | 指纹随跟踪文件变化、未跟踪文件不影响、戳缺失/损坏 | `tools/test_gate_stamp.py` |
+| `make_folders` | 目录树生成、统计表数字重算、`alt`/指定字体模式 | `tools/test_gen_folders_stats.py` |
+| `test_junit_summary` | 失败/错误用例提取、报告缺失、用法提示 | `tools/test_junit_summary.py` |
+| `hook_gate_stamp` | 指纹随跟踪文件变化、未跟踪文件不影响、戳缺失/损坏 | `tools/test_gate_stamp.py` |
 | `check_perf` | 平台档：Windows 只放大落盘步骤与总上限，且容得下实测 3.5s | `tools/test_perf_limits.py` |
 
 ## 9. 质量报告与产物
@@ -154,7 +154,7 @@
 | 产物 | 生成方式 | 位置 |
 | --- | --- | --- |
 | 用例与覆盖率原始数据 | `check_all.py` 全量 | `reports/junit.xml`、`reports/coverage.xml` |
-| 覆盖率与分组统计（本仓文档） | `src/python/tools/coverage_report.py --write` | `docs/managements/test-coverage.md` |
+| 覆盖率与分组统计（本仓文档） | `src/python/tools/test_coverage_report.py --write` | `docs/managements/test-coverage.md` |
 | 性能读数 | `src/python/tools/check_perf.py` | 终端输出（超限即红） |
 | CI 环境指纹 | CI `环境指纹` 步骤 | artifact `ci-env/`（python / platform / pip freeze / 字体清单） |
 | windows 失败用例清单 | CI `全量用例` / `失败用例摘要` 步 | artifact `windows-junit/`（junit XML）+ 作业日志里的 `classname::name` 列表 |
@@ -165,7 +165,7 @@
 - [ ] `python -m src.python.tools.check_all` 全绿（或 `--quick` + 推送前全量）
 - [ ] 新缺陷有回归用例；新功能有用例；新模块有覆盖率门槛
 - [ ] 改了界面 → 快照已更新且 diff 合理
-- [ ] 改了依赖 → `constraints.txt` 已更新（`src/python/tools/update_constraints.py --write`）
+- [ ] 改了依赖 → `constraints.txt` 已更新（`src/python/tools/make_constraints.py --write`）
 - [ ] 改了 CLI 参数 / TUI 按键 → `README`、`how-to-use.md`、`--help` 同步
 - [ ] 动了文件 → `folders.md` 已更新（守护会核对）
 - [ ] 文档三件套与 `test-coverage.md` 已同步

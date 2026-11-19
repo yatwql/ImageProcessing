@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
-from . import gate_stamp
+from . import hook_gate_stamp
 from ._paths import ROOT
 
 VERSION_FILE = ROOT / "src" / "python" / "version.py"
@@ -99,7 +99,7 @@ def cmd_check() -> int:
         return 1
 
     version, updated = read_version()
-    if gate_stamp.stamp_matches():
+    if hook_gate_stamp.stamp_matches():
         print(
             f"[ok] 预检通过：版本 {version}（{updated}），"
             f"同一份代码已通过全量门禁（命中门禁戳，跳过重跑，{_elapsed(started)}）"
@@ -306,13 +306,13 @@ def cmd_archive(version: str, yes: bool, docs: Path | None = None) -> int:
             "[plan] 以上为预演；加 --yes 才会真的搬（先确认工作区干净、changelog 已写完本版内容）"
         )
         return 0
-    print("[ok] 归档完成；下一步：gen_folders --write 同步目录树，再 prepare → gate")
+    print("[ok] 归档完成；下一步：make_folders --write 同步目录树，再 prepare → gate")
     return 0
 
 
 def cmd_gate(force: bool = False) -> int:
     """全量门禁。命中门禁戳（同一份代码已全绿）就直接放行，`--force` 强制重跑。"""
-    if not force and gate_stamp.stamp_matches():
+    if not force and hook_gate_stamp.stamp_matches():
         print("[ok] 同一份代码已通过全量门禁（命中门禁戳）；要强制重跑加 --force")
         return 0
     started = time.perf_counter()

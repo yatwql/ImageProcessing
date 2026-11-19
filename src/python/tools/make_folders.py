@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """重新生成 `docs/managements/folders.md` 的两个"机器可算"部分：目录树与项目统计。
 
-    python -m src.python.tools.gen_folders            # 只打印将要写入的内容摘要
-    python -m src.python.tools.gen_folders --write    # 写回文档（正文段落不动）
+    python -m src.python.tools.make_folders            # 只打印将要写入的内容摘要
+    python -m src.python.tools.make_folders --write    # 写回文档（正文段落不动）
 
 为什么要有它：目录树之前靠手改，搬文件时容易漏；统计数字（文件数/行数/用例数）
 更是每次都要重算——现在 `--write` 两个都重算，只有「说明」列需要人写。
@@ -71,8 +71,8 @@ FILE_NOTE = {
     "scripts/tui.ps1": "→ launch tui（Windows）",
     "scripts/setup.sh": "→ src.python.bootstrap",
     "scripts/setup.ps1": "→ src.python.bootstrap（Windows）",
-    "scripts/run-test.sh": "→ src.python.tools.run_tests",
-    "scripts/run-test.ps1": "→ src.python.tools.run_tests（Windows）",
+    "scripts/run-test.sh": "→ src.python.tools.test_runner",
+    "scripts/run-test.ps1": "→ src.python.tools.test_runner（Windows）",
     "scripts/log-query.sh": "→ launch log-query",
     "scripts/log-query.ps1": "→ launch log-query（Windows）",
     "data/demo/示例-报告.png": "回归样例（报告版式）",

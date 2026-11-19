@@ -19,21 +19,22 @@ from .._paths import ROOT
 SHELL_NAME = re.compile(r"^[a-z][a-z0-9-]*\.(?:sh|ps1)$")
 
 # tools/ 顶层脚本按"活动类型"前缀命名（`_` 前缀是共享设施，不在此列）
+# 顶层工具按**活动类型**前缀归类（与 investor-review 的 check-/test-/eval- 同源）：
+#   check_ 可入门禁的检查   test_ 测试工程（编排/排障/报告）
+#   eval_  离线评测        make_ 生成/刷新资产
+#   probe_ 环境探测        hook_ 钩子接线
+# 共享设施用 `_` 前缀；`release.py` 是唯一以动词直接命名的编排入口。
 TOOL_PREFIXES = (
     "check_",
     "test_",
-    "run_",
-    "gen_",
-    "gate_",
-    "junit_",
-    "coverage_",
-    "mutation_",
-    "ci_",
-    "update_",
+    "eval_",
+    "make_",
+    "probe_",
+    "hook_",
 )
 TOOL_STANDALONE = {"release.py"}
 # 不需要"被用例引用"的一次性工具：真跑外部环境，用例里只打桩不覆盖
-TOOL_UNTESTED_OK = {"mutation_check.py"}
+TOOL_UNTESTED_OK = {"eval_mutation.py"}
 
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")

@@ -2,8 +2,8 @@
 """变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行。
 
     .venv/bin/python -m pip install mutmut
-    python tools/mutation_check.py                  # 默认试点：match + 跨平台守护规则
-    python tools/mutation_check.py core/options.py
+    python tools/eval_mutation.py                  # 默认试点：match + 跨平台守护规则
+    python tools/eval_mutation.py core/options.py
 
 没装 mutmut 就说明怎么装并退出 0（不阻塞日常门禁）。
 变异存活意味着"代码改错了用例还绿"——那类漏洞光看覆盖率发现不了。

@@ -55,7 +55,7 @@ class InlinePythonBan(unittest.TestCase):
         self.assertIn("heredoc", problems[0])
 
     def test_tool_invocation_is_allowed(self):
-        step = {"name": "摘要", "run": "python -m src.python.tools.junit_summary a.xml\n"}
+        step = {"name": "摘要", "run": "python -m src.python.tools.test_junit_summary a.xml\n"}
         with (
             mock.patch.object(check_workflows, "BASH_OK", True),
             mock.patch.object(check_workflows, "bash_syntax_error", return_value=None),

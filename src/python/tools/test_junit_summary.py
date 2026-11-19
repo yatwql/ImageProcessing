@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """JUnit 报告摘要：把失败用例列成一行一条，CI 里一眼看清红在哪。
 
-    python -m src.python.tools.junit_summary reports/junit.xml
+    python -m src.python.tools.test_junit_summary reports/junit.xml
 
 为什么单独成工具、不写在工作流的 `run:` 里：CI 日志走 Windows 控制台，
 直接在 shell 里 `print` 中文会 `UnicodeEncodeError: 'charmap'`（cp1252），
@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
         print(__doc__)
         return 0
     if not args:
-        print("用法：python -m src.python.tools.junit_summary <junit.xml>")
+        print("用法：python -m src.python.tools.test_junit_summary <junit.xml>")
         return 2
     path = Path(args[0])
     if not path.is_file():

@@ -1,4 +1,4 @@
-"""CI 失败摘要工具（`junit_summary`）：把 junit 报告里的红用例列成 `class::name`。
+"""CI 失败摘要工具（`test_junit_summary`）：把 junit 报告里的红用例列成 `class::name`。
 
 守的原因：这段逻辑原本写在工作流的 heredoc 里，Windows 控制台 cp1252 直接
 `UnicodeEncodeError`（摘要步自己红了）。搬进 tools 后既能 `ensure_utf8_stdio()`，
@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.python.tools import junit_summary
+from src.python.tools import test_junit_summary
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
@@ -33,7 +33,7 @@ JUNIT = """<?xml version="1.0" encoding="utf-8"?>
 def run(argv: list[str]) -> tuple[int, str]:
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
-        code = junit_summary.main(argv)
+        code = test_junit_summary.main(argv)
     return code, out.getvalue()
 
 
@@ -42,11 +42,11 @@ class FailingCases(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "junit.xml"
             path.write_text(JUNIT, encoding="utf-8")
-            cases = junit_summary.failing_cases(path)
+            cases = test_junit_summary.failing_cases(path)
         self.assertEqual(cases, ["src.test.b::test_fail", "src.test.c::test_error"])
 
     def test_missing_report_yields_no_cases(self):
-        self.assertEqual(junit_summary.failing_cases(Path("/nonexistent/junit.xml")), [])
+        self.assertEqual(test_junit_summary.failing_cases(Path("/nonexistent/junit.xml")), [])
 
 
 class CommandLine(unittest.TestCase):
@@ -67,7 +67,7 @@ class CommandLine(unittest.TestCase):
     def test_usage_without_argument(self):
         code, out = run([])
         self.assertEqual(code, 2)
-        self.assertIn("junit_summary", out)
+        self.assertIn("test_junit_summary", out)
 
 
 if __name__ == "__main__":

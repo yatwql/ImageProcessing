@@ -1,4 +1,4 @@
-"""`gen_folders` 的统计表重算：数字由脚本算，说明列与表结构一概不动。
+"""`make_folders` 的统计表重算：数字由脚本算，说明列与表结构一概不动。
 
 为什么守这个：之前的数字是手改的，`tools/` 从 10 个涨到 16 个、`data/demo/`
 从 0 张涨到 4 张都没人发现——文档和实际对不上，守护又查不出来。
@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.python.tools import gen_folders
+from src.python.tools import make_folders
 
 
 def make_tree(root: Path) -> list[str]:
@@ -55,7 +55,7 @@ class StatsCells(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             files = make_tree(root)
-            cells = gen_folders.stats_cells(files, root)
+            cells = make_folders.stats_cells(files, root)
         self.assertEqual(cells["主程序代码"], ("1", "3"))
         self.assertEqual(cells["测试代码"], ("1", "5"))
         self.assertEqual(cells["测试用例"], ("—", "2"))
@@ -65,8 +65,8 @@ class StatsCells(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             files = make_tree(root)
-            cells = gen_folders.stats_cells(files, root)
-        files_cell, lines_cell = cells[gen_folders.STAT_TOTAL_LABEL]
+            cells = make_folders.stats_cells(files, root)
+        files_cell, lines_cell = cells[make_folders.STAT_TOTAL_LABEL]
         self.assertEqual(files_cell, "**2**")  # 不含示例图
         self.assertEqual(lines_cell.split(" | ")[0], "**8**")
         self.assertIn("主程序 : 测试 ≈ 1 : 1.67", lines_cell)
@@ -78,7 +78,7 @@ class RefreshStats(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             files = make_tree(root)
-            text = gen_folders.refresh_stats(SAMPLE_DOC, files, root)
+            text = make_folders.refresh_stats(SAMPLE_DOC, files, root)
         self.assertIn("| 主程序代码 | Python | 1 | 3 | 说明一（不许改） |", text)
         self.assertIn("| 测试用例 | — | — | 2 | `def test_` 口径 |", text)
         self.assertIn("| 示例图 | PNG | 1 | — | 二进制不计行数 |", text)
@@ -89,7 +89,7 @@ class RefreshStats(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             files = make_tree(root)
-            text = gen_folders.refresh_stats(SAMPLE_DOC, files, root)
+            text = make_folders.refresh_stats(SAMPLE_DOC, files, root)
         self.assertIn("## 目录树\n\n```text\nImageProcessing/\n```", text)
 
 

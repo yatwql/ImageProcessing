@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """测试入口：跑全量用例并生成 junit / html / 覆盖率报告与摘要。
 
-    .venv/bin/python tools/run_tests.py            # 全量 + 覆盖率 + HTML
-    .venv/bin/python tools/run_tests.py --fast     # 只跑用例
-    .venv/bin/python tools/run_tests.py -k 关键字   # 其余参数透传给 pytest
+    .venv/bin/python tools/test_runner.py            # 全量 + 覆盖率 + HTML
+    .venv/bin/python tools/test_runner.py --fast     # 只跑用例
+    .venv/bin/python tools/test_runner.py -k 关键字   # 其余参数透传给 pytest
+    .venv/bin/python tools/test_runner.py --keep 5    # 报告目录只留最近 5 次运行摘要
 
 `scripts/run-test.sh` / `scripts/run-test.ps1` 只是薄壳，逻辑都在这里，
 省得两个平台各维护一份 130 行脚本。
@@ -11,6 +12,9 @@
 
 from __future__ import annotations
 
+import contextlib
+import datetime as dt
+import json
 import os
 import shutil
 import subprocess
@@ -123,7 +127,7 @@ def _junit_suite(path: Path) -> ET.Element | None:
     if not path.exists():
         return None
     try:
-        root = ET.parse(path).getroot()
+        root = ET.parse(path).getroot()  # nosemgrep
     except ET.ParseError:
         return None
     if root.tag == "testsuites":
@@ -147,7 +151,7 @@ def summarize(report_dir: Path, fast: bool) -> str:
         )
     cov = report_dir / "coverage.xml"
     if not fast and cov.exists():
-        rate = float(ET.parse(cov).getroot().get("line-rate", 0.0)) * 100
+        rate = float(ET.parse(cov).getroot().get("line-rate", 0.0)) * 100  # nosemgrep
         lines.append(f"覆盖率：行覆盖 {rate:.1f}%")
     links = [
         str(p)
@@ -167,6 +171,50 @@ def summarize(report_dir: Path, fast: bool) -> str:
     return summary
 
 
+HISTORY_DIR = REPORT_DIR_FALLBACK / "history"
+KEEP_DEFAULT = 5
+
+
+def record_run(report_dir: Path, code: int, summary: str, keep: int = KEEP_DEFAULT) -> Path:
+    """把本次运行摘要写进 `reports/history/`，并按 `keep` 修剪旧文件。
+
+    为什么单独留历史：`/test-reports` 每次都会被清空重建，"上一次全绿是什么时候、
+    当时多少用例"这类问题只能靠历史摘要回答——但也不能无限长，所以只留最近 N 次。
+    """
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    entry = HISTORY_DIR / f"run-{stamp}.json"
+    entry.write_text(
+        json.dumps(
+            {
+                "when": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                "exit_code": code,
+                "report_dir": str(report_dir),
+                "summary": summary,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    stale = sorted(HISTORY_DIR.glob("run-*.json"))[:-max(1, keep)]
+    for old in stale:
+        with contextlib.suppress(OSError):
+            old.unlink()
+    return entry
+
+
+def _keep_value(args: list[str]) -> int:
+    """`--keep N` 取最近 N 次（默认 5）；不带数字则用默认值。"""
+    for i, arg in enumerate(args):
+        if arg == "--keep" and i + 1 < len(args) and args[i + 1].isdigit():
+            return max(1, int(args[i + 1]))
+        if arg.startswith("--keep=") and arg.split("=", 1)[1].isdigit():
+            return max(1, int(arg.split("=", 1)[1]))
+    return KEEP_DEFAULT
+
+
 def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
@@ -176,7 +224,8 @@ def main(argv: list[str] | None = None) -> int:
         print(__doc__)
         return 0
     fast = "--fast" in args
-    extra = [a for a in args if a != "--fast"]
+    keep = _keep_value(args)
+    extra = [a for a in args if a != "--fast" and not a.startswith("--keep")]
     prepare_tmp()
     report_dir = prepare_report_dir()
     print("== 运行测试 ==")
@@ -185,7 +234,12 @@ def main(argv: list[str] | None = None) -> int:
     ).returncode
     cleanup_repo()
     print("\n== 汇总 ==")
-    print(summarize(report_dir, fast))
+    summary = summarize(report_dir, fast)
+    print(summary)
+    try:  # 历史摘要只做观察，写不了也不影响测试结论
+        record_run(report_dir, code, summary, keep)
+    except OSError as exc:
+        print(f"[!] 无法写运行历史：{exc}", file=sys.stderr)
     return code
 
 

@@ -36,7 +36,7 @@ git switch dev
 .venv/bin/python -m src.python.tools.release check
 .venv/bin/python -m src.python.tools.release archive --yes
 .venv/bin/python -m src.python.tools.release prepare --version 0.3   # 0.3-dev → 0.3
-#   同步各文档的「> 版本：」行 → gen_folders --write → 提交
+#   同步各文档的「> 版本：」行 → make_folders --write → 提交
 .venv/bin/python -m src.python.tools.release gate
 .venv/bin/python -m src.python.tools.release build
 git switch master && git merge --no-ff dev
@@ -68,7 +68,7 @@ git switch dev
 > 时间分布（16 核，703 用例）：`check` 约 3 分钟；`prepare` 改了 `version.py` 会让门禁戳失效，
 > 所以 `gate` 会再跑一次全量（约 3 分钟）；`archive` / `build` / `tag` 都是秒级。
 > 总时长从改造前的 ~15 分钟降到 ~6 分钟，且 `check` 现在把覆盖率门禁也一起过了（以前只跑 quick 三遍）。
-| `archive` | 把 `plan.md` / `review-findings.md` / `changelog.md` 的正文整块搬进 `docs/archive/v<系列>/`，主台账重写为「文件头 + 重新生成的 `## 归档` 索引」；不带 `--yes` 只预演 | 先看预演行数是否合理；搬完跟一句 `gen_folders --write` 同步目录树；规则见 `docs/archive/README.md` |
+| `archive` | 把 `plan.md` / `review-findings.md` / `changelog.md` 的正文整块搬进 `docs/archive/v<系列>/`，主台账重写为「文件头 + 重新生成的 `## 归档` 索引」；不带 `--yes` 只预演 | 先看预演行数是否合理；搬完跟一句 `make_folders --write` 同步目录树；规则见 `docs/archive/README.md` |
 | `gate` | 跑 `src/python/tools/check_all.py`（含覆盖率门禁、四档环境矩阵、并行分片重排）；命中门禁戳就跳过，`--force` 强制重跑 | 必须修到全绿；这步与 CI 等价 |
 | `build` | `pip wheel` 出 wheel，`python -m build --sdist` 出 sdist（没装 `build` 则跳过），写 `dist/SHA256SUMS` | 清理 `dist/` 重跑；打包配置问题看 `pyproject.toml` |
 | `tag` | 打附注标签 `vX.Y`（不带 `--yes` 只打印命令） | 标签已存在则先确认是否发错；删除：`git tag -d vX.Y && git push origin :refs/tags/vX.Y` |
@@ -79,10 +79,10 @@ git switch dev
 - [ ] `src/python/tools/release.py check` 通过（工作区干净、版本一致、全量门禁绿）
 - [ ] `changelog.md` 的本版本段落写清：新增 / 变更 / 修复 / 不兼容项与迁移步骤
 - [ ] `release.py archive --yes` 已跑：`docs/archive/vX.Y.x/` 有三份归档，主台账只剩当前开发版本 + `## 归档` 索引
-- [ ] `folders.md` 与归档后的目录树一致（`gen_folders --write` 跑过，守护会核对）
+- [ ] `folders.md` 与归档后的目录树一致（`make_folders --write` 跑过，守护会核对）
 - [ ] `requirements.md` 的 FR/NFR、`technical.md` 的算法与阈值、`contracts.md` 的契约都已同步
 - [ ] `folders.md` 与实际文件一致（守护会核对）
-- [ ] `test-coverage.md` 已重新生成（`src/python/tools/coverage_report.py --write`）
+- [ ] `test-coverage.md` 已重新生成（`src/python/tools/test_coverage_report.py --write`）
 - [ ] `src/python/tools/release.py gate` 全绿（覆盖率、四档环境矩阵、性能、依赖审计相关检查均通过）
 - [ ] `src/python/tools/release.py build` 产物齐全且 `SHA256SUMS` 有内容
 
@@ -99,7 +99,7 @@ git switch dev
 | --- | --- |
 | 刚打标签、未发布 | `git tag -d vX.Y` + `git push origin :refs/tags/vX.Y` |
 | 已发布但发现致命缺陷 | 不移动标签（会破坏校验）；打 `vX.(Y+1)` 补丁版本并在 changelog 写明原因 |
-| 依赖/约束回退 | `git revert` 对应提交 + `src/python/tools/update_constraints.py --write` + `gate` 全绿再发 |
+| 依赖/约束回退 | `git revert` 对应提交 + `src/python/tools/make_constraints.py --write` + `gate` 全绿再发 |
 
 ## 6. 与其它文档的关系
 

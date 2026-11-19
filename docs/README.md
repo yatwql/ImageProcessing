@@ -43,7 +43,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [测试计划与质量标准](managements/testplan.md) | 质量目标 QG-1..10、门禁分层 P0/P1/P2、14 类测试职责、用例规范、缺陷分级、合并前清单 |
-| [覆盖率与分组统计](managements/test-coverage.md) | 覆盖率报告、模块门槛、场景/单元分组（由 `python -m src.python.tools.coverage_report --write` 生成） |
+| [覆盖率与分组统计](managements/test-coverage.md) | 覆盖率报告、模块门槛、场景/单元分组（由 `python -m src.python.tools.test_coverage_report --write` 生成） |
 | [发布流程](managements/releasing.md) | `src/python/tools/release.py` 六个子命令、版本策略、发布清单、回滚 |
 
 ## 5. 面向维护者：过程记录
@@ -71,8 +71,8 @@
 
 1. 新增/重命名文档：同步本索引（守护「文档索引」会拦）、同步 `folders.md` 的目录树与统计。
 2. 文档开头保留 `> 版本：vX.Y` 行（守护「版本号」核对与 `version.py` 一致）。
-3. 能由脚本生成的表格不手改：覆盖率/分组用 `python -m src.python.tools.coverage_report --write`，
-   目录树与项目统计表的数字都用 `python -m src.python.tools.gen_folders --write`（说明列自己写）。
+3. 能由脚本生成的表格不手改：覆盖率/分组用 `python -m src.python.tools.test_coverage_report --write`，
+   目录树与项目统计表的数字都用 `python -m src.python.tools.make_folders --write`（说明列自己写）。
 4. 历史段落（`plan.md` / `review-findings.md` / `changelog.md` 的旧条目）保持原样，
    不要为了"看起来一致"去改历史记录；当前状态以上面的设计/契约/质量文档为准。
 5. 发布新版本时，三份台账的旧内容整块搬进 `docs/archive/vX.Y.x/`（`release.py archive`，规则见

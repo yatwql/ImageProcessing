@@ -336,6 +336,9 @@ A：
 .venv/bin/python -m src.python.tools.test_failures            # 列出失败用例 + 单跑命令
 .venv/bin/python -m src.python.tools.test_failures --json     # 机器可读（给脚本用）
 .venv/bin/python -m src.python.tools.test_order_dependent <节点ID>   # 单跑绿、一起跑红 → 找污染源
+.venv/bin/python -m src.python.tools.test_coverage_report --collect-only  # 只收集不执行：按目录数用例（~2s）
+.venv/bin/python -m src.python.tools.test_runner --keep 5     # 跑测试，报告目录只留最近 5 次运行摘要
+.venv/bin/python -m src.python.tools.check_perf --record --history 10     # 记一条性能台账并看趋势
 ```
 `test_failures` 读 `reports/junit.xml`，给出 pytest 节点 ID、失败类型/消息首行和可直接粘贴的复现命令；
 `test_order_dependent` 会先确认"单跑确实通过"，再二分出最小的污染前缀，最后输出污染源文件与最小复现命令

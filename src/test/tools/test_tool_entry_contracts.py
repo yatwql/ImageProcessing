@@ -16,22 +16,22 @@ from src.python.tools import (
     check_coverage,
     check_import_surface,
     check_workflows,
-    ci_env,
-    coverage_report,
+    make_constraints,
+    probe_ci_env,
     release,
-    run_tests,
-    update_constraints,
+    test_coverage_report,
+    test_runner,
 )
 
 MODULES = [
     check_coverage,
     check_import_surface,
     check_workflows,
-    ci_env,
-    coverage_report,
+    probe_ci_env,
+    test_coverage_report,
     release,
-    run_tests,
-    update_constraints,
+    test_runner,
+    make_constraints,
 ]
 
 
@@ -58,14 +58,14 @@ class HelpExit(unittest.TestCase):
 class HelpHasNoSideEffects(unittest.TestCase):
     """`--help` 只打印说明：不许建目录、不许清报告（曾经的现场事故见下）。"""
 
-    def test_run_tests_help_does_not_touch_reports(self):
+    def test_runner_help_does_not_touch_reports(self):
         # 旧实现先 prepare_report_dir() 再解析参数：看帮助会把 reports/coverage.xml
         # 清掉，而门禁的覆盖率步骤紧接着就要读它 → 全量门禁恒红。
         with (
-            mock.patch.object(run_tests, "prepare_report_dir") as prepare,
-            mock.patch.object(run_tests, "prepare_tmp") as make_tmp,
+            mock.patch.object(test_runner, "prepare_report_dir") as prepare,
+            mock.patch.object(test_runner, "prepare_tmp") as make_tmp,
         ):
-            self.assertEqual(run_tests.main(["--help"]), 0)
+            self.assertEqual(test_runner.main(["--help"]), 0)
         prepare.assert_not_called()
         make_tmp.assert_not_called()
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """依赖升级助手：列出可升级项，并按当前环境重写 constraints.txt 的非标记部分。
 
-    python tools/update_constraints.py --check      # 只看哪些包有新版本（不动文件）
-    python tools/update_constraints.py --write      # 按当前 .venv 重写锁定版本
+    python tools/make_constraints.py --check      # 只看哪些包有新版本（不动文件）
+    python tools/make_constraints.py --write      # 按当前 .venv 重写锁定版本
 
 `--write` 保留文件头与被环境标记分档的包（Pillow / numpy / onnxruntime / coverage /
 shapely / windows-curses），其余按 `pip freeze` 实际版本重排。
@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
             for line in lines:
                 print("  " + line)
             print(
-                "\n升级步骤：装新版本 → python tools/update_constraints.py --write → tools/check_all.py"
+                "\n升级步骤：装新版本 → python tools/make_constraints.py --write → tools/check_all.py"
             )
         else:
             print("没有可升级的包")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """生成 `docs/managements/test-coverage.md`：覆盖率报告 + 测试分组统计。
 
-    python tools/coverage_report.py                 # 只打印
-    python tools/coverage_report.py --write         # 写进 docs/managements/test-coverage.md
+    python tools/test_coverage_report.py                 # 只打印
+    python tools/test_coverage_report.py --write         # 写进 docs/managements/test-coverage.md
 
 数据来自 `reports/coverage.xml` 与 `reports/junit.xml`（`tools/check_all.py` 全量模式会生成）。
 分组口径：
@@ -16,8 +16,10 @@
 from __future__ import annotations
 
 import datetime as dt
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..stdio import ensure_utf8_stdio
@@ -178,7 +180,7 @@ def build() -> str:
         "",
         f"> 版本：v{VERSION}",
         "",
-        "本文件由 `python -m src.python.tools.coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与",
+        "本文件由 `python -m src.python.tools.test_coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与",
         "`reports/junit.xml`（`python -m src.python.tools.check_all` 全量模式产出）。改完用例或实现后重新生成即可，",
         "不要手改数字。",
         "",
@@ -269,7 +271,7 @@ def build() -> str:
         "",
         "```bash",
         ".venv/bin/python -m src.python.tools.check_all                # 跑全量用例并生成 coverage.xml / junit.xml",
-        ".venv/bin/python -m src.python.tools.coverage_report --write  # 重新生成本文件",
+        ".venv/bin/python -m src.python.tools.test_coverage_report --write  # 重新生成本文件",
         "```",
         "",
         f"覆盖率门槛由 `src/python/tools/check_coverage.py` 把关"
@@ -280,11 +282,49 @@ def build() -> str:
     return "\n".join(lines)
 
 
+# 目录 → 分组标签（只用于 --collect-only 的人类可读输出；分类口径与文档章节一致）
+COLLECT_GROUPS = {
+    "src/test/core": "core",
+    "src/test/cli": "cli",
+    "src/test/tui": "tui",
+    "src/test/tools": "tools",
+}
+
+
+def collect_counts(extra_args: Sequence[str] = ()) -> dict[str, int]:
+    """跑 `pytest --collect-only -q`，按目录分组数用例（不执行测试体）。"""
+    cmd = [sys.executable, "-m", "pytest", "--collect-only", "-q", "src/test", *extra_args]
+    proc = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
+    )
+    if proc.returncode not in (0, 5):  # 5 = 一个都没收集到
+        raise SystemExit(f"收集失败（退出码 {proc.returncode}）：{proc.stdout[-300:]}")
+    counts: dict[str, int] = {}
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if "::" not in line or not line.startswith("src/test/"):
+            continue
+        path = line.split("::", 1)[0]
+        group = next(
+            (label for prefix, label in COLLECT_GROUPS.items() if path.startswith(prefix + "/")),
+            "other",
+        )
+        counts[group] = counts.get(group, 0) + 1
+    return counts
+
+
 def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdio()
     args = list(sys.argv[1:] if argv is None else argv)
     if "-h" in args or "--help" in args:
         print(__doc__)
+        return 0
+    if "--collect-only" in args:
+        counts = collect_counts([a for a in args if a != "--collect-only" and a != "--write"])
+        total = sum(counts.values())
+        for group, count in sorted(counts.items(), key=lambda kv: -kv[1]):
+            print(f"  {group:6s} {count:5d}")
+        print(f"  {'合计':6s} {total:5d}（只收集，未执行）")
         return 0
     missing = [str(p) for p in (COVERAGE, JUNIT) if not p.exists()]
     if missing:

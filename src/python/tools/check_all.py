@@ -207,9 +207,9 @@ def _junit_modules(path: Path) -> set[str] | None:
     总数天生不同；而"某档把整个文件 deselect 掉"才是要拦的事故。
     junit 的 classname 形如 `src.test.core.test_x.ClassName`，末尾大写段是类名，去掉它。
     """
+    # 只解析本机 pytest 刚生成的报告（可信来源，不接受外部输入）
     try:
-        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse  -- 只解析本机 pytest 刚生成的报告（可信来源，不接受外部输入）
-        root = ET.parse(path).getroot()
+        root = ET.parse(path).getroot()  # nosemgrep
     except (OSError, ET.ParseError):
         return None
     modules: set[str] = set()
@@ -298,10 +298,10 @@ def _run_full_extras(opts: Options, workers: int, timings: list[tuple[str, float
             return 1
 
     # 全量通过就在 git 目录里留个戳：同一份代码再 push 不必重跑。
-    from . import gate_stamp
+    from . import hook_gate_stamp
 
     try:
-        gate_stamp.write_stamp()
+        hook_gate_stamp.write_stamp()
         print("已记录门禁戳（同一份代码下次推送可跳过重跑）")
     except OSError as exc:  # 只读环境/无 git：不影响结论
         print(f"[!] 无法写门禁戳：{exc}")

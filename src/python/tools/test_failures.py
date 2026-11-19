@@ -5,7 +5,7 @@
     python -m src.python.tools.test_failures --path 报告/junit.xml --max 20
     python -m src.python.tools.test_failures --json           # 机器可读
 
-和 `junit_summary` 分工：那个给 CI 一句话摘要（`class::name` 一行一条），
+和 `test_junit_summary` 分工：那个给 CI 一句话摘要（`class::name` 一行一条），
 这个给本地排障——带失败类型、消息首行与可直接复制的 pytest 命令。
 
 退出码：0 = 没有失败；1 = 有失败；2 = 报告缺失或解析不了。
@@ -41,7 +41,7 @@ def _nodeid(classname: str, name: str) -> str:
 def failing_cases(junit_xml: Path) -> list[dict[str, str]]:
     """解析 junit，返回失败/错误用例（节点 ID、类型、消息首行）。"""
     # 只解析本机 pytest 生成的报告（可信来源）：外部 XML 不走这里
-    tree = ET.parse(junit_xml)  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    tree = ET.parse(junit_xml)  # nosemgrep
     root = tree.getroot()
     cases: list[dict[str, str]] = []
     for case in root.iter("testcase"):

@@ -44,7 +44,7 @@ SKIP_MAX_RATIO = 0.15  # 正常模式（有中文字体）下，跳过用例不�
 
 def file_rates(coverage_xml: Path) -> dict[str, float]:
     # 只解析本机 pytest 刚生成的报告（可信来源）；外部 XML 不走这里
-    root = ET.parse(coverage_xml).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    root = ET.parse(coverage_xml).getroot()  # nosemgrep
     rates: dict[str, float] = {}
     for cls in root.iter("class"):
         name = cls.get("filename")
@@ -60,13 +60,13 @@ def file_rates(coverage_xml: Path) -> dict[str, float]:
 
 def total_rate(coverage_xml: Path) -> float:
     # 只解析本机 pytest 刚生成的报告（可信来源）；外部 XML 不走这里
-    root = ET.parse(coverage_xml).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    root = ET.parse(coverage_xml).getroot()  # nosemgrep
     return float(root.get("line-rate", "0"))
 
 
 def skip_ratio(junit_xml: Path) -> tuple[int, int]:
     # 同上：覆盖率/用例报告都是本机产物，不接受外部输入
-    root = ET.parse(junit_xml).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    root = ET.parse(junit_xml).getroot()  # nosemgrep
     suite = root.find("testsuite") if root.tag == "testsuites" else root
     if suite is None:
         return 0, 0

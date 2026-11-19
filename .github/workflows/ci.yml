@@ -74,7 +74,7 @@ jobs:
       # 出"本机绿 CI 红"时能直接比对，而不是靠猜
       - name: 环境指纹
         if: always()
-        run: python -m src.python.tools.ci_env ci-env
+        run: python -m src.python.tools.probe_ci_env ci-env
 
       - name: 上传报告与指纹
         if: always()
@@ -188,12 +188,14 @@ jobs:
           mkdir -p reports
           python -m pytest src/test -q --junitxml=reports/junit-windows.xml
       # 失败时先给出"哪几条用例红"，不用翻整段日志（复盘模板要求一眼看到归类依据）。
-      # 逻辑放在 src/python/tools/junit_summary.py：那里有 ensure_utf8_stdio()，
+      # 逻辑放在 src/python/tools/test_junit_summary.py：那里有 ensure_utf8_stdio()，
       # 不会像 shell heredoc 那样在 Windows 控制台（cp1252）上自己先红。
       - name: 失败用例摘要
         if: always()
         shell: bash
-        run: python -m src.python.tools.junit_summary reports/junit-windows.xml
+        run: >
+          python -m src.python.tools.test_junit_summary
+          reports/junit-windows.xml
       - name: 上传 junit 报告
         if: always()
         uses: actions/upload-artifact@v4

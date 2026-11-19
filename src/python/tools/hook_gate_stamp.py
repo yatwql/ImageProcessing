@@ -4,8 +4,8 @@
 全量门禁现在约 3 分钟（静态并发 + 四档环境矩阵 × `-n 8` + 覆盖率 + 分片重排），
 发布流程里 `check` 与 `gate` 各要一次，同一份代码跑两遍是纯浪费。
 
-    python -m src.python.tools.gate_stamp --write   # 全量 check_all 全绿后写戳
-    python -m src.python.tools.gate_stamp --check   # pre-push / release 先问一句，命中就跳过重跑
+    python -m src.python.tools.hook_gate_stamp --write   # 全量 check_all 全绿后写戳
+    python -m src.python.tools.hook_gate_stamp --check   # pre-push / release 先问一句，命中就跳过重跑
 
 指纹 = 全部跟踪文件（`git ls-files`）内容 + 路径的 sha256，**与是否已提交无关**：
 只要工作区的代码/文档和上次全量通过时一模一样，再跑一遍结论不会变。

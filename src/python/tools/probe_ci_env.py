@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CI 环境指纹：把"这次跑在什么环境"落成文件，失败时随 artifact 上传。
 
-    python tools/ci_env.py [输出目录]        # 默认 ci-env/
+    python tools/probe_ci_env.py [输出目录]        # 默认 ci-env/
 
 写：python.txt（解释器与构建信息）、platform.txt、pip-freeze.txt（依赖精确版本）、
 fonts.txt（前 50 个系统字体，判断"有没有中文字体"用）。

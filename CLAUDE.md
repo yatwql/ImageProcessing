@@ -9,8 +9,10 @@ retype（图片文字替换）：把图片里指定的一些字换成别的字�
 
 ```text
 scripts/                 只放 .sh/.ps1 薄壳启动脚本（cli/tui/setup/run-test/log-query）
-src/python/tools/        工程工具：check_guards / check_perf / check_coverage / run_tests /
-                         release / gen_folders（重新生成目录树与统计）…
+src/python/tools/        工程工具（按活动类型前缀：check_ 门禁检查 / test_ 测试工程 /
+                         eval_ 离线评测 / make_ 资产生成 / probe_ 环境探测 / hook_ 钩子接线）：
+                         check_guards / check_perf / check_coverage / test_runner /
+                         release / make_folders（重新生成目录树与统计）…
 .githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
 .github/workflows/       ci.yml：test（3.10/3.12/3.13）/ lint / typecheck / guards / perf /
                          windows（windows-latest 跑全量用例）
@@ -72,7 +74,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 界面快照：`src/test/snapshots/tui.json`（5 尺寸 × 8 状态）。有意改界面后
   `UPDATE_SNAPSHOTS=1 .venv/bin/python -m pytest src/test/tui/test_screen_snapshots.py`，
   把快照 diff 一起提交。
-- 变异测试（opt-in）：`python -m src.python.tools.mutation_check`（需 `pip install mutmut`），
+- 变异测试（opt-in）：`python -m src.python.tools.eval_mutation`（需 `pip install mutmut`），
   先跑 `core/match.py`、`core/options.py`，存活变异体说明断言太松。
 
 ```bash
@@ -155,7 +157,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 - 发布走 `docs/managements/releasing.md` + `src/python/tools/release.py`
   （check → archive → prepare → gate → build → tag → publish）；
   文档索引在 `docs/README.md`，新增文档必须加进索引（守护「文档索引」）。
-- 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`  （后者由 `.venv/bin/python -m src.python.tools.coverage_report --write` 生成，别手改数字）。
+- 质量标准看 `docs/managements/testplan.md`；覆盖率/分组统计看 `docs/managements/test-coverage.md`  （后者由 `.venv/bin/python -m src.python.tools.test_coverage_report --write` 生成，别手改数字）。
 - 三份文档随实现同步：
 - `docs/managements/plan.md` 的任务编号一律 `PLAN-x`，`docs/managements/review-findings.md`
   的任务/缺陷编号一律 `RF-x`；两者连续编号、不复用，新增任务只在对应文件里追加。

@@ -36,7 +36,7 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
   tui.sh / tui.ps1           交互入口      → python -m src.python.tui
   setup.sh / setup.ps1       环境引导      → python -m src.python.bootstrap（ps1 支持 -Dev）
-  run-test.sh / run-test.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
+  run-test.sh / run-test.ps1   测试 + 报告   → src/python/tools/test_runner.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
   check_guards.py            工程守护入口（23 项，编排 + 汇总；各项按类拆在 guards/）
@@ -45,15 +45,15 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   check_all.py               本地全量门禁：静态并发 + 四档环境矩阵 × `-n 8` + 覆盖率 + 分片重排
   _parallel.py               门禁并行执行：worker 数规则与批次并发（档位串行、档内并行）
   release.py                 发布编排：check → archive → prepare → gate → build → tag → publish
-  gen_folders.py             重新生成 folders.md 的目录树与统计表数字（说明列保留）
-  junit_summary.py           把 junit 报告里的失败用例列成一行一条（CI 摘要步用它）
+  make_folders.py             重新生成 folders.md 的目录树与统计表数字（说明列保留）
+  test_junit_summary.py           把 junit 报告里的失败用例列成一行一条（CI 摘要步用它）
   test_failures.py           本地排障：失败用例 + 类型/消息 + 单跑复现命令（--json）
   test_order_dependent.py    顺序依赖定位：二分出污染源文件与最小复现集
   test_failures.py           本地排障：失败用例 + 失败类型/消息 + 单跑复现命令（--json）
   test_order_dependent.py    顺序依赖定位：二分出污染源文件与最小复现集
-  gate_stamp.py              门禁戳：同一份代码已全量通过时，推送前跳过重跑（省一次全量门禁）
+  hook_gate_stamp.py              门禁戳：同一份代码已全量通过时，推送前跳过重跑（省一次全量门禁）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
-  run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
+  test_runner.py               测试编排：临时目录、报告、覆盖率、摘要
 .githooks/                   仓库自带钩子（core.hooksPath 指向这里，不入 .git/hooks）
   pre-commit                 提交前：ruff + guards + 单档用例（`check_all --quick`，并行）
   pre-push                   推送前：全量门禁（四档矩阵 + 覆盖率 + 分片重排），命中门禁戳则跳过
@@ -477,7 +477,8 @@ CLI 两遍流程复用第一遍的解码结果（512MB 预算内）；`--dry-run
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树；core 严格注解、
   渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
   测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流/跨平台，
-  共 23 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
+  共 23 项）、`python -m src.python.tools.check_perf`（耗时守卫；`--record` 记 `logs/perf.jsonl`
+  台账、`--history 10` 看趋势——台账只观察、不参与门槛）。
   覆盖率阈值 `fail_under = 93`（行 + 分支同算，实测 93.9%；分支漏 95 条）。
 
 ### 10.0 门禁的并行与对账（速度 × 质量）
@@ -531,7 +532,7 @@ CLI 两遍流程复用第一遍的解码结果（512MB 预算内）；`--dry-run
   上 cp1252 解码把 stdout 变成空串，从而把"程序坏了"和"测试读不到输出"混为一谈。
 - CI 矩阵本地复现：全量 `check_all` 默认就跑四档（本机 / cp1252+C locale / 无中文字体 / 换字族），
   单跑某一档用 `--ci-matrix` / `--no-font` / `--font-matrix`；另加一档 `--dist load` 分片重排查顺序依赖。
-- 变异测试（opt-in）：`src/python/tools/mutation_check.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
+- 变异测试（opt-in）：`src/python/tools/eval_mutation.py`；依赖审计：CI `audit` 作业跑 `pip-audit --strict`。
 - 字体相关用例统一走 `_support.cjk_font()`（逐候选字体 + 逐 index 探测，找不到就 skip），
   `IMG_P_TEST_NO_CJK_FONT=1 pytest src/test -q` 可在本地模拟"无中文字体"的机器。
 - 开发依赖：`pyproject.toml` 的 `[project.optional-dependencies].dev`（pytest、pytest-xdist、pytest-cov、pytest-html、ruff、mypy）；
@@ -622,7 +623,7 @@ sh .githooks/install-hooks.sh                                 # 启用提交前�
 .venv/bin/python -m src.python.tools.check_all                        # 全量门禁（含覆盖率 + 三档矩阵）
 .venv/bin/python -m src.python.tools.check_guards                      # 工程守护（23 项，含版本/依赖锁/归档/脚本契约/复杂度）
 .venv/bin/python -m src.python.tools.check_perf                        # 耗时守卫
-.venv/bin/python -m src.python.tools.run_tests --fast                    # 测试编排（scripts/run-test.sh 的实现）
+.venv/bin/python -m src.python.tools.test_runner --fast                    # 测试编排（scripts/run-test.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数
 ./scripts/cli.sh data/demo --list                              # OCR 是否正常（示例图）
 ./scripts/cli.sh data/demo --map "2023=2024" --dry-run          # 批量预演

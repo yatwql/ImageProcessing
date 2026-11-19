@@ -200,7 +200,7 @@ class ReleaseFailFast(unittest.TestCase):
         with (
             mock.patch.object(release, _RELEASE_SH, return_value=clean),
             mock.patch.object(release, "read_version", return_value=("0.3-dev", "2026-01-01")),
-            mock.patch.object(release.gate_stamp, "stamp_matches", return_value=True),
+            mock.patch.object(release.hook_gate_stamp, "stamp_matches", return_value=True),
             mock.patch.object(release.subprocess, "run") as gate,
         ):
             code = self._capture(release.cmd_check)
@@ -213,7 +213,7 @@ class ReleaseFailFast(unittest.TestCase):
         with (
             mock.patch.object(release, _RELEASE_SH, return_value=clean),
             mock.patch.object(release, "read_version", return_value=("0.3-dev", "2026-01-01")),
-            mock.patch.object(release.gate_stamp, "stamp_matches", return_value=False),
+            mock.patch.object(release.hook_gate_stamp, "stamp_matches", return_value=False),
             mock.patch.object(release.subprocess, "run", return_value=done) as gate,
         ):
             code = self._capture(release.cmd_check)

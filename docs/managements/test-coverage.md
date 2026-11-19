@@ -2,7 +2,7 @@
 
 > 版本：v0.4-dev
 
-本文件由 `python -m src.python.tools.coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与
+本文件由 `python -m src.python.tools.test_coverage_report --write` 生成，数据取自 `reports/coverage.xml` 与
 `reports/junit.xml`（`python -m src.python.tools.check_all` 全量模式产出）。改完用例或实现后重新生成即可，
 不要手改数字。
 
@@ -299,7 +299,7 @@
 
 ```bash
 .venv/bin/python -m src.python.tools.check_all                # 跑全量用例并生成 coverage.xml / junit.xml
-.venv/bin/python -m src.python.tools.coverage_report --write  # 重新生成本文件
+.venv/bin/python -m src.python.tools.test_coverage_report --write  # 重新生成本文件
 ```
 
 覆盖率门槛由 `src/python/tools/check_coverage.py` 把关（行 + 分支总量 93%、16 个高风险模块、skip ≤15%），

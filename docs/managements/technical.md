@@ -47,6 +47,10 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   release.py                 发布编排：check → archive → prepare → gate → build → tag → publish
   gen_folders.py             重新生成 folders.md 的目录树与统计表数字（说明列保留）
   junit_summary.py           把 junit 报告里的失败用例列成一行一条（CI 摘要步用它）
+  test_failures.py           本地排障：失败用例 + 类型/消息 + 单跑复现命令（--json）
+  test_order_dependent.py    顺序依赖定位：二分出污染源文件与最小复现集
+  test_failures.py           本地排障：失败用例 + 失败类型/消息 + 单跑复现命令（--json）
+  test_order_dependent.py    顺序依赖定位：二分出污染源文件与最小复现集
   gate_stamp.py              门禁戳：同一份代码已全量通过时，推送前跳过重跑（省一次全量门禁）
   check_perf.py              耗时守卫：模糊 IoU / inpaint / PNG 读写 / 日志追加
   run_tests.py               测试编排：临时目录、报告、覆盖率、摘要
@@ -112,6 +116,8 @@ src/
 | `src/python/core/image.py` | 读写、元数据与目标占名 | `load_image` `load_meta` `save_image` `reserve_path` `unique_path` `same_file` `IMG_EXTS` |
 | `src/python/core/options.py` | 运行选项、阈值常量、字色解析、警告出口 | `Options` `parse_color` `warn` `MIN_OCR_SCORE` `FUZZY_MIN` |
 | `src/python/cli/main.py` | 参数解析、选项构造、结果呈现 | `main` `build_parser` `load_mapping` |
+| `src/python/tools/test_failures.py` | 失败用例提取（junit → 节点 ID/类型/消息 + 单跑命令） | `failing_cases` `rerun_command` `main` |
+| `src/python/tools/test_order_dependent.py` | 顺序依赖定位（二分最短污染前缀 + 单文件确认） | `locate` `minimize_prefix` `parse_collect_order` `main` |
 | `src/python/cli/batch.py` | 批量编排：规划遍 / 替换遍 / 并发档位（不含替换规则） | `scan_images` `replace_images` `ReplaceContext` `resolve_workers` |
 | `src/python/cli/log_query.py` | 日志查询渠道（过滤 + 汇总 + 排版） | `main` `build_parser` |
 | `src/python/bootstrap.py` | 环境引导（只用标准库），含是否在 venv 的探测 | `main` `ensure_venv` `write_config` `in_venv` `venv_hint` |
@@ -590,6 +596,7 @@ CLI 两遍流程复用第一遍的解码结果（512MB 预算内）；`--dry-run
 | `tools/test_gate_stamp.py` | 门禁戳：写/读/损坏戳、指纹随跟踪文件变化、未跟踪文件不影响、命令行退出码 |
 | `tools/test_workflow_checks.py` | 工作流自检：bash 不可用时跳过语法检查、heredoc 禁令、合法 `python -m` 放行 |
 | `tools/test_junit_summary.py` | CI 失败摘要：`class::name` 列表、失败+错误、报告缺失不报错、用法提示 |
+| `tools/test_test_failure_tooling.py` | 排障工具：收集顺序解析、二分最短前缀、污染源确认、junit → 节点 ID、`--json` 与 0/1/2 退出码 |
 | `tools/test_gate_pipeline.py` | 门禁流水线：worker 数规则（上限 8 / 环境变量 / 串行开关）、批次顺序与 isolated 不并发、档位选择、各档模块集合对账（少一档/少一个文件即红）、发布预检失败即停 + 门禁戳跳过 |
 | `tools/test_gen_folders_stats.py` | 目录统计重算：文件数/行数/用例数/示例图与合计行由脚本算，说明列不动 |
 | `tools/test_tool_entry_contracts.py` | 工程工具入口契约：每个 `tools/*` 能 `--help`、`--ci` 结论可读不刷屏 |

@@ -330,6 +330,17 @@ TUI 也接受同名的覆盖参数：`-o/--out-dir`、`-m/--map-file`、`-f/--fo
 
 ## 8. 常见问题
 
+### Q：测试红了怎么快速定位？（只跑那一条，不要重跑全量）
+A：
+```bash
+.venv/bin/python -m src.python.tools.test_failures            # 列出失败用例 + 单跑命令
+.venv/bin/python -m src.python.tools.test_failures --json     # 机器可读（给脚本用）
+.venv/bin/python -m src.python.tools.test_order_dependent <节点ID>   # 单跑绿、一起跑红 → 找污染源
+```
+`test_failures` 读 `reports/junit.xml`，给出 pytest 节点 ID、失败类型/消息首行和可直接粘贴的复现命令；
+`test_order_dependent` 会先确认"单跑确实通过"，再二分出最小的污染前缀，最后输出污染源文件与最小复现命令
+（退出码 0=已定位，1=非顺序依赖，2=无法复现）。
+
 ### Q：`ModuleNotFoundError: No module named 'PIL'` / 提示「当前用的是系统解释器」。
 A：改走项目虚拟环境——`./scripts/cli.sh`、`./scripts/tui.sh`、`./scripts/run-test.sh` 都会自动用
 `.venv`（缺就自动建）；直接跑模块时用 `.venv/bin/python -m src.python.cli`。CLI/TUI/`check_all`

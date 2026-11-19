@@ -15,18 +15,18 @@
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
 | 主程序代码 | Python | 32 | 5,053 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 77 | 9,890 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 743 | `git grep -c "def test_"` 行数口径 |
-| 工程工具 | Python | 26 | 4,023 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
+| 测试代码 | Python | 78 | 10,057 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 756 | `git grep -c "def test_"` 行数口径 |
+| 工程工具 | Python | 28 | 4,354 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/run-test/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 351 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
-| 管理文档 | Markdown | 10 | 1,929 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
+| 管理文档 | Markdown | 10 | 1,936 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
 | 归档文档 | Markdown | 7 | 1,763 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
 | 使用手册 | Markdown | 1 | 432 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 500 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **178** | **24,267** | 主程序 : 测试 ≈ 1 : 1.96；仓库共 182 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **181** | **24,772** | 主程序 : 测试 ≈ 1 : 1.99；仓库共 185 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -129,6 +129,8 @@ ImageProcessing/
 │   │   │   ├── mutation_check.py             # 变异测试（opt-in）：验证用例真的能"杀死"错误实现，而不只是覆盖到行
 │   │   │   ├── release.py                    # 发布流程编排：把"出一次版本"固化成可审阅的子命令，失败即停
 │   │   │   ├── run_tests.py                  # 测试入口：跑全量用例并生成 junit / html / 覆盖率报告与摘要
+│   │   │   ├── test_failures.py              # 列出失败的用例并给出「单跑一条」的命令：排障时别重跑全量
+│   │   │   ├── test_order_dependent.py       # 定位「顺序依赖」：单跑通过、和别的用例一起跑却失败的用例，二分找出污染它的前置文件
 │   │   │   └── update_constraints.py         # 依赖升级助手：列出可升级项，并按当前环境重写 constraints.txt 的非标记部分
 │   │   ├── tui/                              # 交互渠道
 │   │   │   ├── __init__.py                   # 交互界面渠道（curses）
@@ -218,6 +220,7 @@ ImageProcessing/
 │   │   │   ├── test_platform_safety_rules.py  # 「跨平台」守护的规则自检：规则本身也要有用例，否则它会悄悄失效
 │   │   │   ├── test_release_archive.py       # 归档流程（`release.py archive`）的用例
 │   │   │   ├── test_release_versions.py      # 版本号与分支策略（`-dev` 开发版 / 正式版）：`release.py` 的定版与切版
+│   │   │   ├── test_test_failure_tooling.py  # 顺序依赖定位与失败用例提取：两个排障工具的纯逻辑与入口契约
 │   │   │   ├── test_tool_entry_contracts.py  # 工程工具的入口契约：每个 CLI 都能 `--help`（不炸）、`--ci` 结论可读
 │   │   │   └── test_workflow_checks.py       # 工作流自检（`check_workflows`）：bash 语法检查要在"没有真 bash"时优雅跳过
 │   │   ├── tui/                              # 交互用例

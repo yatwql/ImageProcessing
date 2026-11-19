@@ -21,6 +21,7 @@ SHELL_NAME = re.compile(r"^[a-z][a-z0-9-]*\.(?:sh|ps1)$")
 # tools/ 顶层脚本按"活动类型"前缀命名（`_` 前缀是共享设施，不在此列）
 TOOL_PREFIXES = (
     "check_",
+    "test_",
     "run_",
     "gen_",
     "gate_",

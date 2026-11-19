@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 
 import pytest
@@ -45,10 +46,8 @@ def no_core_dumps():
     `RLIMIT_CORE` 清零：子进程继承该上限，崩了也不落地。
     """
     if resource is not None:
-        try:
+        with contextlib.suppress(OSError, ValueError):  # 有的容器不允许改上限，不影响结论
             resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-        except (OSError, ValueError):  # 有的容器不允许改上限，不影响结论
-            pass
     yield
 
 

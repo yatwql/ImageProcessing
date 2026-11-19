@@ -31,21 +31,30 @@ def collect_images(path: str) -> list[str]:
             names = os.listdir(path)
         except OSError as e:
             raise CoreError(f"无法读取目录 {path}: {e}") from e
-        return sorted(os.path.join(path, n) for n in names
-                      if n.lower().endswith(IMG_EXTS) and not n.startswith("."))
+        return sorted(
+            os.path.join(path, n)
+            for n in names
+            if n.lower().endswith(IMG_EXTS) and not n.startswith(".")
+        )
     return [path]
 
 
-def unique_path(path: str) -> str:
-    """目标已存在就在文件名后加 -1、-2 …（扩展名不变），避免覆盖已有文件。
+def unique_path(path: str, taken: set[str] | None = None) -> str:
+    """目标已存在（或在 `taken` 里）就在文件名后加 -1、-2 …（扩展名不变）。
 
     只用于预演与展示；真正写盘用 reserve_path，避免先查后写的竞态。
+    `taken` 是"同一批里已经发出去的名字"：预演不落盘，只能靠内存集合避让。
     """
-    if not os.path.exists(path):
+    taken = taken or set()
+
+    def busy(cand: str) -> bool:
+        return os.path.exists(cand) or os.path.basename(cand) in taken
+
+    if not busy(path):
         return path
     stem, ext = os.path.splitext(path)
     n = 1
-    while os.path.exists(f"{stem}-{n}{ext}"):
+    while busy(f"{stem}-{n}{ext}"):
         n += 1
     return f"{stem}-{n}{ext}"
 
@@ -115,14 +124,18 @@ def load_image(path: str) -> tuple[np.ndarray, np.ndarray | None]:
     im.load()
     rgba = np.array(im.convert("RGBA"))
     alpha = rgba[:, :, 3].copy()
-    if not alpha.size or int(min(alpha.ravel())) == 255:      # 全不透明就不带 alpha
+    if not alpha.size or int(min(alpha.ravel())) == 255:  # 全不透明就不带 alpha
         alpha = None
     return rgba[:, :, :3].copy(), alpha
 
 
-def save_image(rgb: np.ndarray, alpha: np.ndarray | None, dst: str,
-               quality: int | None = None,
-               meta: Mapping[str, object] | None = None) -> None:
+def save_image(
+    rgb: np.ndarray,
+    alpha: np.ndarray | None,
+    dst: str,
+    quality: int | None = None,
+    meta: Mapping[str, object] | None = None,
+) -> None:
     """按扩展名保存；目标格式不支持透明时，用白色底合并 alpha。
 
     quality: JPEG/WEBP 的输出质量（1-100），None=默认 95；其它格式忽略。
@@ -133,8 +146,9 @@ def save_image(rgb: np.ndarray, alpha: np.ndarray | None, dst: str,
     ext = os.path.splitext(dst)[1].lower()
     fmt, lossy = FMT_BY_EXT.get(ext, (None, False))
     if fmt is None:
-        raise CoreError(f"不支持的输出格式: {ext or '(无扩展名)'}（用 "
-                        f"{'/'.join(sorted(FMT_BY_EXT))} 其中之一）")
+        raise CoreError(
+            f"不支持的输出格式: {ext or '(无扩展名)'}（用 {'/'.join(sorted(FMT_BY_EXT))} 其中之一）"
+        )
     res = Image.fromarray(rgb, "RGB")
     if alpha is not None:
         if lossy or fmt in ("JPEG", "BMP"):
@@ -149,8 +163,8 @@ def save_image(rgb: np.ndarray, alpha: np.ndarray | None, dst: str,
         if parent:
             os.makedirs(parent, exist_ok=True)
         kwargs: dict[str, object] = (
-            {"quality": quality if quality is not None else 95}
-            if fmt in ("JPEG", "WEBP") else {})
+            {"quality": quality if quality is not None else 95} if fmt in ("JPEG", "WEBP") else {}
+        )
         kwargs.update(_supported_meta(fmt, meta))
         res.save(dst, format=fmt, **kwargs)
     except OSError as e:

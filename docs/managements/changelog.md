@@ -7,6 +7,74 @@
 
 ## v0.3-dev — 开发中
 
+### 重构（样式设置项改成表驱动 + 撤销进审计）
+
+- `tui/app.set_setting`（cc 19）拆成 `SETTING_APPLIERS` 表：每项一个 `_apply_xxx(app, text, auto)`，
+  返回 `None` 表示成功、返回字符串表示要显示的错误；新增设置项＝加一个函数 + 一行表项。
+- TUI `z` 撤销现在**记一条写盘审计**（`core.audit.ACTION_UNDO`，带原图路径）：以前它直接写文件、
+  绕过 `record_write`，日志里查不到这次落盘。`App.undo_entry` 因此带上原图路径（三元组）。
+- `src/test/cli/test_arguments.py` 补并发档位用例：默认 1、`auto` 半核且有上限、预演恒 1、
+  单图忽略 `-j`、环境变量排在 CLI 之后、非法值当场退出。
+
+### 重构（TUI 按键分发改成表驱动，还掉 `handle` 的复杂度债）
+
+`ui_actions.handle` 原来是一条 48 个分支的 `elif` 链（每加一个键就多一层），是 §4.7 记录里最高的
+一个点。改为：面板优先（`PANEL_HANDLERS`）→ `MAIN_KEYS` 表（键 → 处理函数）→ 数字跳图兜底；
+带参数的键用 `_move` / `_jump` / `_set_all` 生成处理器。`handle` 圈复杂度 48 → <15，
+新增按键只加一行、不再改控制流；224 个 TUI 用例（含 8 状态 × 5 尺寸快照）全部原样通过。
+
+### 优化（146 小时变更审计：技术债与架构约束）
+
+按时间窗把这一轮的改动逐条对着「架构硬约束 + 技术债」核了一遍，发现并修复 4 处：
+
+- **重复实现（约束 1：擦除/绘制/匹配规则只在 `core`）**：`cli/main.py` 的 `_dedupe_name`
+  自己又写了一遍"加 -1/-2 避重名"，与 `core.image.unique_path` 重复。改为
+  `unique_path(path, taken=None)` 支持"同一批已发出的名字"（预演不落盘也能避重名），`_dedupe_name` 删除。
+- **`cli/main.py` 越界承担编排细节**：批量流程（规划遍/替换遍/并发档位/输出命名）整段搬进新的
+  `src/python/cli/batch.py`，`main.py` 只留参数、选项构造、结果呈现；`_run` 圈复杂度
+  **52 → <15**（`_plan_inputs` / `_build_options` / `_print_result` 各司其职）。
+- **测试与实现错位**：搬走 `load_image`/`replace_image`/`reserve_path`/`CACHE_BYTES_MAX` 后，
+  7 个 CLI 用例仍在 patch `cli.main` 的属性（等于 patch 空气），已改为指向 `cli.batch`。
+- **新增长期债务**：`handle` 48、`replace_image` 30、`fit_font` 27、`set_setting` 19、`edit_line` 17
+  按"一次拆完风险 > 收益"保留，但新增守护「复杂度上限」（cc ≤50）**只防更糟**，
+  基线原因与拆法写进 `technical.md` §4.7。
+
+核对通过、无需改动的约束：`core` 不 import argparse/curses、不 `sys.exit`；`core` 不反向 import
+`cli/tui`；永不覆盖原图（`same_file` 仍在两条路径上各查一次）；版本号单一来源；新增/移动文件
+已同步 `folders.md`、用例对照表与文档索引；脚本命名与 `--ci` 契约、文档死链、用例对照三项新守护全绿。
+
+### 优化（自我复盘落地：正确性 / 稳定性 / 性能 / 交互 / 质量 / 文档）
+
+一轮按"还有哪里能改"逐项过完，14 条全部落地：
+
+- **匹配正确性**：`core/ocr.py` 收的 `score` 以前从未使用。现在 `plan_jobs` 按 `Options.min_score`
+  （CLI `--min-score`）过滤低置信块；同一块被两条映射命中（含 `１２３` 与 `123` 这类归一化后相等的情况）
+  报「映射冲突…已跳过该条」，不再静默后写覆盖先写；模糊阈值从硬编码提到 `Options.fuzzy_min`
+  （CLI `--fuzzy`），常量集中在 `core/options.py`（`MIN_OCR_SCORE` / `FUZZY_MIN`）。
+- **擦除不再重复**：同一 `rect` 上的多条任务，已擦过的区间（`None` = 整块）记进 `erased`，
+  第二次只重绘不重擦，避免笔画边缘被反复 inpaint 糊掉。
+- **可中断**：`fit_font` 新增 `abort` 回调（`replace_image` 透传），160 款候选字体的粗筛/精修循环里
+  都能停；`should_stop` 仍是"每块一次"的块边界回调，语义不变（`test_cancel_pipeline` 原断言仍绿）。
+- **预演变快**：`--dry-run` 走 `Options.dry_run`，核心层跳过擦除/绘制/调试图，报告字段与真跑一致。
+- **批量**：规划遍解码过的图在 512MB 预算内留一份，第二遍不再重复解码；`-j/--workers` 提供保序并发，
+  但**默认 1**——实测逐图并发更慢（见 technical §9），保留开关只为特殊场景。
+- **性能**：`soft_iou` 的平移搜索改用积分图 + 与 `B` 等大的窗切片（并集用 `sum(a)+sum(b)−sum(min)`，
+  结果与原实现逐位一致）；`plan_jobs` 的归一化从 `key × region` 双层循环里提出来只算一次。
+- **交互**：TUI 新增 `z` 撤销（把被覆写的上一版输出写回，只留最近一份）；键位提示与帮助页同步。
+- **测试目录**：`test_coverage_100.py` / `test_coverage_gaps{,2,3,4}.py` / `test_feature_edges.py`
+  六个"覆盖驱动"文件（1872 行）按被测内容重分布到 10 个内容命名的文件（mapping / font / primitives /
+  format / pipeline / audit / config+ocr / cli×2 / tui），用例数不变（147 → 仍全绿）。
+- **守护拆分**：`tools/check_guards.py`（720 行 18 项）拆成 `tools/guards/{ids,docs,code,meta,common}.py`，
+  入口只剩文档、import、`CHECKS` 表与 `main`。
+- **静态门禁收紧**：ruff 增开 `SIM/C4/UP/RUF/ARG`（`RUF001/2/3` 因中文标点误报关掉）；
+  mypy 开 `warn_unreachable` + `strict_equality`；覆盖率改**行 + 分支**同算（实测 93.9%，
+  `fail_under` 93、`check_coverage.TOTAL_MIN` 同步）。
+- **跨平台守护**（顺带修的缺口）：`# platform-safe` 注记改按**语句行区间**识别——ruff format
+  把注记甩到多行调用收尾括号后，原来按行判断会失效（这次拆文件后立刻复现）。
+- 文档：`technical.md`（匹配规则 4/5 条、渠道并发与预演、性能优化记录、TUI 撤销、用例对照表、
+  目录树与模块表）、`how-to-use.md`（`--min-score`/`--fuzzy`/`-j`、`z` 键）、`CLAUDE.md`
+  （覆盖率口径、`VERSION` 实际位置）。
+
 ### 优化（门禁提速：同一份质量，墙钟减半）
 
 改造前的事实：全量门禁把**同一套 703 个用例串行跑四遍**（本机 / cp1252+C locale / 无字体 / 换字族，
@@ -22,7 +90,7 @@
 - `src/python/tools/release.py`：`check` 先跑秒级结构性预检（工作区/版本/分支），**红了直接停**，
   不再白跑门禁；绿了以后跑的是**全量**门禁（含覆盖率），命中门禁戳则跳过；`gate` 默认复用门禁戳，
   `--force` 强制重跑。
-- `src/python/tools/run_tests.py`：`runTest.sh` 也走同一套 worker 规则。
+- `src/python/tools/run_tests.py`：`run-test.sh` 也走同一套 worker 规则。
 - `.github/workflows/ci.yml`：`test` 作业原来把全量用例跑**两遍**（一遍出 junit、一遍出覆盖率），
   合成一遍（`--cov` + `--junitxml` 同时出）并加 `-n 4`。
 

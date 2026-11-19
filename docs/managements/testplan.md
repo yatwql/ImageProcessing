@@ -13,7 +13,7 @@
 | --- | --- | --- | --- |
 | QG-1 | 静态质量 | `ruff check src/ tools/` + `mypy`（全树） | 零告警 / 零错误 |
 | QG-2 | 结构约定 | `src/python/tools/check_guards.py` | 18 项全过 |
-| QG-3 | 行覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 96%（实测 97%） |
+| QG-3 | 行 + 分支覆盖率 | `src/python/tools/check_coverage.py` | 总量 ≥ 93%（实测 93.9%） |
 | QG-4 | 高风险模块覆盖率 | 同上（match/options ≥90%；edit/render/image/audit/ui_draw/bootstrap/launch/ui/cli-main/cli-log_query ≥85~90%；app/ui_actions/ui_base/ui_input ≥80%） | 逐项达标 |
 | QG-5 | 跳过率 | 同上（正常模式，即机器上有中文字体） | ≤ 15% |
 | QG-6 | 行为正确性 | 全量用例（功能/交互/跨平台/稳定性/入口冒烟/快照/属性） | 0 失败 |

@@ -53,7 +53,7 @@ def all_entries(log_dir: str) -> list[dict]:
 
 class AuditEntryFields(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.src = os.path.join(self.tmp.name, "旧图.png")
         self.dst = os.path.join(self.tmp.name, "新图.png")
@@ -149,7 +149,7 @@ class AuditEntryFields(unittest.TestCase):
 
 class AuditLogFile(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.log_dir = os.path.join(self.tmp.name, "logs")
         self.src = os.path.join(self.tmp.name, "a.png")
@@ -244,7 +244,7 @@ class CliWritesAuditLog(unittest.TestCase):
     TITLE = "年度报告2023"
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.rgb, self.boxes = make_text_image([self.TITLE])
         self.path = os.path.join(self.tmp.name, "report.png")

@@ -12,8 +12,7 @@ import unicodedata
 
 from ..version import NAME, TITLE, UPDATED, VERSION
 
-PAIR = {"title": 1, "sel": 2, "dim": 3, "ok": 4, "warn": 5, "err": 6,
-        "accent": 7, "frame": 8}
+PAIR = {"title": 1, "sel": 2, "dim": 3, "ok": 4, "warn": 5, "err": 6, "accent": 7, "frame": 8}
 USAGE = """\
 用法: tui.sh [图片或目录 ...] [选项]
 
@@ -53,6 +52,7 @@ HELP = f"""\
   w          把全局映射导出成 JSON，可直接给 ./scripts/cli.sh --map-file 用
   Enter      在左栏里是「进目录」；↑↓ 可选 .. 上级或子目录
   Backspace  回上级目录           o          修改输出目录         r          替换当前图片
+  z          撤销上一次替换（把被覆写的上一版输出写回）
   R          批量替换所有图片（会先确认）     l   重新识别当前图片
   Ctrl-R     重新扫描目录（先开界面、再往目录里放图片时用；F5 同效）
   ?          本帮助               g / G      跳到首行 / 末行
@@ -91,8 +91,11 @@ def cut(text: str, cols: int) -> str:
     out = []
     used = 0
     for ch in text:
-        w = 0 if unicodedata.combining(ch) else (
-            2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1)
+        w = (
+            0
+            if unicodedata.combining(ch)
+            else (2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1)
+        )
         if used + w > cols:
             break
         out.append(ch)
@@ -120,7 +123,7 @@ def init_colors() -> None:
         curses.init_pair(PAIR["err"], curses.COLOR_RED, -1)
         curses.init_pair(PAIR["accent"], curses.COLOR_MAGENTA, -1)
         curses.init_pair(PAIR["frame"], curses.COLOR_BLUE, -1)
-    except Exception:                                   # 无颜色/未初始化时退化成黑白
+    except Exception:  # 无颜色/未初始化时退化成黑白
         return
 
 
@@ -145,8 +148,6 @@ def put(win, y: int, x: int, text: str, cols: int, a: int = 0) -> None:
         if cols <= 0:
             return
         win.addstr(y, x, pad(text, cols), a)
-
-
 
 
 # --------------------------------------------------------------------------- 边框与分栏
@@ -214,5 +215,5 @@ def divider(win, y: int, x: int, cols: int, a: int = 0, tee: str = "sep") -> Non
 def progress_bar(fraction: float, width: int) -> str:
     """纯文本进度条（curses 里画方块比逐格填色可靠）。"""
     width = max(3, width)
-    filled = int(round(max(0.0, min(1.0, fraction)) * width))
+    filled = round(max(0.0, min(1.0, fraction)) * width)
     return "█" * filled + "░" * (width - filled)

@@ -19,8 +19,6 @@ import sys
 from ..config import log_dir
 from ..core import CoreError, read_entries, summarize
 
-# noqa: E402
-
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="查询写盘日志")

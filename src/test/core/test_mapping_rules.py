@@ -21,8 +21,9 @@ class MappingRules(unittest.TestCase):
         self.assertEqual([text[i] for i in idx], list(norm))
 
     def test_whole_line_key_rewrites_whole_line(self):
-        jobs = plan_jobs(regions(("负责人：张三", (0, 0, 100, 20))),
-                         {"负责人：张三": "负责人：李四"}, warn=False)
+        jobs = plan_jobs(
+            regions(("负责人：张三", (0, 0, 100, 20))), {"负责人：张三": "负责人：李四"}, warn=False
+        )
         self.assertEqual(len(jobs), 1)
         self.assertIsNone(jobs[0].span)
         self.assertEqual(jobs[0].new, "负责人：李四")
@@ -34,7 +35,7 @@ class MappingRules(unittest.TestCase):
         span = jobs[0].span
         if span is None:
             raise AssertionError("应该是行内替换")
-        self.assertEqual(text[span[0]:span[1]], "2023")
+        self.assertEqual(text[span[0] : span[1]], "2023")
 
     def test_same_key_applies_to_every_occurrence(self):
         regs = regions(("2023 年总结", (0, 0, 100, 20)), ("计划 2023", (0, 30, 100, 20)))
@@ -46,14 +47,19 @@ class MappingRules(unittest.TestCase):
         self.assertEqual(sorted(j.span is None for j in jobs), [False, True])
 
     def test_similar_line_falls_back_to_whole_line(self):
-        jobs = plan_jobs(regions(("年度销售报告2023", (0, 0, 200, 20))),
-                         {"年度销售报告2033": "新的标题"}, warn=False)
+        jobs = plan_jobs(
+            regions(("年度销售报告2023", (0, 0, 200, 20))),
+            {"年度销售报告2033": "新的标题"},
+            warn=False,
+        )
         self.assertEqual(len(jobs), 1)
         self.assertIsNone(jobs[0].span)
 
     def test_unrelated_key_produces_no_job(self):
-        self.assertEqual(plan_jobs(regions(("完全无关的一行", (0, 0, 100, 20))),
-                                   {"电话": "热线"}, warn=False), [])
+        self.assertEqual(
+            plan_jobs(regions(("完全无关的一行", (0, 0, 100, 20))), {"电话": "热线"}, warn=False),
+            [],
+        )
 
     def test_fullwidth_digits_match_ascii_key(self):
         jobs = plan_jobs(regions(("编号 ２０２３", (0, 0, 120, 20))), {"2023": "2024"}, warn=False)
@@ -74,16 +80,18 @@ class BlockOverrides(unittest.TestCase):
         self.assertEqual(jobs[0].new, "新文")
 
     def test_block_find_field_produces_fragment_span(self):
-        jobs = jobs_from_blocks([self.Blk("年度报告2023", override="2024", find="2023")],
-                                {}, warn=False)
+        jobs = jobs_from_blocks(
+            [self.Blk("年度报告2023", override="2024", find="2023")], {}, warn=False
+        )
         span = jobs[0].span
         if span is None:
             raise AssertionError("应该是行内替换")
-        self.assertEqual("年度报告2023"[span[0]:span[1]], "2023")
+        self.assertEqual("年度报告2023"[span[0] : span[1]], "2023")
 
     def test_disabled_block_is_skipped(self):
-        self.assertEqual(jobs_from_blocks([self.Blk("原文", override="新文", enabled=False)],
-                                          {}, warn=False), [])
+        self.assertEqual(
+            jobs_from_blocks([self.Blk("原文", override="新文", enabled=False)], {}, warn=False), []
+        )
 
     def test_global_mapping_covers_blocks_without_override(self):
         blocks = [self.Blk("负责人：张三", override="负责人：李四"), self.Blk("电话 2023")]

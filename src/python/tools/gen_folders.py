@@ -71,8 +71,8 @@ FILE_NOTE = {
     "scripts/tui.ps1": "→ launch tui（Windows）",
     "scripts/setup.sh": "→ src.python.bootstrap",
     "scripts/setup.ps1": "→ src.python.bootstrap（Windows）",
-    "scripts/runTest.sh": "→ src.python.tools.run_tests",
-    "scripts/runTest.ps1": "→ src.python.tools.run_tests（Windows）",
+    "scripts/run-test.sh": "→ src.python.tools.run_tests",
+    "scripts/run-test.ps1": "→ src.python.tools.run_tests（Windows）",
     "scripts/log-query.sh": "→ launch log-query",
     "scripts/log-query.ps1": "→ launch log-query（Windows）",
     "data/demo/示例-报告.png": "回归样例（报告版式）",
@@ -92,7 +92,9 @@ def tracked_files() -> list[str]:
         ["git", "-c", "core.quotepath=false", "ls-files", "-z"],
         cwd=str(ROOT),
         capture_output=True,
-        text=True, encoding="utf-8", errors="replace",
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     ).stdout
     return [
         p
@@ -156,7 +158,7 @@ def build_tree(files: list[str]) -> str:
         items = [(d, True) for d in dirs] + [(f, False) for f in plain]
         for index, (name, is_dir) in enumerate(items):
             last = index == len(items) - 1
-            rel = "/".join(path + (name,))
+            rel = "/".join((*path, name))
             label = name + ("/" if is_dir else "")
             line = f"{prefix}{'└── ' if last else '├── '}{label}"
             note = dir_note(rel) if is_dir else note_for(rel, name)
@@ -164,7 +166,7 @@ def build_tree(files: list[str]) -> str:
                 line += " " * max(2, 46 - dwidth(line)) + f"# {note}"
             out.append(line)
             if is_dir:
-                out += render(node[name], path + (name,), prefix + ("    " if last else "│   "))
+                out += render(node[name], (*path, name), prefix + ("    " if last else "│   "))
         return out
 
     return "\n".join(["ImageProcessing/", *render(tree)])

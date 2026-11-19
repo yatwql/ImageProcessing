@@ -51,7 +51,14 @@ def write(out: Path) -> list[Path]:
 
     fonts_path = out / "fonts.txt"
     try:
-        listing = subprocess.run(["fc-list"], capture_output=True, text=True, check=False, encoding="utf-8", errors="replace")
+        listing = subprocess.run(
+            ["fc-list"],
+            capture_output=True,
+            text=True,
+            check=False,
+            encoding="utf-8",
+            errors="replace",
+        )
         lines = listing.stdout.splitlines()[:FONT_LIMIT]
         fonts_path.write_text(
             "\n".join(lines) if lines else "(no fonts / fc-list 不可用)\n", encoding="utf-8"

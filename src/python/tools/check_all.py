@@ -32,9 +32,10 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .. import bootstrap
 from ..stdio import ensure_utf8_stdio
 from ._parallel import Result, Step, parallel_args, run_batch, tail, worker_count
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 PY = sys.executable
 REPORTS = ROOT / "reports"
@@ -133,7 +134,13 @@ def _static_steps() -> list[Step]:
         Step("mypy", [PY, "-m", "mypy"], {}),
         # 同一棵树按 Windows 的 typeshed 再检查一遍：fcntl / os.mkfifo 这类
         # 「Linux 有、Windows 没有」的属性，只有这一档能在本地提前发现。
-        Step("mypy（win32 平台）", [PY, "-m", "mypy", "--platform", "win32"], {}),
+        # 钉死 win32 时，POSIX 分支天然"不可达"（bootstrap/config 里的平台默认值），
+        # 那正是我们要保留的另一条分支，所以这一档关掉不可达检查
+        Step(
+            "mypy（win32 平台）",
+            [PY, "-m", "mypy", "--platform", "win32", "--no-warn-unreachable"],
+            {},
+        ),
         Step("guards", [PY, "-m", "src.python.tools.check_guards"], {}),
     ]
 
@@ -302,6 +309,9 @@ def _run_full_extras(opts: Options, workers: int, timings: list[tuple[str, float
 
 def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdio()
+    hint = bootstrap.venv_hint()
+    if hint:  # 工具自己也要提示：门禁的意义就是"跑在项目环境里"
+        print(hint, file=sys.stderr)
     opts = parse_args(list(sys.argv[1:] if argv is None else argv))
     workers = worker_count(opts.workers)
 

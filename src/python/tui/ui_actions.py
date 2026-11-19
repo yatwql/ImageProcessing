@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import curses
+from collections.abc import Callable
 
 from ..core import norm_map
 from .app import App
@@ -97,123 +98,224 @@ def _dismiss_help(app: App, _win, _key) -> None:
     app.panel = "main"
 
 
+# 主界面按键 → 处理函数。表驱动而不是长 elif 链：加一个键只加一行，
+# 圈复杂度不再随按键数量增长（`handle` 曾经到 48）。
+def _quit(app: App, _win, _key) -> None:
+    app.quit = True
+
+
+def _escape(app: App, _win, _key) -> None:
+    """Esc 只做"返回"，退出统一用 q，避免手机上误触或终端吐 ESC 直接把程序关掉。"""
+    if app.focus == "blocks":
+        app.focus = "files"
+    else:
+        app.message = "按 q 退出（Esc 只返回上一层）"
+
+
+def _switch_focus(app: App, _win, _key) -> None:
+    app.focus = "blocks" if app.focus == "files" else "files"
+    if app.focus == "blocks":
+        app.ensure_blocks()
+
+
+def _move(delta: int) -> Callable[..., None]:
+    """生成"移动 N 行"的处理器：方向键 / 翻页共用一套。"""
+
+    def handler(app: App, _win, _key) -> None:
+        app.move(delta)
+
+    return handler
+
+
+def _jump(first: bool) -> Callable[..., None]:
+    def handler(app: App, _win, _key) -> None:
+        app.jump(first=first)
+
+    return handler
+
+
+def _set_all(enabled: bool) -> Callable[..., None]:
+    def handler(app: App, _win, _key) -> None:
+        app.set_all(enabled)
+
+    return handler
+
+
+def _digit(app: App, _win, key) -> None:
+    digit = 10 if key == "0" else int(key)
+    if app.select_by_digit(digit):
+        app.message = f"已选中第 {app.image_position()} 张图片"
+
+
+def _backspace(app: App, _win, _key) -> None:
+    if app.focus == "files":
+        app.go_parent()
+
+
+def _enter(app: App, win, _key) -> None:
+    if app.focus != "files":
+        edit_current(app, win)
+        return
+    if app.enter_row():  # 选中的是父目录 / 子目录
+        return
+    app.focus = "blocks"
+    app.ensure_blocks()
+    if not app.blocks():
+        app.message = "这张图没识别出文字，按 l 重试"
+
+
+def _inline(app: App, win, _key) -> None:
+    if app.focus == "files":
+        app.focus = "blocks"
+        app.ensure_blocks()
+    edit_inline(app, win)
+
+
+def _toggle_block(app: App, _win, _key) -> None:
+    blk = app.cur_block()
+    if blk is None:
+        return
+    if app.display_new(blk)[0] is None:
+        app.message = "这块还没有新文字，先按 Enter / i 设置"
+        return
+    blk.enabled = not blk.enabled
+    app.message = f"该块已{'启用' if blk.enabled else '禁用'}"
+
+
+def _clear(app: App, _win, _key) -> None:
+    app.clear_override()
+
+
+def _undo(app: App, _win, _key) -> None:
+    app.message = app.undo_last()
+
+
+def _add_mapping(app: App, _win, _key) -> None:
+    app.add_to_mapping()
+
+
+def _open_map(app: App, _win, _key) -> None:
+    app.panel = "map"
+    app.sel_map = 0
+
+
+def _open_settings(app: App, _win, _key) -> None:
+    app.panel = "settings"
+    app.sel_setting = 0
+
+
+def _export_map(app: App, win, _key) -> None:
+    val = edit_line(win, "导出映射到（回车=map.json）: ")
+    if val is not None:
+        app.message = app.save_map(val.strip() or app.map_path or "map.json")
+
+
+def _set_out_dir(app: App, win, _key) -> None:
+    val = edit_line(win, "输出目录: ", app.out_dir)
+    if val:
+        app.out_dir = val
+        app.message = f"输出目录 → {val}"
+
+
+def _apply_current(app: App, win, _key) -> None:
+    app.apply_current(progress=lambda msg: _progress(win, app, msg))
+
+
+def _apply_all(app: App, win, _key) -> None:
+    todo = app.runnable()
+    if not todo:
+        app.message = "没有任何图片有可执行的替换"
+        return
+    ok = edit_line(win, f"确认替换 {len(todo)} 张图片？输入 y 回车确认: ")
+    if (ok or "").strip().lower() not in ("y", "yes"):
+        app.message = "已取消批量替换"
+        return
+    app.apply_all(
+        progress=lambda msg: _progress(win, app, msg),
+        should_stop=lambda: _poll_cancel(win, app),
+    )
+
+
+def _rescan(app: App, _win, _key) -> None:
+    app.rescan()
+
+
+def _reload(app: App, _win, _key) -> None:
+    img = app.cur
+    if img:
+        img.blocks = None
+        img.error = None
+        img.memo.clear()
+        app.ensure_blocks()
+
+
+def _help(app: App, _win, _key) -> None:
+    app.panel = "help"
+
+
+MAIN_KEYS: dict[str, Callable[..., None]] = {
+    "q": _quit,
+    "Q": _quit,
+    "\x1b": _escape,
+    "\t": _switch_focus,
+    "t": _switch_focus,
+    "BTAB": _switch_focus,
+    "j": _move(1),
+    "KEY_DOWN": _move(1),
+    ".": _move(1),
+    ">": _move(1),
+    "k": _move(-1),
+    "KEY_UP": _move(-1),
+    ",": _move(-1),
+    "<": _move(-1),
+    "KEY_NPAGE": _move(10),
+    "\x06": _move(10),
+    "KEY_PPAGE": _move(-10),
+    "\x02": _move(-10),
+    "g": _jump(first=True),
+    "KEY_HOME": _jump(first=True),
+    "G": _jump(first=False),
+    "KEY_END": _jump(first=False),
+    "\x7f": _backspace,
+    "\b": _backspace,
+    "KEY_BACKSPACE": _backspace,
+    "\n": _enter,
+    "\r": _enter,
+    "KEY_ENTER": _enter,
+    "i": _inline,
+    " ": _toggle_block,
+    "a": _set_all(True),
+    "n": _set_all(False),
+    "u": _clear,
+    "z": _undo,
+    "m": _add_mapping,
+    "e": _open_map,
+    "c": _open_settings,
+    "w": _export_map,
+    "o": _set_out_dir,
+    "r": _apply_current,
+    "R": _apply_all,
+    "\x12": _rescan,
+    "KEY_F(5)": _rescan,
+    "l": _reload,
+    "?": _help,
+}
+
+DIGITS = frozenset("0123456789")
+
+
 def handle(app: App, win, key) -> None:
+    """面板优先（帮助/映射/设置各自吃键），主界面走 `MAIN_KEYS` 表，最后是数字跳图。"""
     handler = PANEL_HANDLERS.get(app.panel)
     if handler is not None:
         handler(app, win, key)
         return
-
-    if key in ("q", "Q"):
-        app.quit = True
-    elif key == "\x1b":
-        # Esc 只做"返回"，退出统一用 q，避免手机上误触或终端吐 ESC 直接把程序关掉
-        if app.focus == "blocks":
-            app.focus = "files"
-        elif app.panel != "main":
-            app.panel = "main"
-        else:
-            app.message = "按 q 退出（Esc 只返回上一层）"
-    elif key == "\t":
-        app.focus = "blocks" if app.focus == "files" else "files"
-        if app.focus == "blocks":
-            app.ensure_blocks()
-    elif key in ("j", "KEY_DOWN", ".", ">"):
-        app.move(1)
-    elif key in ("k", "KEY_UP", ",", "<"):
-        app.move(-1)
-    elif key in ("KEY_NPAGE", "\x06"):
-        app.move(10)
-    elif key in ("KEY_PPAGE", "\x02"):
-        app.move(-10)
-    elif len(key) == 1 and key in "0123456789":
-        # 只认 ASCII 数字：str.isdigit() 对上标「²」也返回 True，int() 会直接抛 ValueError
-        digit = 10 if key == "0" else int(key)
-        if app.select_by_digit(digit):
-            app.message = f"已选中第 {app.image_position()} 张图片"
-    elif key in ("t", "BTAB"):
-        app.focus = "blocks" if app.focus == "files" else "files"
-        if app.focus == "blocks":
-            app.ensure_blocks()
-    elif key in ("g", "KEY_HOME"):
-        app.jump(first=True)
-    elif key in ("G", "KEY_END"):
-        app.jump(first=False)
-    elif key in ("\x7f", "\b", "KEY_BACKSPACE"):
-        if app.focus == "files":
-            app.go_parent()
-    elif key in ("\n", "\r", "KEY_ENTER"):
-        if app.focus == "files":
-            if app.enter_row():  # 选中的是父目录 / 子目录
-                return
-            app.focus = "blocks"
-            app.ensure_blocks()
-            if not app.blocks():
-                app.message = "这张图没识别出文字，按 l 重试"
-        else:
-            edit_current(app, win)
-    elif key == "i":
-        if app.focus == "files":
-            app.focus = "blocks"
-            app.ensure_blocks()
-        edit_inline(app, win)
-    elif key == " ":
-        blk = app.cur_block()
-        if blk is None:
-            return
-        if app.display_new(blk)[0] is None:
-            app.message = "这块还没有新文字，先按 Enter / i 设置"
-            return
-        blk.enabled = not blk.enabled
-        app.message = f"该块已{'启用' if blk.enabled else '禁用'}"
-    elif key == "a":
-        app.set_all(True)
-    elif key == "n":
-        app.set_all(False)
-    elif key == "u":
-        app.clear_override()
-    elif key == "m":
-        app.add_to_mapping()
-    elif key == "e":
-        app.panel = "map"
-        app.sel_map = 0
-    elif key == "c":
-        app.panel = "settings"
-        app.sel_setting = 0
-    elif key == "w":
-        val = edit_line(win, "导出映射到（回车=map.json）: ")
-        if val is not None:
-            app.message = app.save_map(val.strip() or app.map_path or "map.json")
-    elif key == "o":
-        val = edit_line(win, "输出目录: ", app.out_dir)
-        if val:
-            app.out_dir = val
-            app.message = f"输出目录 → {val}"
-    elif key == "r":
-        app.apply_current(progress=lambda msg: _progress(win, app, msg))
-    elif key == "R":
-        todo = app.runnable()
-        if not todo:
-            app.message = "没有任何图片有可执行的替换"
-            return
-        ok = edit_line(win, f"确认替换 {len(todo)} 张图片？输入 y 回车确认: ")
-        if (ok or "").strip().lower() in ("y", "yes"):
-            app.apply_all(
-                progress=lambda msg: _progress(win, app, msg),
-                should_stop=lambda: _poll_cancel(win, app),
-            )
-        else:
-            app.message = "已取消批量替换"
-    elif key in ("\x12", "KEY_F(5)"):        # Ctrl-R / F5：把新放进来的图片扫进来
-        app.rescan()
-    elif key == "l":
-        img = app.cur
-        if img:
-            img.blocks = None
-            img.error = None
-            img.memo.clear()
-            app.ensure_blocks()
-    elif key == "?":
-        app.panel = "help"
+    action = MAIN_KEYS.get(key)
+    if action is not None:
+        action(app, win, key)
+    elif len(key) == 1 and key in DIGITS:
+        # 只认 ASCII 数字：str.isdigit() 对上标「²」也返回 True，int() 会抛 ValueError
+        _digit(app, win, key)
 
 
 def _progress(win, app: App, msg: str) -> None:

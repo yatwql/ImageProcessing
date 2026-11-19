@@ -48,7 +48,7 @@ class NormMapProperties(unittest.TestCase):
     @SETTINGS
     @given(st.text(alphabet=st.characters(min_codepoint=33, max_codepoint=126), max_size=30))
     def test_ascii_without_spaces_maps_one_to_one(self, raw: str):
-        text, index = match.norm_map(raw)
+        _text, index = match.norm_map(raw)
         if any(ch.isspace() for ch in raw):
             return
         self.assertEqual(index, list(range(len(raw))))

@@ -143,7 +143,8 @@ def _keys_hint(app: App, w: int) -> str:
             "R 全部  Ctrl-R 刷新  ? 帮助  q 退出"
         )
     return (
-        "↑↓ 选块  Enter 整行换  i 只换几个字  空格 启用  u 清除  r 替换  Esc 返回  Tab 换栏  q 退出"
+        "↑↓ 选块  Enter 整行换  i 只换几个字  空格 启用  u 清除  z 撤销  r 替换  "
+        "Esc 返回  Tab 换栏  q 退出"
     )
 
 

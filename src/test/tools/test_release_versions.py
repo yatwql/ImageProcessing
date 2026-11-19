@@ -52,7 +52,7 @@ class VersionForm(unittest.TestCase):
 
 class Prepare(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         root = Path(self.tmp.name)
         self.version_file = root / "version.py"

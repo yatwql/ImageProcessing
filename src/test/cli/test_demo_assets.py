@@ -69,7 +69,9 @@ def _digest(rgb: np.ndarray) -> str:
 DIGEST_TO_NAME: dict[str, str] = {}
 if all(os.path.exists(p) for p in DEMO_FILES):
     for _path in DEMO_FILES:
-        DIGEST_TO_NAME[_digest(np.array(Image.open(_path).convert("RGB")))] = os.path.basename(_path)
+        DIGEST_TO_NAME[_digest(np.array(Image.open(_path).convert("RGB")))] = os.path.basename(
+            _path
+        )
 
 
 def boxes_for(rgb: np.ndarray) -> list[tuple[str, tuple[int, int, int, int]]]:
@@ -90,12 +92,13 @@ class DemoAssets(unittest.TestCase):
                     self.assertEqual(im.size[0], 720)
                     self.assertIn(im.mode, ("RGB", "RGBA"))
                 _rgb, alpha = load_image(path)
-                self.assertIsNone(alpha)             # 示例图不带透明
+                self.assertIsNone(alpha)  # 示例图不带透明
 
     def test_tui_lists_all_demo_images(self):
         app = App([DEMO_DIR])
-        self.assertEqual([img.name for img in app.images], sorted(
-            os.path.basename(p) for p in DEMO_FILES))
+        self.assertEqual(
+            [img.name for img in app.images], sorted(os.path.basename(p) for p in DEMO_FILES)
+        )
         kinds = [kind for kind, _path in app.rows]
         self.assertEqual(kinds.count("img"), len(DEMO_FILES))
 
@@ -103,15 +106,18 @@ class DemoAssets(unittest.TestCase):
 @unittest.skipUnless(demo_available(), "缺少 data/demo 示例图")
 class DemoCliFlows(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()      # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.log_dir = os.path.join(self.tmp.name, "logs")
 
     def run_cli(self, *argv: str) -> tuple[int, str, str]:
         out, err = io.StringIO(), io.StringIO()
-        with patch_ocr(boxes_for), contextlib.redirect_stdout(out), \
-                contextlib.redirect_stderr(err), \
-                mock.patch.dict(os.environ, {"IMG_P_LOG_DIR": self.log_dir}):
+        with (
+            patch_ocr(boxes_for),
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+            mock.patch.dict(os.environ, {"IMG_P_LOG_DIR": self.log_dir}),
+        ):
             code = main(list(argv))
         return code, out.getvalue(), err.getvalue()
 
@@ -126,14 +132,15 @@ class DemoCliFlows(unittest.TestCase):
 
     def test_demo_report_replaces_only_the_title(self):
         out = os.path.join(self.tmp.name, "out", "report.png")
-        code, _text, _err = self.run_cli(REPORT, "-o", out, "--quiet",
-                                         "--map", "年度销售报告2023=年度财务总结2024")
+        code, _text, _err = self.run_cli(
+            REPORT, "-o", out, "--quiet", "--map", "年度销售报告2023=年度财务总结2024"
+        )
         self.assertEqual(code, 0)
         before = np.array(Image.open(REPORT))
         after = np.array(Image.open(out))
         self.assertEqual(before.shape, after.shape)
-        self.assertFalse(np.array_equal(before[40:110], after[40:110]))   # 标题变了
-        self.assertTrue(np.array_equal(before[130:], after[130:]))        # 其余像素没动
+        self.assertFalse(np.array_equal(before[40:110], after[40:110]))  # 标题变了
+        self.assertTrue(np.array_equal(before[130:], after[130:]))  # 其余像素没动
         entry = self.logs()[0]
         self.assertEqual(entry["src_file"], "示例-报告.png")
         self.assertEqual(entry["operations"][0]["new"], "年度财务总结2024")
@@ -150,29 +157,32 @@ class DemoCliFlows(unittest.TestCase):
 
     def test_demo_body_fragment_replacement_is_inline(self):
         out = os.path.join(self.tmp.name, "out", "body.png")
-        code, _text, _err = self.run_cli(REPORT, "-o", out, "--quiet",
-                                         "--map", "本页=页面")
+        code, _text, _err = self.run_cli(REPORT, "-o", out, "--quiet", "--map", "本页=页面")
         self.assertEqual(code, 0)
         before = np.array(Image.open(REPORT))
         after = np.array(Image.open(out))
         self.assertFalse(np.array_equal(before[145:180], after[145:180]))  # 正文变了
-        self.assertTrue(np.array_equal(before[200:], after[200:]))          # 其余行没动
+        self.assertTrue(np.array_equal(before[200:], after[200:]))  # 其余行没动
         self.assertEqual(self.logs()[0]["operations"][0]["mode"], "行内")
 
     def test_demo_batch_logs_every_image(self):
         out_dir = os.path.join(self.tmp.name, "out")
-        code, text, _err = self.run_cli(DEMO_DIR, "--out-dir", out_dir, "--quiet",
-                                        "--map", "2023=2024")
+        code, text, _err = self.run_cli(
+            DEMO_DIR, "--out-dir", out_dir, "--quiet", "--map", "2023=2024"
+        )
         self.assertEqual(code, 0)
         self.assertEqual(len(os.listdir(out_dir)), len(DEMO_FILES))
         self.assertIn("批量完成", text)
-        self.assertEqual(sorted(e["src_file"] for e in self.logs()),
-                         sorted(os.path.basename(p) for p in DEMO_FILES))
+        self.assertEqual(
+            sorted(e["src_file"] for e in self.logs()),
+            sorted(os.path.basename(p) for p in DEMO_FILES),
+        )
 
     def test_demo_dry_run_writes_nothing(self):
         out_dir = os.path.join(self.tmp.name, "dry")
-        code, text, _err = self.run_cli(NOTICE2, "--out-dir", out_dir, "--dry-run",
-                                        "--map", "季度总结=年度总结")
+        code, text, _err = self.run_cli(
+            NOTICE2, "--out-dir", out_dir, "--dry-run", "--map", "季度总结=年度总结"
+        )
         self.assertEqual(code, 0)
         self.assertIn("预演", text)
         self.assertFalse(os.path.isdir(out_dir))

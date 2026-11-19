@@ -34,7 +34,7 @@ def inpaint_radius(mask: np.ndarray) -> int:
         return INPAINT_RADIUS_MIN
     dt = cv2.distanceTransform(m, cv2.DIST_L2, 3)
     stroke = float(dt[m > 0].mean()) * 2.0
-    radius = int(round(stroke * INPAINT_STROKE_FACTOR))
+    radius = round(stroke * INPAINT_STROKE_FACTOR)
     return max(INPAINT_RADIUS_MIN, min(INPAINT_RADIUS_MAX, radius))
 
 
@@ -65,6 +65,7 @@ def replace_image(
     memo: dict | None = None,
     source: str | None = None,
     should_stop: Callable[[], bool] | None = None,
+    abort: Callable[[], bool] | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None, list[dict]]:
     """在已加载的图上执行全部任务，返回 (新图, 新alpha, 报告)。
 
@@ -72,10 +73,14 @@ def replace_image(
     source: 原图路径，仅用于给调试图的写盘日志记录源文件。
     should_stop: 可选中断回调，每处理一块之前问一次；返回 True 就停手，
         已完成的块保留在报告里（调用方据此提示“已取消，完成 x/y”）。
+    abort: 可选“随时可查”的中断标志，供字体匹配的候选循环轮询（不占用块边界的调用次数）。
     """
-    H, W = rgb.shape[:2]
+    _h, W = rgb.shape[:2]
     out = rgb.copy()
     report: list[dict] = []
+    # 同一块可能有多条任务（整行 + 行内片段）：已经擦过的区间不再擦第二遍，
+    # 重复 inpaint 只会把笔画边缘再糊一次，对结果只有坏处
+    erased: dict[tuple[int, int, int, int], set[tuple[float, float] | None]] = {}
 
     for idx, job in enumerate(jobs):
         if should_stop is not None and should_stop():
@@ -102,7 +107,11 @@ def replace_image(
                 opts.max_fonts,
                 a_stroke=info.get("stroke_core"),
                 slant=info.get("slant"),
+                abort=abort,
             )
+            if abort is not None and abort():
+                _log(f"已取消，完成 {len(report)}/{len(jobs)} 块")
+                break
             if memo is not None:
                 memo[key_f] = fit
         if fit is not None and fit[4] < 0.35:
@@ -169,12 +178,20 @@ def replace_image(
         if opts.fit_width:
             tracking = solve_tracking(job.new, face, size, tracking, box[1] - box[0])
 
-        out = erase(out, info["mask"], erase_range)
-        if alpha is not None:
-            alpha = erase(alpha, info["mask"], erase_range)
-        out = draw_text(out, job.new, face, size, tracking, color, box, align, alpha_canvas=alpha)
+        if not opts.dry_run:  # 预演只要分析/匹配结果，不碰像素也不写图
+            done = erased.setdefault(job.rect, set())
+            if erase_range in done or (erase_range is not None and None in done):
+                pass
+            else:
+                out = erase(out, info["mask"], erase_range)
+                if alpha is not None:
+                    alpha = erase(alpha, info["mask"], erase_range)
+                done.add(erase_range)
+            out = draw_text(
+                out, job.new, face, size, tracking, color, box, align, alpha_canvas=alpha
+            )
 
-        if opts.debug:
+        if opts.debug and not opts.dry_run:
             try:
                 os.makedirs(opts.debug, exist_ok=True)
             except OSError as e:

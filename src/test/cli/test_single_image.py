@@ -24,7 +24,7 @@ from src.test._support import has_cjk_font, make_text_image, patch_ocr
 @unittest.skipUnless(has_cjk_font(), "需要 CJK 字体（Debian/Ubuntu 装 fonts-noto-cjk）")
 class SingleImageRun(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.rgb, self.boxes = make_text_image(["年度报告2023", "其余文字不动"])
         self.path = os.path.join(self.tmp.name, "report.png")
@@ -57,9 +57,9 @@ class SingleImageRun(unittest.TestCase):
             code, _text = self.run_cli(self.path, "--map", "2023=2024", "--quiet")
             self.assertEqual(code, 0)
             produced = set(os.listdir(DEFAULT_OUT_DIR)) - before
-            self.assertEqual(len(produced), 1)             # 默认目录里只多出这一张
+            self.assertEqual(len(produced), 1)  # 默认目录里只多出这一张
             self.assertTrue(next(iter(produced)).startswith("report"))
-        finally:                                           # 用例不把产物留在仓库里
+        finally:  # 用例不把产物留在仓库里
             if os.path.isdir(DEFAULT_OUT_DIR):
                 for name in set(os.listdir(DEFAULT_OUT_DIR)) - before:
                     with contextlib.suppress(OSError):
@@ -89,24 +89,39 @@ class SingleImageRun(unittest.TestCase):
     def test_style_overrides_are_accepted(self):
         dst = os.path.join(self.tmp.name, "styled.png")
         code, text = self.run_cli(
-            self.path, "-o", dst, "--map", "2023=2024",
-            "--align", "center", "--color", "#ff0000", "--size", "30", "--fit-width")
+            self.path,
+            "-o",
+            dst,
+            "--map",
+            "2023=2024",
+            "--align",
+            "center",
+            "--color",
+            "#ff0000",
+            "--size",
+            "30",
+            "--fit-width",
+        )
         self.assertEqual(code, 0)
         self.assertIn("center", text)
         self.assertIn("30px", text)
 
     def test_unknown_key_still_succeeds_when_other_key_matches(self):
         dst = os.path.join(self.tmp.name, "mixed.png")
-        code, _text = self.run_cli(self.path, "-o", dst,
-                                   "--map", "不存在的文字=新", "--map", "2023=2024")
+        code, _text = self.run_cli(
+            self.path, "-o", dst, "--map", "不存在的文字=新", "--map", "2023=2024"
+        )
         self.assertEqual(code, 0)
         self.assertTrue(os.path.exists(dst))
 
     def test_unsupported_output_extension_is_refused_with_a_message(self):
         dst = os.path.join(self.tmp.name, "out.xyz")
         err = io.StringIO()
-        with patch_ocr(self.boxes), contextlib.redirect_stdout(io.StringIO()), \
-                contextlib.redirect_stderr(err):
+        with (
+            patch_ocr(self.boxes),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(err),
+        ):
             code = main([self.path, "-o", dst, "--map", "2023=2024"])
         self.assertNotEqual(code, 0)
         self.assertIn("不支持的输出格式", err.getvalue())
@@ -115,8 +130,9 @@ class SingleImageRun(unittest.TestCase):
     def test_report_file_summarises_the_run(self):
         dst = os.path.join(self.tmp.name, "out.png")
         report = os.path.join(self.tmp.name, "report.json")
-        code, _text = self.run_cli(self.path, "-o", dst, "--map", "2023=2024",
-                                   "--report", report, "--quiet")
+        code, _text = self.run_cli(
+            self.path, "-o", dst, "--map", "2023=2024", "--report", report, "--quiet"
+        )
         self.assertEqual(code, 0)
         with open(report, encoding="utf-8") as f:
             data = json.load(f)
@@ -126,8 +142,11 @@ class SingleImageRun(unittest.TestCase):
         self.assertEqual(data["items"][0]["dst"], os.path.abspath(dst))
 
     def test_quality_out_of_range_is_rejected(self):
-        with patch_ocr(self.boxes), contextlib.redirect_stdout(io.StringIO()), \
-                self.assertRaises(SystemExit) as ctx:
+        with (
+            patch_ocr(self.boxes),
+            contextlib.redirect_stdout(io.StringIO()),
+            self.assertRaises(SystemExit) as ctx,
+        ):
             main([self.path, "--map", "2023=2024", "--quality", "0"])
         self.assertIn("1-100", str(ctx.exception))
 
@@ -170,9 +189,12 @@ class VersionBanner(unittest.TestCase):
         from src.python.version import NAME, VERSION
 
         out, err = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            with contextlib.suppress(SystemExit):
-                main(["data/demo", "--list"])
+        with (
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+            contextlib.suppress(SystemExit),
+        ):
+            main(["data/demo", "--list"])
         self.assertIn(f"{NAME} {VERSION}", err.getvalue())
         self.assertNotIn(f"{NAME} {VERSION}", out.getvalue())
 

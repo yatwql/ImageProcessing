@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 import sys
 from pathlib import Path
@@ -58,6 +59,32 @@ def _iter_sources() -> list[Path]:
     )
 
 
+def _mark_spans(text: str) -> list[tuple[int, int]]:
+    """带 `# platform-safe` 注记的语句的行区间。
+
+    ruff format 会把注记甩到多行调用的收尾括号上，按"行"判断会失效；
+    注记覆盖的是**整条语句**，所以这里按语句的行区间算。
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    lines = text.splitlines()
+    spans: list[tuple[int, int]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.stmt):
+            continue
+        start = node.lineno
+        end = getattr(node, "end_lineno", start) or start
+        if any(SAFE_MARK in s for s in lines[start - 1 : end]):
+            spans.append((start, end))
+    return spans
+
+
+def _marked(spans: list[tuple[int, int]], lineno: int) -> bool:
+    return any(start <= lineno <= end for start, end in spans)
+
+
 def _has_platform_guard(lines: list[str]) -> bool:
     joined = "\n".join(lines)
     return any(mark in joined for mark in SKIP_MARK) or "POSIX" in joined
@@ -71,15 +98,18 @@ def _is_big_threshold(text: str) -> bool:
         return False
 
 
-def _check_test_hygiene(rel: str, lines: list[str]) -> list[str]:
+def _check_test_hygiene(
+    rel: str, lines: list[str], spans: list[tuple[int, int]] | None = None
+) -> list[str]:
     """只对用例查的三类「本机绿、别的平台红」写法（`_support.py` 例外）。"""
     joined = "\n".join(lines)
     none_word = "None"
     is_none = "is" + " " + none_word  # 拆开拼，避免提示文案被误当成 ``is None`` 比较
     has_fcntl_guard = f"fcntl {is_none}" in joined or f'"fcntl", {none_word}' in joined
+    spans = spans or []
     problems: list[str] = []
     for lineno, line in enumerate(lines, 1):
-        if SAFE_MARK in line:
+        if SAFE_MARK in line or _marked(spans, lineno):
             continue
         family = FONT_FAMILY.search(line)
         if family:
@@ -116,9 +146,10 @@ def check_file(path: Path) -> list[str]:
     lines = text.splitlines()
     rel = path.relative_to(ROOT).as_posix()
     problems: list[str] = []
+    spans = _mark_spans(text)
 
     for lineno, line in enumerate(lines, 1):
-        if SAFE_MARK in line:
+        if SAFE_MARK in line or _marked(spans, lineno):
             continue
         match = POSIX_PATH.search(line)
         if match and not _has_platform_guard(lines):
@@ -129,7 +160,7 @@ def check_file(path: Path) -> list[str]:
             problems.append(f"{rel}:{lineno} 直接依赖 POSIX-only 模块（加平台保护或打到 _support）")
 
     if rel.startswith("src/test/") and path.name != "_support.py" and rel != RULE_FIXTURE:
-        problems += _check_test_hygiene(rel, lines)
+        problems += _check_test_hygiene(rel, lines, spans)
 
     # 子进程调用必须显式编码：按"整次调用"判断（跨多行也行），
     # 只看 3 行窗口会漏掉 `text=True` 与 `encoding=` 隔了好几行的写法。

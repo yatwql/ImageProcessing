@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 from ..stdio import ensure_utf8_stdio
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 CONSTRAINTS = ROOT / "constraints.txt"
 MARKED = re.compile(r";\s*sys_platform|;\s*python_version")
@@ -27,7 +27,10 @@ SKIP = {"img-p", "retype", "pip", "setuptools", "wheel"}
 def frozen() -> dict[str, str]:
     out = subprocess.run(
         [sys.executable, "-m", "pip", "freeze"],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     ).stdout
     pins: dict[str, str] = {}
     for line in out.splitlines():
@@ -41,7 +44,9 @@ def outdated() -> list[str]:
     out = subprocess.run(
         [sys.executable, "-m", "pip", "list", "--outdated", "--format=freeze"],
         capture_output=True,
-        text=True, encoding="utf-8", errors="replace",
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     return [ln for ln in out.stdout.splitlines() if ln.strip()]
 

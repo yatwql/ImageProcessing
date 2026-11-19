@@ -36,10 +36,12 @@ scripts/                     只放薄壳启动脚本（逻辑在 src/python 或
   cli.sh / cli.ps1           命令行入口    → python -m src.python.cli
   tui.sh / tui.ps1           交互入口      → python -m src.python.tui
   setup.sh / setup.ps1       环境引导      → python -m src.python.bootstrap（ps1 支持 -Dev）
-  runTest.sh / runTest.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
+  run-test.sh / run-test.ps1   测试 + 报告   → src/python/tools/run_tests.py（ps1 支持 -Fast）
   log-query.sh / .ps1        日志查询      → python -m src.python.cli.log_query
     tools/                   工程工具（守护/覆盖率/发布；不进发行包、不计覆盖率）
-  check_guards.py            工程守护（18 项，含编号/版本/目录树/文档索引/归档/跨平台）
+  check_guards.py            工程守护入口（18 项，编排 + 汇总；各项按类拆在 guards/）
+  guards/                    守护实现：ids 编号 / docs 目录树与归档 / code 分层编码长度 / meta 版本依赖工作流
+    common.py                共用路径、阈值常量与正则）
   check_all.py               本地全量门禁：静态并发 + 四档环境矩阵 × `-n 8` + 覆盖率 + 分片重排
   _parallel.py               门禁并行执行：worker 数规则与批次并发（档位串行、档内并行）
   release.py                 发布编排：check → archive → prepare → gate → build → tag → publish
@@ -84,7 +86,7 @@ src/
   test/                      测试用例（pytest / unittest 均可）
     __init__.py              测试包入口：注入仓库根到 sys.path、临时目录指向 /data/tmp
     _support.py              公共设施：字体路径、合成图、OCR 桩、FakeWin、用例基类
-    core/                    核心层用例（含 background/color/font/format/layout/pipeline/primitives 子目录）
+    core/                    核心层用例（含 background/color/font/format/layout/mapping/pipeline/primitives 子目录）
     cli/  tui/               渠道与交互用例
     tools/                   工程工具用例（发布编排 / 归档流程 / 门禁流水线）
 ```
@@ -108,10 +110,11 @@ src/
 | `src/python/core/match.py` | Job 定义与匹配规则 | `Job` `norm_map` `plan_jobs` |
 | `src/python/core/jobs.py` | 各种入口 → Job 列表 | `area_jobs` `make_jobs` `jobs_from_blocks` |
 | `src/python/core/image.py` | 读写、元数据与目标占名 | `load_image` `load_meta` `save_image` `reserve_path` `unique_path` `same_file` `IMG_EXTS` |
-| `src/python/core/options.py` | 运行选项、字色解析、警告出口 | `Options` `parse_color` `warn` |
-| `src/python/cli/main.py` | 参数、两遍流程、批量汇总 | `main` `build_parser` `load_mapping` |
+| `src/python/core/options.py` | 运行选项、阈值常量、字色解析、警告出口 | `Options` `parse_color` `warn` `MIN_OCR_SCORE` `FUZZY_MIN` |
+| `src/python/cli/main.py` | 参数解析、选项构造、结果呈现 | `main` `build_parser` `load_mapping` |
+| `src/python/cli/batch.py` | 批量编排：规划遍 / 替换遍 / 并发档位（不含替换规则） | `scan_images` `replace_images` `ReplaceContext` `resolve_workers` |
 | `src/python/cli/log_query.py` | 日志查询渠道（过滤 + 汇总 + 排版） | `main` `build_parser` |
-| `src/python/bootstrap.py` | 环境引导（只用标准库） | `main` `ensure_venv` `write_config` |
+| `src/python/bootstrap.py` | 环境引导（只用标准库），含是否在 venv 的探测 | `main` `ensure_venv` `write_config` `in_venv` `venv_hint` |
 | `src/python/tui/app.py` | 会话状态、动作、缓存 | `App` `Block` `ImageItem` |
 | `src/python/tui/ui.py` | 入口：启动参数、主循环、窗口初始化 | `loop` `main` `parse_args` |
 | `src/python/tui/ui_base.py` | 文案、宽字符处理、颜色与落字 | `USAGE` `HELP` `dwidth` `cut` `pad` `init_colors` `attr` `put` |
@@ -204,6 +207,40 @@ class Options:                # 渠道无关的运行选项
 - `--fit-width` 用 `solve_tracking` 迭代求字距，使新文字墨迹宽度贴合目标框宽度。
 - `\n` 触发多行绘制，行距 `1.34 × 字号`，整块垂直居中。
 
+## 4.6 约束的「文档 + 机检」双落点
+
+每条硬约束都必须同时有两处落点：**文档里写清楚**（本节与 `contracts.md`）、**脚本能照出来**
+（`tools/check_guards.py` 的对应项）。只写文档的约束会腐烂，只写脚本的约束没人知道为什么。
+
+| 约束 | 文档位置 | 机检（守护项） |
+| --- | --- | --- |
+| `core` 不碰 argparse/curses、不 `sys.exit`；`core↛cli/tui`、`cli↔tui` 不互相导入 | `contracts.md` §1 AR-1..8、本文件 §1.2 | 分层-core、导入方向 |
+| 单文件 ≤1000 行 | `CLAUDE.md` 代码约定 | 文件长度 |
+| 文本 I/O 显式 `encoding=` | `CLAUDE.md` 代码约定 | 显式编码 |
+| 台账编号 `PLAN-x`/`RF-x` 连续唯一、归档仍占号 | `docs/README.md`、本文件 §10 | 编号-plan、编号-review、归档 |
+| 版本号单一来源（`version.py`）、`UPDATED` = `src/` 最后提交日 | `CLAUDE.md` 分支与版本纪律 | 版本号、名称 |
+| 新增源文件/测试文件必须进目录树与用例对照表 | `CLAUDE.md` 文档纪律 | 目录树文档、用例对照 |
+| 每份管理文档/手册必须进索引 | `docs/README.md` | 文档索引 |
+| 文档相对链接必须能落地 | 本表 | 文档链接 |
+| 脚本命名：`scripts/` kebab-case 薄壳；`tools/` 按活动类型前缀（`check_`/`run_`/`gen_`/…） | `CLAUDE.md` 脚本约定、本文件 §1.1 | 脚本契约 |
+| `check_*` 工具必须支持 `--ci`（一行一结论） | 本文件 §2 | 脚本契约 |
+| 每个 `tools/*` 必须被用例引用、docstring 写明怎么跑 | 本表 | 脚本契约 |
+| `scripts/*.ps1` UTF-8 with BOM；`.sh` LF | `CLAUDE.md` 已知坑 | PS 编码、跨平台 |
+| 用例不写死字体家族/POSIX 绝对路径/裸 bash | `CLAUDE.md` 已知坑 | 跨平台 |
+| 覆盖率与 skip 上限 | 本文件 §10、`testplan.md` QG-3 | （`check_coverage.py`，由 `check_all` 串起） |
+| 单函数圈复杂度 ≤50（只防更糟，基线见 §4.7） | 本文件 §4.7 | 复杂度上限 |
+
+## 4.7 已知技术债（暂不拆，已过机检上限）
+
+圈复杂度红线 50（守护「复杂度上限」），下列函数在基线内但明显偏高。**只许降、不许升**：
+再动手时先按这里拆，而不是继续往里加分支。
+
+| 函数 | cc | 为什么不一次拆完 | 拆的话怎么拆 |
+| --- | --- | --- | --- |
+| `core/edit.replace_image` | 30 | 每块的处理顺序（分析 → 字体 → 区间 → 对齐 → 擦绘）本身就是业务规则 | 抽 `_pick_style` / `_resolve_box` / `_paint` 三段 |
+| `core/style.fit_font` / `search` | 27 / 18 | 粗筛 + 精修两轮搜索，拆开会让阈值比较难读 | 粗筛与精修各自成函数 |
+| `tui/ui_input.edit_line` | 17 | 单行编辑器按键循环，分支即按键语义 | 编辑动作表 |
+
 ## 5. 匹配规则（`match.plan_jobs`）
 
 对映射表中的每个 key：
@@ -212,7 +249,15 @@ class Options:                # 渠道无关的运行选项
    NFKC 归一（逐字归一以保持下标可映射回原文），因此全角 `２０２３` 与 `2023` 等价。命中 → 整行 `Job(span=None)`。
 2. **行内子串**：在第 1 步未命中的行里查找 key 的全部出现位置，把归一化下标映射回原文字下标 → `Job(span=(a, b))`。
    同一 key 可同时产生整行 Job 与若干行内 Job（整行命中的行不重复参与子串匹配）。
-3. **模糊兜底**：都没命中时用 `difflib.SequenceMatcher` 取最相似行，`ratio ≥ 0.8` 才按整行替换并打印提示。
+3. **模糊兜底**：都没命中时用 `difflib.SequenceMatcher` 取最相似行，`ratio ≥ fuzzy_min`（默认 0.8，
+   `Options.fuzzy_min`/CLI `--fuzzy`）才按整行替换并打印提示。
+4. **置信度过滤**：OCR 块自带的 `score` 低于 `min_score`（默认 0 = 不过滤，CLI `--min-score`）时不参与
+   任何一轮匹配，并给一句「跳过 N 块置信度过低的文字」——手抖/斜体误识时不至于换错地方。
+5. **冲突检测**：同一 `rect` 上已被整块占用、或同一 span 已被占过时，后来的那条映射**不执行**，
+   报「映射冲突：… 已跳过该条」。两条 key 归一化后相等（如 `１２３` 与 `123`）不再静默后写覆盖先写。
+
+归一化结果在进三轮之前一次性算好（`_prep`），不在 `key × region` 双层循环里重复 `norm_map`。
+阈值常量集中在 `core/options.py` 顶部：`MIN_OCR_SCORE`（默认 0）、`FUZZY_MIN`（默认 0.8）。
 
 TUI 的 `core.jobs_from_blocks` 同一套规则：块级 `override` 优先（`find` 非空则算行内 span），
 其余启用块作为 regions 交给 `plan_jobs` 应用全局映射。
@@ -236,6 +281,12 @@ TUI 不在启动时因为"目录里没有图片"退出：空目录照样进界�
 
 - 入口：`python -m src.python.cli`，启动脚本 `scripts/cli.sh`。
 - 两遍流程：第一遍逐图 `make_jobs` 并收集原文文本（供字体池）；第二遍逐图 `replace_image` + `save_image`。
+  第一遍解码过的图在内存预算（`_CACHE_BYTES_MAX` = 512MB）内留一份，第二遍不再重复解码。
+- 并发：只有显式开启才用线程池（`_parallel_map` 保序）。档位解析 `CLI -j` > `IMG_P_WORKERS` > 默认 1；
+  `auto` = 核数一半且不超过 `WORKERS_AUTO_CAP=4`（不随核数无脑放大）；默认 1 的理由见 §9。
+  默认档生效时带一句「要更多：`-j auto` 或设 `IMG_P_WORKERS=N`」，避免开关无人知晓。
+- 预演：`--dry-run` 走 `Options.dry_run=true`，核心层只做分析与字体匹配、跳过擦除/绘制/调试图，
+  与真跑的报告字段完全一致。
 - 批量：输入为目录时遍历一层，`IMG_EXTS` 过滤；输出统一 `<out_dir>/<stem>.png`。
 - 汇总：成功/失败/无匹配张数与替换总数；至少一处成功返回 0。
 - `--report FILE`：同一份汇总再加逐图明细（`src`/`dst`/`replaced`/`operations`）写成 JSON；
@@ -285,6 +336,13 @@ OCR 由 `App.start_loading()` 放到后台线程；`App.loading` 期间界面照
   （`IMG_P_DATA_DIR` > `/data` > 仓库 `data/`）。
 - `app.py`：`App` 持有 `images / mapping / out_dir / opts / 选中位置`，动作有
   `ensure_blocks` `jobs_for` `apply_one` `apply_current` `apply_all` `move` `add_to_mapping` `save_map` 等，全部无 curses 依赖。
+- 撤销：`apply_one` 在覆写自己刚生成的那份输出之前，把旧文件字节存进 `App.undo_entry`；
+  `z` 调 `App.undo_last()` 写回（只留最近一份，避免几十张图的字节堆在内存里）。
+- 中途取消：`apply_all` 每张图之前轮询 `Esc`，`replace_image` 每块之前问一次，
+  `fit_font` 的候选字体循环里也问一次——单块字体匹配也能停。
+- `ui_actions.py`：按键**表驱动**——面板优先（`PANEL_HANDLERS` 吃帮助/映射/设置），主界面查
+  `MAIN_KEYS`（键 → 处理函数，`_move`/`_jump`/`_set_all` 生成带参数的处理器），最后是数字跳图。
+  加一个键只加一行，`handle` 的圈复杂度不再随按键数量增长（曾到 48）。
 - `ui.py`：`draw_main / draw_map / draw_help` 渲染，`handle / handle_map` 分发按键，`edit_line` 为底部单行编辑器
   （预填内容首次输入即整体替换，`curses.curs_set` 在编辑期间显示光标）。
 - 宽字符：自实现 `dwidth / cut / pad`（按 `east_asian_width` 计算显示宽度），所有绘制先按列宽裁剪再补齐，
@@ -378,7 +436,16 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | 擦除重绘 | ~10ms / 块 | 与图幅线性相关 |
 
 已做的优化：`soft_iou` 的模糊从“每个平移位置一次”提到“每张掩码一次”（字体匹配 0.78s → 0.50s/块）；
-字体池落盘缓存；`fit_font` 先按宽度比例剪枝再加权打分。
+平移搜索改用 `fa` 积分图 + 与 `B` 等大的窗切片（不再每个位置整图清零重填，并集用
+`sum(a)+sum(b)−sum(min)` 算，结果与原实现逐位一致）；字体池落盘缓存；
+`fit_font` 先按宽度比例剪枝再加权打分；`plan_jobs` 的归一化只算一次；
+CLI 两遍流程复用第一遍的解码结果（512MB 预算内）；`--dry-run` 跳过擦除/绘制/调试图。
+
+同一 `rect` 上的多条任务不会重复 inpaint：已擦过的区间（`None` = 整块）记在 `erased` 里，
+第二次只重绘不重擦，避免笔画边缘被反复模糊。
+
+`fit_font` 与 `plan_jobs` 接受 `should_stop` 回调：TUI 按 `Esc` 时**单块内部**（160 款候选字体的
+粗筛循环、精修循环）也能停下，不再等到这一块跑完。
 
 性能门禁（`src/python/tools/check_perf.py`，CI 的 `perf` 作业）在合成数据上钉住四步热路径，
 阈值 = 本机实测值 × 5 以上（只挡数量级退化，不追求机器间可比）：
@@ -394,16 +461,17 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 实测后放弃的优化：**多线程并行处理多图**。在 15 张图和 4 张 20 块大图上分别测过
 （`thread-local` OCR 引擎 + 两遍流程都并行），1/2/4 线程的耗时为 21.8 / 23.8 / 25.8 秒
 与 7.8 / 8.9 / 10.0 秒 —— 并发只会更慢：OCR 的 onnxruntime 与会话本身已多线程，
-且每线程一份模型初始化的开销远大于收益。因此保持单线程，代码也不保留这部分复杂度。
+且每线程一份模型初始化的开销远大于收益。因此**默认单线程**；`-j/--workers N` 只作为显式开关
+保留（`_parallel_map` 保持输入顺序），供“图片多但都极小”这类特殊场景自行验证。
 
 ## 10. 测试策略
 
-- 门禁（与 CI 同源，`./scripts/runTest.sh` 之外单独可跑）：
+- 门禁（与 CI 同源，`./scripts/run-test.sh` 之外单独可跑）：
   `ruff check src/ scripts/`（零告警）、`python -m mypy`（全树；core 严格注解、
   渠道/用例/脚本放宽）、`python -m src.python.tools.check_guards`（编号/分层/文件长度/显式编码/
   测试目录/版本号/名称/依赖锁/PS 编码/scripts 薄壳/目录树/测试字体/导入方向/文档索引/工作流/跨平台，
   共 18 项）、`python -m src.python.tools.check_perf`（耗时守卫）。
-  覆盖率阈值 `fail_under = 96`（实测约 97%）。
+  覆盖率阈值 `fail_under = 93`（行 + 分支同算，实测 93.9%；分支漏 95 条）。
 
 ### 10.0 门禁的并行与对账（速度 × 质量）
 
@@ -450,7 +518,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
   这是"改界面要留证据"的门槛。
 - 属性测试：`src/test/core/test_properties.py`（hypothesis）验证 `norm_map` 下标可回溯、
   `cut/pad` 不超预算、`parse_color` 只有两种结果、`unique_path` 不吞扩展名、`plan_jobs` 的 span 精准。
-- 覆盖率门禁：`src/python/tools/check_coverage.py` 校验总量 96%、16 个高风险模块 80~90%、skip ≤15%。
+- 覆盖率门禁：`src/python/tools/check_coverage.py` 校验总量 93%（行 + 分支）、16 个高风险模块 80~90%、skip ≤15%。
 - 入口冒烟：`src/test/cli/test_entry_smoke.py` 用 `runpy` **在本进程内**跑每个入口
   （`--version/--help/launch` 的退出码与帮助文本），不走子进程管道——避免 Windows
   上 cp1252 解码把 stdout 变成空串，从而把"程序坏了"和"测试读不到输出"混为一谈。
@@ -480,7 +548,16 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `cli/test_bootstrap_launch.py` | 环境引导与启动器：配置目录解析、建 venv、装依赖分支、`--check/--skip-install/--dev`、渠道分派与 `execv` 失败、平台路径 |
 | `cli/test_log_query_cli.py` | 日志查询命令：过滤、`--json`、坏日期、无匹配 |
 | `core/test_properties.py` | 属性测试：norm_map 下标、cut/pad 预算、颜色、unique_path、plan_jobs span |
-| `core/test_feature_edges.py` | 功能边界：映射规则/颜色解析/任务构造/日志轮转/格式表 |
+| `core/mapping/test_matching_edge_cases.py` | FR-2 匹配边界：归一化、整行/行内/模糊、映射冲突、低置信过滤 |
+| `core/font/test_font_matching_edges.py` | 字体匹配退化路径：渲染失败跳过、缓存损坏、字号/字距搜索兜底 |
+| `core/primitives/test_rendering_edges.py` | 绘制边界：空行、越界裁切、右对齐、无墨迹时字距不收敛 |
+| `core/format/test_image_io_edges.py` | 图片读写边界：alpha 保留、格式表、元数据读取失败 |
+| `core/pipeline/test_edit_pipeline_edges.py` | 替换流水线边界：调试图写失败、span 越界、行内区间无墨迹回退 |
+| `core/test_audit_log_edges.py` | 写盘日志与文件锁：坏行跳过、写失败、跨平台锁后端、旧日志清理 |
+| `core/test_config_and_ocr_edges.py` | 配置与 OCR 边界：未覆盖项、缺依赖、空结果 |
+| `cli/test_cli_failure_paths.py` | CLI 失败路径：读图失败、同名拒绝、占名失败、预演去重、保存清理 |
+| `cli/test_bootstrap_probe_paths.py` | 环境引导与入口壳：探测失败、缺 pip、入口 shim、外部命令缺失 |
+| `tui/test_tui_state_edges.py` | TUI 状态与布局边界：面板导航、输入行、状态行、批量取消、窄窗兜底 |
 | `core/test_platform_stability.py` | 跨平台默认值（配置目录/解释器路径）、异常契约、规模与幂等 |
 | `core/test_config_file.py` | FR-9 配置文件读取、容错、优先级 |
 | `core/test_error_contract.py` | NFR-6 错误契约（`CoreError` 不外溢） |
@@ -506,8 +583,7 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tui/test_session_state.py` | FR-5 会话状态与缓存 |
 | `tui/test_directory_browsing.py` | FR-5 目录进/退、选中记忆 |
 | `tools/test_release_archive.py` | 归档流程：台账切开、整块搬运、主台账留头与索引、幂等与追加批次、索引倒序 |
-| `tools/test_platform_safety_rules.py` | 守护「跨平台」的规则自检：写死字体家族 / 裸 bash / 无守卫 fcntl /
-绝对像素阈值 / 断言里比 `sys.executable`，以及 `bash_exe()` 探测、字体矩阵候选顺序与换行符规则 |
+| `tools/test_platform_safety_rules.py` | 守护「跨平台」的规则自检：写死字体家族 / 裸 bash / 无守卫 fcntl / 绝对像素阈值 / 断言里比 `sys.executable`，以及 `bash_exe()` 探测、字体矩阵候选顺序与换行符规则 |
 | `tools/test_release_versions.py` | 版本策略：`0.3-dev`→`0.3` 定版、跨版本拒绝、`devbump` 切下个开发版、开发版不能打标签 |
 | `tools/test_perf_limits.py` | 耗时守卫平台档：POSIX 用基准上限，Windows 只放大落盘步骤与总上限，且容得下实测 3.5s |
 | `tools/test_gate_stamp.py` | 门禁戳：写/读/损坏戳、指纹随跟踪文件变化、未跟踪文件不影响、命令行退出码 |
@@ -515,10 +591,13 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 | `tools/test_junit_summary.py` | CI 失败摘要：`class::name` 列表、失败+错误、报告缺失不报错、用法提示 |
 | `tools/test_gate_pipeline.py` | 门禁流水线：worker 数规则（上限 8 / 环境变量 / 串行开关）、批次顺序与 isolated 不并发、档位选择、各档模块集合对账（少一档/少一个文件即红）、发布预检失败即停 + 门禁戳跳过 |
 | `tools/test_gen_folders_stats.py` | 目录统计重算：文件数/行数/用例数/示例图与合计行由脚本算，说明列不动 |
+| `tools/test_tool_entry_contracts.py` | 工程工具入口契约：每个 `tools/*` 能 `--help`、`--ci` 结论可读不刷屏 |
+| `core/test_stdio.py` | 标准输出/编码：UTF-8 重定向与 Windows 下的 stdio 兜底 |
+| `tui/test_tui_real_terminal.py` | 真 curses 冒烟：用 `script(1)` 起真终端，验证每帧 `refresh` 与线框不炸 |
 
 ## 10.0 测试报告脚本
 
-`scripts/runTest.sh` 是唯一的测试入口：跑 `src/test` 全量用例，生成
+`scripts/run-test.sh` 是唯一的测试入口：跑 `src/test` 全量用例，生成
 `/test-reports/{junit.xml,test-report.html,coverage/index.html,summary.md}`（`--fast` 跳过覆盖率与 HTML）；
 目录不可写时退回 `./reports`。测试中间文件统一写 `/data/tmp`（`PYTHONPYCACHEPREFIX`、`TMPDIR`、
 `COVERAGE_FILE` 都指过去），脚本结束时清掉仓库里的 `__pycache__` / `.pytest_cache`。
@@ -529,13 +608,13 @@ TUI 捕获后只更新消息行、绝不退出进程（`SystemExit` 也一并拦
 ```bash
 ./scripts/setup.sh                                            # 建环境（或者已有 .venv；等价 pip install -e ".[dev]"）
 sh .githooks/install-hooks.sh                                 # 启用提交前门禁（ruff + guards + 用例）
-./scripts/runTest.sh                                             # 全量用例 + 测试报告
+./scripts/run-test.sh                                             # 全量用例 + 测试报告
 .venv/bin/ruff check src/ scripts/                            # 静态检查，应零告警
 .venv/bin/python -m mypy                                      # 类型检查，守 core
 .venv/bin/python -m src.python.tools.check_all                        # 全量门禁（含覆盖率 + 三档矩阵）
 .venv/bin/python -m src.python.tools.check_guards                      # 工程守护（18 项，含版本/依赖锁/归档）
 .venv/bin/python -m src.python.tools.check_perf                        # 耗时守卫
-.venv/bin/python -m src.python.tools.run_tests --fast                    # 测试编排（scripts/runTest.sh 的实现）
+.venv/bin/python -m src.python.tools.run_tests --fast                    # 测试编排（scripts/run-test.sh 的实现）
 .venv/bin/python scripts/log-query.py --src 报告               # 查某个原图的写盘记录与替换次数
 ./scripts/cli.sh data/demo --list                              # OCR 是否正常（示例图）
 ./scripts/cli.sh data/demo --map "2023=2024" --dry-run          # 批量预演

@@ -30,8 +30,7 @@ class InlineReplacement(unittest.TestCase):
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_fragment_replacement_keeps_other_pixels(self):
         rgb = draw_two_lines()
-        jobs = plan_jobs(regions(("年度报告2023", (30, 70, 300, 50))),
-                         {"2023": "2024"}, warn=False)
+        jobs = plan_jobs(regions(("年度报告2023", (30, 70, 300, 50))), {"2023": "2024"}, warn=False)
         pool = build_font_pool(["年度报告2023"], None, 160)
         out, alpha, report = replace_image(rgb, None, jobs, Options(quiet=True), pool)
         self.assertIsNone(alpha)
@@ -61,8 +60,7 @@ class OverwriteGuard(unittest.TestCase):
             path = os.path.join(tmp, "x.png")
             im = Image.new("RGB", (300, 100), (255, 255, 255))
             d = ImageDraw.Draw(im)
-            d.text((20, 30), "2023", font=cjk_font(34),
-                   fill=(20, 20, 20))
+            d.text((20, 30), "2023", font=cjk_font(34), fill=(20, 20, 20))
             im.save(path)
             with open(path, "rb") as f:
                 before = f.read()

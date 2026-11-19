@@ -22,8 +22,7 @@ def make_tree(root: str) -> None:
     for name in ("a.png", "b.png"):
         Image.fromarray(np.full((8, 8, 3), 200, np.uint8)).save(os.path.join(root, name))
     os.makedirs(os.path.join(root, "sub"))
-    Image.fromarray(np.full((8, 8, 3), 100, np.uint8)).save(
-        os.path.join(root, "sub", "c.png"))
+    Image.fromarray(np.full((8, 8, 3), 100, np.uint8)).save(os.path.join(root, "sub", "c.png"))
     os.makedirs(os.path.join(root, ".hidden"))
     with open(os.path.join(root, "notes.txt"), "w", encoding="utf-8") as f:
         f.write("not an image")
@@ -106,7 +105,7 @@ class BrowseKeys(TuiTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             make_tree(tmp)
             app = App([os.path.join(tmp, "sub")])
-            app.sel_row = 0                       # 第一行是「.. 上级目录」
+            app.sel_row = 0  # 第一行是「.. 上级目录」
             self.drive(app, ["\n", "q"])
             self.assertEqual(app.dir, os.path.abspath(tmp))
 

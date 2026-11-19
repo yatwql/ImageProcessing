@@ -59,6 +59,34 @@ DEFAULT_CONFIG = {
 }
 
 
+def in_venv() -> bool:
+    """当前解释器是不是虚拟环境里的那个（venv / conda 都算）。
+
+    只做判断、不拦截：CI 与容器里本来就在受管环境里跑，
+    真正要提醒的是"在仓库里裸 python 跑工具"这种现场。
+    """
+    return sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+
+
+def venv_hint() -> str | None:
+    """不在虚拟环境里时给一句怎么启动的提示；在 venv 里返回 None。"""
+    if in_venv():
+        return None
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        return None  # CI 的解释器由工作流装依赖，不算"裸跑"
+    py = venv_python()
+    if sys.platform == "win32":
+        cmd = r".\scripts\cli.ps1"
+        direct = ".venv\\Scripts\\python.exe -m src.python.cli"
+    else:
+        cmd = "./scripts/cli.sh"
+        direct = ".venv/bin/python -m src.python.cli"
+    return (
+        f"提示：当前用的是系统解释器（{sys.executable}），项目依赖在 {py.parent.parent.name}/ 里。"
+        f"请改用 {cmd}（或 {direct}），否则可能 ModuleNotFoundError"
+    )
+
+
 def venv_python(root: Path = ROOT) -> Path:
     """当前平台 `.venv` 里的解释器路径。"""
     if sys.platform == "win32":
@@ -89,8 +117,14 @@ def missing_modules(py: Path, need_dev: bool = False) -> list[str]:
         for n in names
     )
     try:
-        out = subprocess.run([str(py), "-c", probe], capture_output=True, text=True,
-                             encoding="utf-8", errors="replace", check=False)
+        out = subprocess.run(
+            [str(py), "-c", probe],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
     except OSError:
         return ["venv"]
     if out.returncode != 0:

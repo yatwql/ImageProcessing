@@ -201,6 +201,7 @@ jpg 图片上的压缩噪点对识别影响不大；如果是压缩很狠的图�
 | `i` | 行内换（只动几个字） |
 | `空格` | 启用 / 禁用当前块 |
 | `u` | 清除当前块的设置 |
+| `z` | 撤销上一次替换（把被覆写的上一版输出写回） |
 | `a` / `n` | 当前图片全部启用 / 全部禁用 |
 | `m` | 当前块加入全局映射 |
 | `e` | 全局映射表（`n` 新增、`Enter` 改、`d` 删除） |
@@ -307,7 +308,7 @@ TUI 里同一张图反复按 `r` 是覆盖**本次会话生成的**那个文件�
 | `--map-file` | JSON 映射表：`{"旧": "新"}` |
 | `--area X,Y,W,H=新文字` | 手工框一块区域替换，仅单图 |
 | `--list` | 只列出识别到的文字块 |
-| `--dry-run` | 只报告不写文件 |
+| `--dry-run` | 只报告不写文件（也不再跑擦除/绘制，大目录预演很快） |
 | `--font` | 强制字体文件（`.ttf/.otf/.ttc`） |
 | `--size` | 强制字号 |
 | `--color` | 强制字色，`#FF0000` 或 `255,0,0` |
@@ -315,6 +316,9 @@ TUI 里同一张图反复按 `r` 是覆盖**本次会话生成的**那个文件�
 | `--fit-width` | 调字距让新文字宽度贴合原宽度 |
 | `--align` | `auto`/`left`/`center`/`right`，默认 auto |
 | `--max-fonts` | 候选字体上限，默认 160 |
+| `--min-score P` | OCR 置信度下限 0-1，低于它的块不参与匹配（默认 0=不过滤） |
+| `--fuzzy P` | 模糊兑底阈值 0-1，默认 0.8（某个字都没直接命中时才用） |
+| `-j/--workers 1\|auto\|N` | 批量并发档。默认 `1`（实测逐图并发更慢）；`auto`=核数一半且≤4；`N`=指定。也可用环境变量 `IMG_P_WORKERS`；`--dry-run` 恒为 1 |
 | `--debug DIR` | 导出每处文字的二值 mask 便于排查 |
 | `--log-dir DIR` | 写盘日志目录，默认 `logs/` |
 | `--quality N` | JPEG/WEBP 输出质量 1-100，默认 95 |
@@ -325,6 +329,11 @@ TUI 也接受同名的覆盖参数：`-o/--out-dir`、`-m/--map-file`、`-f/--fo
 `--size`、`--tracking`、`--max-fonts`、`--fit-width`、`--quality`、`--log-dir`。
 
 ## 8. 常见问题
+
+### Q：`ModuleNotFoundError: No module named 'PIL'` / 提示「当前用的是系统解释器」。
+A：改走项目虚拟环境——`./scripts/cli.sh`、`./scripts/tui.sh`、`./scripts/run-test.sh` 都会自动用
+`.venv`（缺就自动建）；直接跑模块时用 `.venv/bin/python -m src.python.cli`。CLI/TUI/`check_all`
+在检测到系统解释器时会先打一句提示（CI 环境不提示）。
 
 ### Q：替换后字体不像原图。
 A：系统里没有那款字体。用 `--font 字体文件` 指定同族字体；或确认终端里 `fc-list | grep 字体名` 能查到。
@@ -378,9 +387,9 @@ A：不会。输出固定写到 `data/output/`（或你指定的目录），原�
 ## 9. 自动测试
 
 ```bash
-./scripts/runTest.sh              # 跑全部用例并生成测试报告
-./scripts/runTest.sh --fast       # 只跑用例，不算覆盖率、不出 HTML
-./scripts/runTest.sh -k 映射规则   # 其余参数原样透传给 pytest
+./scripts/run-test.sh              # 跑全部用例并生成测试报告
+./scripts/run-test.sh --fast       # 只跑用例，不算覆盖率、不出 HTML
+./scripts/run-test.sh -k 映射规则   # 其余参数原样透传给 pytest
 ```
 
 报告产物在 `/test-reports/`（建不出来时退回 `./reports`）：

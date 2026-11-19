@@ -69,7 +69,7 @@ GitHub Actions（`.github/workflows/ci.yml`）跑 test（3.10/3.12/3.13）、lin
 ## 目录
 
 ```text
-scripts/    薄壳启动脚本（cli/tui/setup/runTest/log-query 的 .sh + .ps1）
+scripts/    薄壳启动脚本（cli/tui/setup/run-test/log-query 的 .sh + .ps1）
 src/python/tools/  工程工具（守护/覆盖率/测试编排/发布；不进发行包、不计覆盖率）
 .githooks/  pre-commit 钩子（ruff + guards + 用例）与 install-hooks.sh
 .github/    CI 流水线（test / lint / typecheck / guards / perf）

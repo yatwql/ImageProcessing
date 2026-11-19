@@ -27,7 +27,7 @@ from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
 from . import gate_stamp
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 VERSION_FILE = ROOT / "src" / "python" / "version.py"
 DOCS = ROOT / "docs"

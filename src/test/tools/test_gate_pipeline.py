@@ -43,9 +43,11 @@ class WorkerPlan(unittest.TestCase):
                 self.assertEqual(_parallel.worker_count(), 2)
 
     def test_env_override_wins_over_cores(self):
-        with mock.patch.dict(os.environ, {_parallel.WORKERS_ENV: "3"}, clear=False):
-            with mock.patch.object(_parallel.os, "cpu_count", return_value=16):
-                self.assertEqual(_parallel.worker_count(), 3)
+        with (
+            mock.patch.dict(os.environ, {_parallel.WORKERS_ENV: "3"}, clear=False),
+            mock.patch.object(_parallel.os, "cpu_count", return_value=16),
+        ):
+            self.assertEqual(_parallel.worker_count(), 3)
 
     def test_serial_env_forces_single_process(self):
         with mock.patch.dict(os.environ, {_parallel.SERIAL_ENV: "1"}, clear=False):
@@ -174,9 +176,8 @@ class GateArgs(unittest.TestCase):
             self.assertEqual(os.environ.get(_parallel.SERIAL_ENV), "1")
 
     def test_non_numeric_jobs_is_an_error(self):
-        with contextlib.redirect_stderr(io.StringIO()):
-            with self.assertRaises(SystemExit):
-                check_all.parse_args(["--jobs=abc"])
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_all.parse_args(["--jobs=abc"])
 
 
 class ReleaseFailFast(unittest.TestCase):
@@ -186,9 +187,11 @@ class ReleaseFailFast(unittest.TestCase):
         dirty = subprocess.CompletedProcess(
             args=[], returncode=0, stdout=" M src/x.py\n", stderr=""
         )
-        with mock.patch.object(release, _RELEASE_SH, return_value=dirty):
-            with mock.patch.object(release.subprocess, "run") as gate:
-                code = self._capture(release.cmd_check)
+        with (
+            mock.patch.object(release, _RELEASE_SH, return_value=dirty),
+            mock.patch.object(release.subprocess, "run") as gate,
+        ):
+            code = self._capture(release.cmd_check)
         self.assertEqual(code, 1)
         gate.assert_not_called()
 

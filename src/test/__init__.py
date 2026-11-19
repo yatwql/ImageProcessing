@@ -16,7 +16,6 @@ TMP_DIR = os.environ.get("IMG_P_TMP_DIR", "/data/tmp")  # platform-safe
 try:
     os.makedirs(TMP_DIR, exist_ok=True)
     tempfile.tempdir = TMP_DIR
-except OSError as exc:                  # 只读环境：沿用系统临时目录
-    print(f"[!] 无法使用测试临时目录 {TMP_DIR}（{exc}），改用系统临时目录",
-          file=sys.stderr)
+except OSError as exc:  # 只读环境：沿用系统临时目录
+    print(f"[!] 无法使用测试临时目录 {TMP_DIR}（{exc}），改用系统临时目录", file=sys.stderr)
     TMP_DIR = tempfile.gettempdir()

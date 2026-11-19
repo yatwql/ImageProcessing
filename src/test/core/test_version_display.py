@@ -96,8 +96,11 @@ class CodeUpdatedDate(TuiTestCase):
 
     def test_cli_version_prints_the_update_date(self):
         out, err = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
-                contextlib.suppress(SystemExit):
+        with (
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+            contextlib.suppress(SystemExit),
+        ):
             cli_main.main(["--version"])
         self.assertIn(version_mod.UPDATED, out.getvalue() + err.getvalue())
 

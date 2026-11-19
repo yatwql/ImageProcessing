@@ -68,22 +68,19 @@ class ParseArgs(unittest.TestCase):
         self.assertTrue(opts.fit_width)
 
     def test_non_numeric_value_exits_with_2(self):
-        with mock.patch("sys.stderr"):
-            with self.assertRaises(SystemExit) as ctx:
-                ui.parse_args(["data", "--size", "abc"])
+        with mock.patch("sys.stderr"), self.assertRaises(SystemExit) as ctx:
+            ui.parse_args(["data", "--size", "abc"])
         self.assertEqual(ctx.exception.code, 2)
 
     def test_quality_out_of_range_exits_with_2(self):
-        with mock.patch("sys.stderr"):
-            with self.assertRaises(SystemExit) as ctx:
-                ui.parse_args(["data", "--quality", "999"])
+        with mock.patch("sys.stderr"), self.assertRaises(SystemExit) as ctx:
+            ui.parse_args(["data", "--quality", "999"])
         self.assertEqual(ctx.exception.code, 2)
 
     def test_help_prints_usage_and_exits_0(self):
         out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            with self.assertRaises(SystemExit) as ctx:
-                ui.parse_args(["--help"])
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as ctx:
+            ui.parse_args(["--help"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn("用法", out.getvalue())
 

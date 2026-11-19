@@ -10,6 +10,10 @@ from dataclasses import dataclass
 
 from .errors import CoreError
 
+# 关键阈值集中在这里，改一个数就能同步到匹配/分析/绘制三处
+MIN_OCR_SCORE = 0.0  # OCR 置信度下限；低于它的块不参与自动匹配
+FUZZY_MIN = 0.8  # 模糊兜底的最低相似度（difflib ratio）
+
 
 def _log(msg: str) -> None:
     if os.environ.get("TEXT_REPLACE_VERBOSE"):
@@ -25,12 +29,15 @@ class Options:
     fit_width: bool = False
     tracking: float | None = None
     max_fonts: int = 160
-    quality: int | None = None       # JPEG 输出质量 1-100；None=默认 95
+    min_score: float = MIN_OCR_SCORE  # OCR 置信度下限（0=不过滤）
+    fuzzy_min: float = FUZZY_MIN  # 模糊兜底阈值
+    dry_run: bool = False  # 预演：只算分析/匹配结果，不改像素、不写文件
+    quality: int | None = None  # JPEG 输出质量 1-100；None=默认 95
     debug: str | None = None
     quiet: bool = False
-    log_dir: str | None = None      # 写盘日志目录；None=用调用方默认（logs/）
-    channel: str = "cli"            # 写盘日志里的来源渠道：cli / tui
-    warn: Callable[[str], None] | None = None   # 警告出口；TUI 用它回填消息行
+    log_dir: str | None = None  # 写盘日志目录；None=用调用方默认（logs/）
+    channel: str = "cli"  # 写盘日志里的来源渠道：cli / tui
+    warn: Callable[[str], None] | None = None  # 警告出口；TUI 用它回填消息行
 
 
 def warn(opts: Options | None, msg: str) -> None:

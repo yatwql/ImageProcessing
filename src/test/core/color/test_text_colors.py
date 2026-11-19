@@ -49,8 +49,11 @@ class TextColorSampling(unittest.TestCase):
                 info = analyze(rgb, (25, 35, 360, 60))
                 if info is None:
                     self.skipTest(f"{name}: 未检测到文字")
-                jobs = plan_jobs([{"text": "年度报告2023", "rect": (25, 35, 360, 60), "score": 1.0}],
-                                 {"2023": "2024"}, warn=False)
+                jobs = plan_jobs(
+                    [{"text": "年度报告2023", "rect": (25, 35, 360, 60), "score": 1.0}],
+                    {"2023": "2024"},
+                    warn=False,
+                )
                 pool = build_font_pool(["年度报告2023"], None, 6)
                 out, _a, report = replace_image(rgb, None, jobs, Options(quiet=True), pool)
                 self.assertEqual(len(report), 1)

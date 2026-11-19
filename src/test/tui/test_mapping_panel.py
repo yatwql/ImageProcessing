@@ -15,7 +15,7 @@ from src.test._support import TuiTestCase
 class MappingPanel(TuiTestCase):
     def test_add_entry(self):
         app = self.make_app()
-        self.drive(app, ["e", "n"] + list("2023") + ["\n"] + list("2024") + ["\n", "q", "q"])
+        self.drive(app, ["e", "n", *list("2023"), "\n", *list("2024"), "\n", "q", "q"])
         self.assertEqual(app.mapping.get("2023"), "2024")
 
     def test_edit_existing_entry(self):
@@ -34,7 +34,7 @@ class MappingPanel(TuiTestCase):
         app = self.make_app()
         app.mapping["2023"] = "2024"
         target = os.path.join(self.tmp.name, "map.json")
-        self.drive(app, ["e", "w"] + list(target) + ["\n", "q", "q"])
+        self.drive(app, ["e", "w", *list(target), "\n", "q", "q"])
         self.assertTrue(os.path.exists(target))
         with open(target, encoding="utf-8") as f:
             self.assertEqual(json.load(f), {"2023": "2024"})

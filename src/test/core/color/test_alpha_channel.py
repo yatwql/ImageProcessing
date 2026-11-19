@@ -20,8 +20,7 @@ def transparent_text_image():
     """透明底 + 半透明白字：最容易暴露 alpha 未修复的问题。"""
     img = Image.new("RGBA", (360, 140), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.text((30, 40), "年度报告2023", font=cjk_font(36),
-           fill=(255, 255, 255, 255))
+    d.text((30, 40), "年度报告2023", font=cjk_font(36), fill=(255, 255, 255, 255))
     return img
 
 
@@ -51,17 +50,20 @@ class AlphaHandling(unittest.TestCase):
                 raise AssertionError("应该带 alpha 通道")
             alpha_out = erase(alpha, info["mask"])
             inside = alpha_out[45:80, 35:250]
-            self.assertEqual(int(inside.max()), 0)          # 原字迹位置的 alpha 被清掉
+            self.assertEqual(int(inside.max()), 0)  # 原字迹位置的 alpha 被清掉
 
     def test_replacement_paints_opaque_pixels(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "a.png")
             transparent_text_image().save(path)
             rgb, alpha = load_image(path)
-            jobs = plan_jobs([{"text": "年度报告2023", "rect": (28, 38, 300, 50), "score": 1.0}],
-                             {"2023": "2024"}, warn=False)
+            jobs = plan_jobs(
+                [{"text": "年度报告2023", "rect": (28, 38, 300, 50), "score": 1.0}],
+                {"2023": "2024"},
+                warn=False,
+            )
             pool = build_font_pool(["年度报告2023"], None, 6)
-            out, new_alpha, report = replace_image(rgb, alpha, jobs, Options(quiet=True), pool)
+            _out, new_alpha, report = replace_image(rgb, alpha, jobs, Options(quiet=True), pool)
             if new_alpha is None:
                 raise AssertionError("alpha 丢失")
             self.assertEqual(len(report), 1)

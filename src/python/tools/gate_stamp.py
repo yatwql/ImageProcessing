@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 STAMP_NAME = "retype-gate-stamp.json"
 

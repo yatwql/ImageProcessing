@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 from ..stdio import ensure_utf8_stdio
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 # core/match.py 逻辑密集；check_platform_safety.py 的规则失效是"静默放行"，
 # 光看覆盖率发现不了，所以一起变异。

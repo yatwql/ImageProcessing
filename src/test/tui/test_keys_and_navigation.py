@@ -21,8 +21,7 @@ class CliLikeArguments(unittest.TestCase):
 
     def test_quality_and_log_dir_are_parsed(self):
         log_dir = os.path.join(tempfile.gettempdir(), "img-p-logs")
-        _inputs, _out, _map, opts = ui.parse_args(
-            ["--quality", "80", "--log-dir", log_dir])
+        _inputs, _out, _map, opts = ui.parse_args(["--quality", "80", "--log-dir", log_dir])
         self.assertEqual(opts.quality, 80)
         self.assertEqual(opts.log_dir, log_dir)
 
@@ -35,9 +34,11 @@ class KeySequenceDecoding(unittest.TestCase):
     """各种终端吐出来的按键字节怎么归一。"""
 
     def test_escape_sequences_decode_to_arrows(self):
-        for seq, token in ((["\x1b", "[", "A"], "KEY_UP"),
-                           (["\x1b", "O", "B"], "KEY_DOWN"),
-                           (["\x1b", "[", "5", "~"], "KEY_PPAGE")):
+        for seq, token in (
+            (["\x1b", "[", "A"], "KEY_UP"),
+            (["\x1b", "O", "B"], "KEY_DOWN"),
+            (["\x1b", "[", "5", "~"], "KEY_PPAGE"),
+        ):
             self.assertEqual(ui.read_key(FakeWin(seq)), token)
 
     def test_single_escape_stays_escape_key(self):
@@ -71,7 +72,7 @@ class ListNavigation(TuiTestCase):
     def test_escape_returns_instead_of_quitting(self):
         app = self.make_app()
         self.drive(app, ["\x1b", None, "q"])
-        self.assertTrue(app.quit)                     # 退出是后面的 q 干的
+        self.assertTrue(app.quit)  # 退出是后面的 q 干的
         self.assertIn("按 q 退出", app.message)
 
     def test_t_key_toggles_panel_focus(self):
@@ -92,7 +93,7 @@ class ListNavigation(TuiTestCase):
 
     def test_zero_key_selects_tenth_image(self):
         app = self.make_app(count=10)
-        app.img_rows = 12                             # 一屏能看到第 10 张
+        app.img_rows = 12  # 一屏能看到第 10 张
         app.sel_row = app.first_image_row()
         self.assertTrue(app.select_by_digit(10))
         self.assertEqual(app.image_position(), 10)

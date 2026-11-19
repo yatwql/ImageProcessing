@@ -15,7 +15,7 @@ def edit_line(win, prompt: str, initial: str = "") -> str | None:
     h, w = win.getmaxyx()
     buf = list(initial)
     pos = len(buf)
-    touched = not initial          # 预填内容：第一次输入直接替换掉，不用手动删
+    touched = not initial  # 预填内容：第一次输入直接替换掉，不用手动删
     with contextlib.suppress(curses.error):
         curses.curs_set(1)
     try:
@@ -60,7 +60,7 @@ def edit_line(win, prompt: str, initial: str = "") -> str | None:
             if key in (curses.KEY_END, "\x05"):
                 pos = len(buf)
                 continue
-            if key == "\x15":                              # Ctrl-U
+            if key == "\x15":  # Ctrl-U
                 buf, pos, touched = [], 0, True
                 continue
             if isinstance(key, str) and key.isprintable():
@@ -72,28 +72,45 @@ def edit_line(win, prompt: str, initial: str = "") -> str | None:
         with contextlib.suppress(curses.error):
             curses.curs_set(0)
 
+
 KEYMAP = {
-    curses.KEY_UP: "KEY_UP", curses.KEY_DOWN: "KEY_DOWN",
-    curses.KEY_LEFT: "KEY_LEFT", curses.KEY_RIGHT: "KEY_RIGHT",
-    curses.KEY_HOME: "KEY_HOME", curses.KEY_END: "KEY_END",
-    curses.KEY_NPAGE: "KEY_NPAGE", curses.KEY_PPAGE: "KEY_PPAGE",
-    curses.KEY_ENTER: "KEY_ENTER", curses.KEY_BACKSPACE: "KEY_BACKSPACE",
+    curses.KEY_UP: "KEY_UP",
+    curses.KEY_DOWN: "KEY_DOWN",
+    curses.KEY_LEFT: "KEY_LEFT",
+    curses.KEY_RIGHT: "KEY_RIGHT",
+    curses.KEY_HOME: "KEY_HOME",
+    curses.KEY_END: "KEY_END",
+    curses.KEY_NPAGE: "KEY_NPAGE",
+    curses.KEY_PPAGE: "KEY_PPAGE",
+    curses.KEY_ENTER: "KEY_ENTER",
+    curses.KEY_BACKSPACE: "KEY_BACKSPACE",
     "\n": "KEY_ENTER",
 }
 
 # 手机/各种终端的方向键转义序列（curses 认不出来的那些）
 SEQ_MAP = {
-    "[A": "KEY_UP", "OA": "KEY_UP", "[1;2A": "KEY_UP",
-    "[B": "KEY_DOWN", "OB": "KEY_DOWN", "[1;2B": "KEY_DOWN",
-    "[C": "KEY_RIGHT", "OC": "KEY_RIGHT",
-    "[D": "KEY_LEFT", "OD": "KEY_LEFT",
-    "[H": "KEY_HOME", "OH": "KEY_HOME", "[1~": "KEY_HOME",
-    "[F": "KEY_END", "OF": "KEY_END", "[4~": "KEY_END",
-    "[5~": "KEY_PPAGE", "[6~": "KEY_NPAGE",
+    "[A": "KEY_UP",
+    "OA": "KEY_UP",
+    "[1;2A": "KEY_UP",
+    "[B": "KEY_DOWN",
+    "OB": "KEY_DOWN",
+    "[1;2B": "KEY_DOWN",
+    "[C": "KEY_RIGHT",
+    "OC": "KEY_RIGHT",
+    "[D": "KEY_LEFT",
+    "OD": "KEY_LEFT",
+    "[H": "KEY_HOME",
+    "OH": "KEY_HOME",
+    "[1~": "KEY_HOME",
+    "[F": "KEY_END",
+    "OF": "KEY_END",
+    "[4~": "KEY_END",
+    "[5~": "KEY_PPAGE",
+    "[6~": "KEY_NPAGE",
     "[Z": "BTAB",
 }
 
-ESC_WAIT_MS = 45          # 独立 ESC 与之字形转义序列的区分窗口
+ESC_WAIT_MS = 45  # 独立 ESC 与之字形转义序列的区分窗口
 
 
 def read_key(win, timeout_ms: int = -1) -> str:
@@ -111,7 +128,7 @@ def read_key(win, timeout_ms: int = -1) -> str:
     try:
         key = _read_one(win)
     except curses.error:
-        return ""                       # 到点没有输入
+        return ""  # 到点没有输入
     finally:
         if timeout_ms >= 0:
             with contextlib.suppress(curses.error):
@@ -135,11 +152,10 @@ def _read_one(win) -> str:
                 break
             seq += nxt
     except (curses.error, KeyboardInterrupt):
-        pass                     # 序列结束（或这个窗口里没有更多输入）
+        pass  # 序列结束（或这个窗口里没有更多输入）
     finally:
         with contextlib.suppress(curses.error):
             win.timeout(-1)
     if not seq:
         return "ESC"
     return SEQ_MAP.get(seq, "")
-

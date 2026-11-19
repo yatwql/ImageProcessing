@@ -157,7 +157,7 @@ class CenteredBanner(unittest.TestCase):
             warn=False,
         )
         pool = build_font_pool(["年度峰会 2023"], None, 6)
-        out, _a, report = replace_image(rgb, None, jobs, Options(quiet=True), pool)
+        _out, _a, report = replace_image(rgb, None, jobs, Options(quiet=True), pool)
         self.assertEqual(len(report), 1)
         self.assertEqual(report[0]["align"], "center")
         self.assertEqual(report[0]["color"], [255, 255, 255])

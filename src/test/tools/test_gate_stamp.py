@@ -28,9 +28,11 @@ def run_stamp(argv: list[str]) -> tuple[int, str]:
 
 class StampFile(unittest.TestCase):
     def test_missing_stamp_does_not_match(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.object(gate_stamp, "fingerprint", return_value="abc"):
-                self.assertFalse(gate_stamp.stamp_matches(Path(tmp)))
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(gate_stamp, "fingerprint", return_value="abc"),
+        ):
+            self.assertFalse(gate_stamp.stamp_matches(Path(tmp)))
 
     def test_write_then_match(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -86,27 +88,29 @@ class Fingerprint(unittest.TestCase):
 
 class CommandLine(unittest.TestCase):
     def test_check_reports_miss(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            # git 目录也钉在临时根上：否则临时目录若落在仓库内，
-            # `git rev-parse --git-dir` 会指回真实仓库，读到真戳而不是"没戳"
-            with mock.patch.object(gate_stamp, "ROOT", Path(tmp)), mock.patch.object(
-                gate_stamp, "git_dir", return_value=Path(tmp) / ".git"
-            ):
-                with mock.patch.object(gate_stamp, "fingerprint", return_value="abc"):
-                    code, out = run_stamp(["--check"])
+        # git 目录也钉在临时根上：否则临时目录若落在仓库内，
+        # `git rev-parse --git-dir` 会指回真实仓库，读到真戳而不是"没戳"
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(gate_stamp, "ROOT", Path(tmp)),
+            mock.patch.object(gate_stamp, "git_dir", return_value=Path(tmp) / ".git"),
+            mock.patch.object(gate_stamp, "fingerprint", return_value="abc"),
+        ):
+            code, out = run_stamp(["--check"])
         self.assertEqual(code, 1)
         self.assertIn("真跑一次全量门禁", out)
 
     def test_write_then_check_reports_hit(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            # git 目录也钉在临时根上：否则临时目录若落在仓库内，
-            # `git rev-parse --git-dir` 会指回真实仓库，读到真戳而不是"没戳"
-            with mock.patch.object(gate_stamp, "ROOT", Path(tmp)), mock.patch.object(
-                gate_stamp, "git_dir", return_value=Path(tmp) / ".git"
-            ):
-                with mock.patch.object(gate_stamp, "fingerprint", return_value="abc"):
-                    self.assertEqual(run_stamp(["--write"])[0], 0)
-                    code, out = run_stamp(["--check"])
+        # git 目录也钉在临时根上：否则临时目录若落在仓库内，
+        # `git rev-parse --git-dir` 会指回真实仓库，读到真戳而不是"没戳"
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(gate_stamp, "ROOT", Path(tmp)),
+            mock.patch.object(gate_stamp, "git_dir", return_value=Path(tmp) / ".git"),
+            mock.patch.object(gate_stamp, "fingerprint", return_value="abc"),
+        ):
+            self.assertEqual(run_stamp(["--write"])[0], 0)
+            code, out = run_stamp(["--check"])
         self.assertEqual(code, 0)
         self.assertIn("跳过重跑", out)
 

@@ -26,8 +26,10 @@ class FontDiscoveryPaths(unittest.TestCase):
     def test_windows_uses_system_and_user_font_dirs(self):
         windir = r"C:\Windows"
         local = r"C:\Users\me\AppData\Local"
-        with mock.patch.object(fonts.os, "name", "nt"), \
-                mock.patch.dict(fonts.os.environ, {"WINDIR": windir, "LOCALAPPDATA": local}):
+        with (
+            mock.patch.object(fonts.os, "name", "nt"),
+            mock.patch.dict(fonts.os.environ, {"WINDIR": windir, "LOCALAPPDATA": local}),
+        ):
             dirs = fonts.font_dirs()
             expected = [
                 os.path.join(windir, "Fonts"),
@@ -37,8 +39,10 @@ class FontDiscoveryPaths(unittest.TestCase):
 
     def test_windows_cache_lives_under_local_appdata(self):
         local = r"C:\Users\me\AppData\Local"
-        with mock.patch.object(fonts.os, "name", "nt"), \
-                mock.patch.dict(fonts.os.environ, {"LOCALAPPDATA": local}):
+        with (
+            mock.patch.object(fonts.os, "name", "nt"),
+            mock.patch.dict(fonts.os.environ, {"LOCALAPPDATA": local}),
+        ):
             path = fonts.cache_file()
         self.assertEqual(path, os.path.join(local, "retype", "fonts.json"))
 
@@ -56,12 +60,12 @@ class FontFaceIdentity(unittest.TestCase):
     def test_font_size_is_used_as_rendered(self):
         face = FontFace(FONT_CJK, 0)
         self.assertEqual(face.font(40).size, 40)
-        self.assertEqual(face.font(2).size, 6)          # 下限保护
+        self.assertEqual(face.font(2).size, 6)  # 下限保护
 
 
 class FontPoolBuilding(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self._old_cache = os.environ.get("XDG_CACHE_HOME")
         os.environ["XDG_CACHE_HOME"] = self.tmp.name
@@ -107,7 +111,7 @@ class FontPoolBuilding(unittest.TestCase):
             f.write("{ not json")
         pool = build_font_pool(["坏缓存"], None, 4)
         self.assertTrue(pool)
-        self.assertTrue(os.path.exists(path))            # 会重新写回
+        self.assertTrue(os.path.exists(path))  # 会重新写回
 
     def test_italic_detection_by_name(self):
         from src.python.core.style import _is_italic
@@ -135,14 +139,16 @@ class FontProbe(unittest.TestCase):
         path, index = _support.cjk_font_spec()
         self.assertTrue(path)
         self.assertGreaterEqual(index, 0)
-        _support.cjk_font(20)              # 真能加载
+        _support.cjk_font(20)  # 真能加载
 
     def test_force_no_font_raises_skip(self):
         from src.test import _support
 
-        with mock.patch.object(_support, "FORCE_NO_FONT", True):
-            with self.assertRaises(unittest.SkipTest):
-                _support.cjk_font_spec()
+        with (
+            mock.patch.object(_support, "FORCE_NO_FONT", True),
+            self.assertRaises(unittest.SkipTest),
+        ):
+            _support.cjk_font_spec()
 
     def test_has_cjk_font_is_false_when_forced_off(self):
         from src.test import _support

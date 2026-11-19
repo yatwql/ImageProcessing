@@ -8,7 +8,7 @@ retype（图片文字替换）：把图片里指定的一些字换成别的字�
 新文字自动沿用原文字的字体、字号、字重、字色、字距与位置，原图永不覆盖。
 
 ```text
-scripts/                 只放 .sh/.ps1 薄壳启动脚本（cli/tui/setup/runTest/log-query）
+scripts/                 只放 .sh/.ps1 薄壳启动脚本（cli/tui/setup/run-test/log-query）
 src/python/tools/        工程工具：check_guards / check_perf / check_coverage / run_tests /
                          release / gen_folders（重新生成目录树与统计）…
 .githooks/               仓库自带钩子：pre-commit（ruff + guards + 用例）、install-hooks.sh
@@ -37,6 +37,9 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 - **一律使用项目虚拟环境解释器**：`.venv/bin/python`。**禁止**裸 `python` / `python3` / `pytest`
   （会命中系统解释器，缺 Pillow / numpy / cv2 / rapidocr，报 `ModuleNotFoundError`）。
+- **一律走 `.venv`，且这一点是可观测的**：`bootstrap.in_venv()` 判断当前解释器，`venv_hint()`
+  在「仓库里裸 python 跑 CLI/TUI/工具」时给一句改用 `.venv/bin/python`（CI 环境变量存在时不吵）。
+  不硬拦：容器/CI 里本来就在受管环境中运行。
 - 首次准备：**不用手动跑**——任一启动脚本（`cli.sh` / `tui.sh` / `test.sh`）发现缺 `.venv`
   或关键依赖时会自动装（`src/python/launch.py` → `bootstrap.py`）；想手动或离线装依赖时
   `./scripts/setup.sh [--dev]`（= `python -m src.python.bootstrap`），设 `IMG_P_NO_AUTO_SETUP=1`
@@ -64,7 +67,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
   四档环境矩阵与分片重排，约 3 分钟）；
   全量通过会在 `.git/retype-gate-stamp.json` 留戳，**同一份代码再推不重跑**，
   改任何跟踪文件都会让戳失效。
-- 覆盖率门禁：总量 ≥96%，且 `core/{match,options}` ≥90%、`core/{edit,render,image,audit,render}` 与
+- 覆盖率门禁：总量 ≥93%（行 + 分支同算），且 `core/{match,options}` ≥90%、`core/{edit,render,image,audit,render}` 与
   `tui/{ui_draw}` ≥85%、`tui/{app,ui_actions}` ≥80%；正常模式 skip ≤15%（`src/python/tools/check_coverage.py`）。
 - 界面快照：`src/test/snapshots/tui.json`（5 尺寸 × 8 状态）。有意改界面后
   `UPDATE_SNAPSHOTS=1 .venv/bin/python -m pytest src/test/tui/test_screen_snapshots.py`，
@@ -79,7 +82,7 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 .venv/bin/python -m src.python.tools.check_perf                                # 耗时守卫
 .venv/bin/python scripts/log-query.py --src 报告                        # 查写盘记录
 .venv/bin/python -m pytest src/test -q                                # 全部用例
-./scripts/runTest.sh                                                     # 全量用例 + 报告
+./scripts/run-test.sh                                                     # 全量用例 + 报告
 ./scripts/cli.sh data --list                                          # OCR 是否正常
 ./scripts/cli.sh data --map "2023=2024" --dry-run                      # 批量预演
 ```
@@ -132,7 +135,8 @@ src/test/__init__.py     测试包入口：把仓库根加入 sys.path，并把�
 
 ## 分支与版本纪律
 
-- **日常开发只在 `dev` 分支**；`VERSION` 带 `-dev`（如 `0.3-dev`），各文档 `> 版本：` 行与它逐字一致
+- **日常开发只在 `dev` 分支**；`src/python/version.py` 里的 `VERSION` 带 `-dev`（如 `0.3-dev`），
+  各文档 `> 版本：` 行与它逐字一致
   （守护「版本号」会核对，`master` 上带 `-dev` 或 `dev` 上不带都会红）。
 - 正式发布：`prepare --version X.Y`（去掉 `-dev`）→ gate → build → 打标签 `vX.Y` → **合并进 `master`**；
   发布后回 `dev` 跑 `devbump --version <下一个 X.Y>` 切下一个开发版。

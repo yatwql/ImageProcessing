@@ -22,7 +22,7 @@ from src.test._support import has_cjk_font, make_text_image, patch_ocr
 @unittest.skipUnless(has_cjk_font(), "需要 CJK 字体（Debian/Ubuntu 装 fonts-noto-cjk）")
 class BatchDirectoryRun(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.src_dir = os.path.join(self.tmp.name, "in")
         self.out_dir = os.path.join(self.tmp.name, "out")
@@ -36,16 +36,20 @@ class BatchDirectoryRun(unittest.TestCase):
 
     def run_cli(self, *argv: str) -> tuple[int, str, str]:
         out, err = io.StringIO(), io.StringIO()
-        with patch_ocr(self.boxes), contextlib.redirect_stdout(out), \
-                contextlib.redirect_stderr(err):
+        with (
+            patch_ocr(self.boxes),
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+        ):
             code = main(list(argv))
         return code, out.getvalue(), err.getvalue()
 
     def test_every_image_produces_output(self):
         self.make_image("a.png")
         self.make_image("b.png")
-        code, text, _err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                        "--out-dir", self.out_dir)
+        code, text, _err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.out_dir
+        )
         self.assertEqual(code, 0)
         self.assertEqual(sorted(os.listdir(self.out_dir)), ["a.png", "b.png"])
         self.assertIn("成功 2 张", text)
@@ -53,8 +57,9 @@ class BatchDirectoryRun(unittest.TestCase):
 
     def test_dry_run_writes_no_files(self):
         self.make_image("a.png")
-        code, text, _err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                        "--out-dir", self.out_dir, "--dry-run")
+        code, text, _err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.out_dir, "--dry-run"
+        )
         self.assertEqual(code, 0)
         self.assertFalse(os.path.exists(self.out_dir))
         self.assertIn("批量完成", text)
@@ -63,16 +68,18 @@ class BatchDirectoryRun(unittest.TestCase):
         self.make_image("a.png")
         with open(os.path.join(self.src_dir, "note.txt"), "w", encoding="utf-8") as f:
             f.write("x")
-        code, _text, _err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                         "--out-dir", self.out_dir)
+        code, _text, _err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.out_dir
+        )
         self.assertEqual(code, 0)
         self.assertEqual(os.listdir(self.out_dir), ["a.png"])
 
     def test_same_stem_different_extension_gets_numbered(self):
         self.make_image("report.png")
         Image.fromarray(self.rgb).save(os.path.join(self.src_dir, "report.jpg"))
-        code, _text, _err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                         "--out-dir", self.out_dir)
+        code, _text, _err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.out_dir
+        )
         self.assertEqual(code, 0)
         self.assertEqual(sorted(os.listdir(self.out_dir)), ["report-1.png", "report.png"])
 
@@ -84,11 +91,12 @@ class BatchDirectoryRun(unittest.TestCase):
 
     def test_quiet_keeps_summary_only(self):
         self.make_image("a.png")
-        code, text, _err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                        "--out-dir", self.out_dir, "--quiet")
+        code, text, _err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.out_dir, "--quiet"
+        )
         self.assertEqual(code, 0)
         self.assertIn("批量完成", text)
-        self.assertNotIn("→", text.split("批量完成")[0])   # 不打印逐图明细
+        self.assertNotIn("→", text.split("批量完成")[0])  # 不打印逐图明细
 
     def test_default_out_dir_is_output_sibling(self):
         from src.python.config import DEFAULT_OUT_DIR
@@ -103,8 +111,9 @@ class BatchDirectoryRun(unittest.TestCase):
 
     def test_out_dir_equal_to_larger_tree_is_allowed_but_refuses_source_file(self):
         src = self.make_image("a.png")
-        code, _text, err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                        "--out-dir", self.src_dir)
+        code, _text, err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.src_dir
+        )
         self.assertNotEqual(code, 0)
         self.assertIn("拒绝覆盖", err)
         self.assertTrue(os.path.exists(src))
@@ -116,8 +125,9 @@ class BatchDirectoryRun(unittest.TestCase):
         with open(broken, "wb") as f:
             f.write(b"not a png")
 
-        code, _text, err = self.run_cli(self.src_dir, "--map", "2023=2024",
-                                        "--out-dir", self.out_dir)
+        code, _text, err = self.run_cli(
+            self.src_dir, "--map", "2023=2024", "--out-dir", self.out_dir
+        )
         # 契约：只要有一张成功就算成功（退出码 0），失败的张数在 stderr 与摘要里体现
         self.assertEqual(code, 0)
         self.assertIn("跳过", err)

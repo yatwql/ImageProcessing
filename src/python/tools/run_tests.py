@@ -5,12 +5,13 @@
     .venv/bin/python tools/run_tests.py --fast     # 只跑用例
     .venv/bin/python tools/run_tests.py -k 关键字   # 其余参数透传给 pytest
 
-`scripts/runTest.sh` / `scripts/runTest.ps1` 只是薄壳，逻辑都在这里，
+`scripts/run-test.sh` / `scripts/run-test.ps1` 只是薄壳，逻辑都在这里，
 省得两个平台各维护一份 130 行脚本。
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import subprocess
@@ -20,7 +21,7 @@ from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
 from ._parallel import parallel_args, worker_count
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 TMP_ROOT = Path(os.environ.get("IMG_P_TMP_DIR", "/data/tmp"))  # platform-safe
 REPORT_DIR_FALLBACK = ROOT / "reports"
@@ -103,10 +104,8 @@ def cleanup_repo() -> None:
     except OSError:
         pass
     for name in (".pytest_cache", ".ruff_cache"):
-        try:
+        with contextlib.suppress(OSError):
             shutil.rmtree(ROOT / name, ignore_errors=True)
-        except OSError:
-            pass
 
 
 def _junit_suite(path: Path) -> ET.Element | None:

@@ -249,7 +249,7 @@ class FakeWin:
         left += " " * max(0, x - dwidth(left))
         self.screen[y] = left + cut(text, max(0, self.cols - x))
 
-    def addch(self, y, x, ch, _attr=0):
+    def addch(self, _y, _x, ch, _attr=0):
         """线框字符：可以是 str，也可以是 curses 的 ACS int 码（真 curses 两者都收）。"""
         if not isinstance(ch, (str, int)):
             raise TypeError(f"expect str or int, got {type(ch).__name__}")
@@ -283,7 +283,7 @@ class TuiTestCase(unittest.TestCase):
 
     def setUp(self):
         patch_curses()
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
 
     def make_app(self, count: int = 3):

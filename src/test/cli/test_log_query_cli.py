@@ -20,7 +20,7 @@ from src.python.core import audit
 
 class LogQueryCli(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.logs = os.path.join(self.tmp.name, "logs")
         audit.record_write(

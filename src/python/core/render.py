@@ -83,7 +83,7 @@ def draw_text(
         rendered.append((arr, b))
 
     heights = [b[3] - b[1] for a, b in rendered if a is not None] or [size]
-    pitch = int(round(size * 1.34))
+    pitch = round(size * 1.34)
     total_h = pitch * (len(lines) - 1) + max(heights) if len(lines) > 1 else heights[0]
     y_cursor = (y0 + y1) / 2.0 - total_h / 2.0
 
@@ -101,7 +101,7 @@ def draw_text(
         else:
             x = (x0 + x1) / 2.0 - nw / 2.0
 
-        xi, yi = int(round(x)), int(round(y_cursor))
+        xi, yi = round(x), round(y_cursor)
         px0, py0 = max(0, xi), max(0, yi)
         px1, py1 = min(W, xi + nw), min(H, yi + nh)
         if px1 <= px0 or py1 <= py0:

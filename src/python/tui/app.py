@@ -13,6 +13,7 @@ from collections.abc import Callable
 
 from ..config import apply_to_options, default_out_dir, log_dir
 from ..core import (
+    ACTION_UNDO,
     CoreError,
     Job,
     build_font_pool,
@@ -46,10 +47,94 @@ SETTING_ROWS = (
 )
 
 
+# --------------------------------------------------------------------------- 样式设置项
+# 每项：解析文本 → 校验 → 写进 opts；返回 None 表示成功，返回字符串表示要显示的错误。
+# 参数 (app, 文本, 是否"自动")。
+
+
+def _apply_font(app: App, text: str, auto: bool) -> str | None:
+    if auto:
+        app.opts.font = None
+        return None
+    if not os.path.exists(text):
+        return f"找不到字体文件: {text}"
+    app.opts.font = text
+    return None
+
+
+def _apply_size(app: App, text: str, auto: bool) -> str | None:
+    # 先校验再赋值：否则 -3 这类非法值会先写进去，提示完界面已经带着坏设置了
+    if auto:
+        app.opts.size = None
+        return None
+    size = int(text)
+    if size < 6:
+        return f"字号至少要 6（当前 {app.setting_value('size')}）"
+    app.opts.size = size
+    return None
+
+
+def _apply_color(app: App, text: str, auto: bool) -> str | None:
+    if auto:
+        app.opts.color = None
+        return None
+    try:
+        parse_color(text)  # 只做校验
+    except CoreError as e:
+        return str(e)
+    app.opts.color = text
+    return None
+
+
+def _apply_align(app: App, text: str, auto: bool) -> str | None:
+    if auto:
+        app.opts.align = "auto"
+        return None
+    if text not in ("auto", "left", "center", "right"):
+        return "对齐只能是 auto/left/center/right"
+    app.opts.align = text
+    return None
+
+
+def _apply_fit_width(app: App, text: str, _auto: bool) -> str | None:
+    app.opts.fit_width = text.lower() in ("on", "1", "true", "yes", "是")
+    return None
+
+
+def _apply_tracking(app: App, text: str, auto: bool) -> str | None:
+    app.opts.tracking = None if auto else float(text)
+    return None
+
+
+def _apply_max_fonts(app: App, text: str, auto: bool) -> str | None:
+    app.opts.max_fonts = 160 if auto else max(4, int(text))
+    return None
+
+
+def _apply_quality(app: App, text: str, auto: bool) -> str | None:
+    quality = None if auto else int(text)
+    if quality is not None and not 1 <= quality <= 100:
+        return f"质量应在 1-100 之间（当前 {app.setting_value('quality')}）"
+    app.opts.quality = quality
+    return None
+
+
+SETTING_APPLIERS: dict[str, Callable[..., str | None]] = {
+    "font": _apply_font,
+    "size": _apply_size,
+    "color": _apply_color,
+    "align": _apply_align,
+    "fit_width": _apply_fit_width,
+    "tracking": _apply_tracking,
+    "max_fonts": _apply_max_fonts,
+    "quality": _apply_quality,
+}
+
+
 class Block:
     """图片里识别到的一段文字，以及用户为它设置的新文字。"""
 
-    __slots__ = ("text", "rect", "override", "find", "enabled")
+    __slots__ = ("enabled", "find", "override", "rect", "text")
 
     def __init__(self, text: str, rect: tuple[int, int, int, int]):
         self.text = text
@@ -60,7 +145,7 @@ class Block:
 
 
 class ImageItem:
-    __slots__ = ("path", "name", "blocks", "error", "done", "memo", "sel", "saved")
+    __slots__ = ("blocks", "done", "error", "memo", "name", "path", "saved", "sel")
 
     def __init__(self, path: str):
         self.path = path
@@ -116,6 +201,8 @@ class App:
         self.last_saved: str | None = None
         self.quit = False
         self.cancel = False  # 批量替换的中断标志（界面轮询到 Esc 时置位）
+        # 上一次被覆盖的输出：(目标路径, 上一版字节, 原图路径)；z 写回并记一条审计
+        self.undo_entry: tuple[str, bytes, str | None] | None = None
         self.loading: bool = False  # 后台识别中（OCR 慢，不能阻塞按键）
         self.loaded_event = threading.Event()  # 后台识别结束（用例/界面都可以等它）
         self.loaded_event.set()
@@ -376,56 +463,22 @@ class App:
     def setting_notes(self) -> list[tuple[str, str, str]]:
         return [(key, title, self.setting_value(key)) for key, title, _hint in SETTING_ROWS]
 
-    def set_setting(self, key: str, raw: str) -> str:  # noqa: C901
-        """按文本设置一个选项，返回给用户的提示。"""
+    def set_setting(self, key: str, raw: str) -> str:
+        """按文本设置一个选项，返回给用户的提示。
+
+        每个设置项一段"解析 + 校验 + 赋值"，放在 `SETTING_APPLIERS` 表里：
+        新增一项只加一个函数，不再往一条长 if 链里塞分支。
+        """
         text = raw.strip()
-        auto = text in ("", "自动", "auto", "-")
+        applier = SETTING_APPLIERS.get(key)
+        if applier is None:
+            return f"未知设置项: {key}"
         try:
-            if key == "font":
-                if auto:
-                    self.opts.font = None
-                else:
-                    if not os.path.exists(text):
-                        return f"找不到字体文件: {text}"
-                    self.opts.font = text
-            elif key == "size":
-                # 先校验再赋值：否则 -3 这类非法值会先写进去，提示完界面已经带着坏设置了
-                if auto:
-                    self.opts.size = None
-                else:
-                    size = int(text)
-                    if size < 6:
-                        return f"字号至少要 6（当前 {self.setting_value(key)}）"
-                    self.opts.size = size
-            elif key == "color":
-                if auto:
-                    self.opts.color = None
-                else:
-                    try:
-                        parse_color(text)  # 只做校验
-                    except CoreError as e:
-                        return str(e)
-                    self.opts.color = text
-            elif key == "align":
-                if auto:
-                    self.opts.align = "auto"
-                elif text not in ("auto", "left", "center", "right"):
-                    return "对齐只能是 auto/left/center/right"
-                else:
-                    self.opts.align = text
-            elif key == "fit_width":
-                self.opts.fit_width = text.lower() in ("on", "1", "true", "yes", "是")
-            elif key == "tracking":
-                self.opts.tracking = None if auto else float(text)
-            elif key == "max_fonts":
-                self.opts.max_fonts = 160 if auto else max(4, int(text))
-            elif key == "quality":
-                new_quality = None if auto else int(text)
-                if new_quality is not None and not 1 <= new_quality <= 100:
-                    return f"质量应在 1-100 之间（当前 {self.setting_value(key)}）"
-                self.opts.quality = new_quality
+            problem = applier(self, text, text in ("", "自动", "auto", "-"))
         except (ValueError, CoreError):
             return f"「{text}」不是合法数值"
+        if problem:
+            return problem
         return f"{key} → {self.setting_value(key)}"
 
     # ---- 编辑动作
@@ -481,6 +534,7 @@ class App:
             memo=img.memo,
             source=img.path,
             should_stop=lambda: self.cancel,  # 单张图内按 Esc 也能停在块之间
+            abort=lambda: self.cancel,  # 一块字体匹配到一半也能停
         )
         if not report:
             return False, "已取消" if self.cancel else "替换全部失败"
@@ -489,7 +543,8 @@ class App:
             return False, f"输出目录 {self.out_dir} 会覆盖原图，按 o 换个目录"
         reserved = False
         if img.saved and self._same_out_dir(img.saved):
-            dst = img.saved  # 覆盖自己刚生成的那份
+            dst = img.saved  # 覆盖自己刚生成的那份（覆写前留一份供 z 撤销）
+            self.remember_previous(dst, img.path)
         else:
             try:
                 dst = reserve_path(base)  # 原子占名：已存在就 -1、-2 …
@@ -527,6 +582,44 @@ class App:
 
     def runnable(self) -> list[ImageItem]:
         return [img for img in self.images if self.jobs_for(img)]
+
+    def remember_previous(self, dst: str, source: str | None = None) -> None:
+        """覆写自己刚生成的那份之前，先记下上一版字节，供 z 写回。"""
+        try:
+            with open(dst, "rb") as f:
+                self.undo_entry = (dst, f.read(), source)
+        except OSError:
+            self.undo_entry = None
+
+    def undo_last(self) -> str:
+        """z：把上一版输出写回去（本次会话只留最近一份，避免软件多张图的体积）。"""
+        if self.undo_entry is None:
+            return "没有可撤销的替换（只有覆写自己刚生成的那份时才能回退）"
+        dst, blob, source = self.undo_entry
+        try:
+            with open(dst, "wb") as f:
+                f.write(blob)
+        except OSError as e:
+            return f"撤销失败: {e}"
+        self.undo_entry = None
+        for img in self.images:
+            if img.saved == dst:
+                img.done = True
+        self.last_saved = dst
+        note = ""
+        try:  # 撤销同样是一次落盘，审计里也要留痕（action 标明是撤销）
+            record_write(
+                source or dst,
+                dst,
+                (),
+                log_dir=self.opts.log_dir or log_dir(),
+                action=ACTION_UNDO,
+                channel=self.opts.channel,
+                options=self.opts,
+            )
+        except CoreError as e:
+            note = f"；{e}"
+        return f"已撤销上一次替换，写回 {os.path.abspath(dst)}{note}"
 
     def apply_current(self, progress: Progress | None = None) -> None:
         img = self.cur

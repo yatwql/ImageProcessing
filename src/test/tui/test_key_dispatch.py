@@ -34,7 +34,7 @@ class MainPanelKeys(TuiTestCase):
         self.app.ensure_blocks()
 
     def edit_line(self, *keys: str) -> None:
-        self.win.keys.extend(list(keys) + ["\n"])
+        self.win.keys.extend([*list(keys), "\n"])
 
     def test_tab_and_t_switch_between_panels(self):
         self.assertEqual(self.app.focus, "files")
@@ -144,13 +144,13 @@ class MainPanelKeys(TuiTestCase):
         self.assertIn("没识别出文字", img.error or "", "这里没有 OCR 桩，重新识别应给提示")
 
     def test_o_edits_output_dir(self):
-        self.win.keys.extend(list("/tmp/out") + ["\n"])  # platform-safe
+        self.win.keys.extend([*list("/tmp/out"), "\n"])  # platform-safe
         self.press("o")
         self.assertTrue(self.app.out_dir.endswith("/tmp/out"))  # platform-safe
 
     def test_w_exports_mapping_to_json(self):
         self.app.mapping = {"旧": "新"}
-        self.win.keys.extend(list("map.json") + ["\n"])
+        self.win.keys.extend([*list("map.json"), "\n"])
         self.press("w")
         self.assertTrue(os.path.exists("map.json"))
         self.addCleanup(lambda: os.path.exists("map.json") and os.remove("map.json"))
@@ -255,21 +255,21 @@ class MapPanelKeys(TuiTestCase):
         self.app.ensure_blocks()
 
     def edit_line(self, *keys: str) -> None:
-        self.win.keys.extend(list(keys) + ["\n"])
+        self.win.keys.extend([*list(keys), "\n"])
 
     def test_escape_returns_to_main(self):
         self.press("\x1b")
         self.assertEqual(self.app.panel, "main")
 
     def test_n_adds_a_pair(self):
-        self.win.keys.extend(list("旧") + ["\n"] + list("新") + ["\n"])
+        self.win.keys.extend([*list("旧"), "\n", *list("新"), "\n"])
         self.press("n")
         self.assertEqual(self.app.mapping, {"旧": "新"})
 
     def test_enter_edits_the_selected_pair(self):
         self.app.mapping = {"旧": "新"}
         self.app.sel_map = 0
-        self.win.keys.extend(list("改后") + ["\n"])
+        self.win.keys.extend([*list("改后"), "\n"])
         self.press("\n")
         self.assertEqual(self.app.mapping, {"旧": "改后"})
 
@@ -305,7 +305,7 @@ class SettingsPanelKeys(TuiTestCase):
         self.app.ensure_blocks()
 
     def edit_line(self, *keys: str) -> None:
-        self.win.keys.extend(list(keys) + ["\n"])
+        self.win.keys.extend([*list(keys), "\n"])
 
     def test_escape_returns_to_main(self):
         self.press("\x1b")
@@ -319,7 +319,7 @@ class SettingsPanelKeys(TuiTestCase):
 
     def test_enter_sets_a_value(self):
         self.app.sel_setting = 1  # 字号
-        self.win.keys.extend(list("28") + ["\n"])
+        self.win.keys.extend([*list("28"), "\n"])
         self.press("\n")
         self.assertEqual(self.app.opts.size, 28)
 
@@ -328,7 +328,7 @@ class SettingsPanelKeys(TuiTestCase):
         index = next(i for i, row in enumerate(rows) if row[0] == "quality")
         self.app.opts.quality = 90
         self.app.sel_setting = index
-        self.win.keys.extend(list("999") + ["\n"])
+        self.win.keys.extend([*list("999"), "\n"])
         self.press("\n")
         self.assertEqual(self.app.opts.quality, 90, "非法输入应保留原值")
         self.assertIn("100", self.app.message)

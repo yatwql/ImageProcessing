@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 SRC = ROOT / "src" / "python"
 
@@ -84,12 +84,16 @@ def main(argv: list[str] | None = None) -> int:
     if "-h" in args or "--help" in args:
         print(__doc__)
         return 0
+    quiet = "--ci" in args  # 门禁/CI 只要一行一结论
     problems = violations()
     if not problems:
-        print(f"[ok] 导入方向合规（扫描 {len(list(SRC.rglob('*.py')))} 个文件）")
+        if not quiet:
+            print(f"[ok] 导入方向合规（扫描 {len(list(SRC.rglob('*.py')))} 个文件）")
         return 0
     for item in problems:
         print(f"[FAIL] {item}")
+    if quiet:
+        print(f"导入方向: {len(problems)} 处违规")
     return 1
 
 

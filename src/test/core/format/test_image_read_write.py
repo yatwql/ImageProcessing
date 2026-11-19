@@ -27,7 +27,7 @@ from src.python.core.image import (
 
 class ImageReadWrite(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()      # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
 
     def test_png_roundtrip_preserves_pixels(self):
@@ -62,21 +62,20 @@ class ImageReadWrite(unittest.TestCase):
         path = os.path.join(self.tmp.name, "palette.png")
         im = Image.new("P", (8, 8), 1)
         im.putpalette([0, 0, 0, 255, 255, 255] + [0, 0, 0] * 254)
-        im.paste(0, (0, 0, 4, 4))                       # 左上角画成透明索引色
+        im.paste(0, (0, 0, 4, 4))  # 左上角画成透明索引色
         im.save(path, transparency=0)
 
         rgb, alpha = load_image(path)
 
         self.assertIsNotNone(alpha)
         assert alpha is not None
-        self.assertEqual(int(alpha[0, 0]), 0)           # 透明区保留下来
+        self.assertEqual(int(alpha[0, 0]), 0)  # 透明区保留下来
         self.assertEqual(int(alpha[-1, -1]), 255)
         self.assertEqual(rgb.shape, (8, 8, 3))
 
     def test_load_meta_reads_dpi_and_icc(self):
         path = os.path.join(self.tmp.name, "meta.jpg")
-        Image.new("RGB", (8, 8), (1, 2, 3)).save(path, dpi=(144, 144),
-                                                icc_profile=b"fake-icc")
+        Image.new("RGB", (8, 8), (1, 2, 3)).save(path, dpi=(144, 144), icc_profile=b"fake-icc")
         meta = load_meta(path)
         dpi = meta.get("dpi")
         assert isinstance(dpi, tuple)
@@ -119,7 +118,7 @@ class ImageReadWrite(unittest.TestCase):
         path = os.path.join(self.tmp.name, "opaque.png")
         Image.new("RGBA", (6, 6), (10, 20, 30, 255)).save(path)
         _rgb, alpha = load_image(path)
-        self.assertIsNone(alpha)                        # 不必要地带 alpha 会改变输出模式
+        self.assertIsNone(alpha)  # 不必要地带 alpha 会改变输出模式
 
     def test_directory_scan_keeps_images_and_sorts(self):
         for name in ("b.PNG", "a.jpg"):
@@ -139,7 +138,7 @@ class OutputPaths(unittest.TestCase):
             second = reserve_path(os.path.join(tmp, "a.png"))
             self.assertEqual(os.path.basename(first), "a.png")
             self.assertEqual(os.path.basename(second), "a-1.png")
-            self.assertTrue(os.path.exists(first))       # 占位文件已创建
+            self.assertTrue(os.path.exists(first))  # 占位文件已创建
             self.assertTrue(os.path.exists(second))
 
     def test_reserve_path_creates_missing_parent_directory(self):
@@ -150,7 +149,7 @@ class OutputPaths(unittest.TestCase):
     def test_duplicate_output_name_gets_numbered_suffix(self):
         with tempfile.TemporaryDirectory() as tmp:
             first = os.path.join(tmp, "a.png")
-            self.assertEqual(unique_path(first), first)          # 不存在就用原名
+            self.assertEqual(unique_path(first), first)  # 不存在就用原名
             open(first, "wb").close()
             second = unique_path(first)
             self.assertEqual(os.path.basename(second), "a-1.png")

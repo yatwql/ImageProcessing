@@ -22,14 +22,15 @@ FONT_EXTS = (".ttf", ".otf", ".ttc", ".otc")
 
 def _run(cmd: list[str]) -> str:
     try:
-        return subprocess.run(cmd, capture_output=True, text=True,
-                             encoding="utf-8", errors="replace", check=False).stdout
+        return subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
+        ).stdout
     except FileNotFoundError:
         return ""
 
 
 class FontFace:
-    __slots__ = ("path", "index", "name")
+    __slots__ = ("index", "name", "path")
 
     def __init__(self, path: str, index: int = 0):
         self.path = path
@@ -41,7 +42,7 @@ class FontFace:
         self.name = f"{fam} {style}".strip() or os.path.basename(path)
 
     def font(self, size: int) -> ImageFont.FreeTypeFont:
-        return ImageFont.truetype(self.path, max(6, int(round(size))), index=self.index)
+        return ImageFont.truetype(self.path, max(6, size), index=self.index)
 
     def __repr__(self) -> str:
         return f"<{self.name} {os.path.basename(self.path)}#{self.index}>"

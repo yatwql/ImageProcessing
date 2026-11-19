@@ -44,8 +44,9 @@ class DrawTextPlacement(unittest.TestCase):
         self.canvas = np.full((120, 400, 3), 255, np.uint8)
 
     def render(self, text: str, align: str, box=(20.0, 300.0, 20.0, 80.0)):
-        return draw_text(self.canvas.copy(), text, FontFace(FONT_CJK, 0), 32, 0.0,
-                         (0, 0, 0), box, align)
+        return draw_text(
+            self.canvas.copy(), text, FontFace(FONT_CJK, 0), 32, 0.0, (0, 0, 0), box, align
+        )
 
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_left_align_starts_at_box_left(self):
@@ -65,12 +66,20 @@ class DrawTextPlacement(unittest.TestCase):
         rows = np.nonzero((out < 250).any(axis=(1, 2)))[0]
         self.assertGreater(len(rows), 0)
         gaps = np.diff(rows)
-        self.assertGreater(gaps.max(), 5)                 # 两行之间确实有间隔
+        self.assertGreater(gaps.max(), 5)  # 两行之间确实有间隔
 
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_draw_outside_canvas_does_not_raise(self):
-        out = draw_text(self.canvas.copy(), "超出边界", FontFace(FONT_CJK, 0), 40, 0.0,
-                        (0, 0, 0), (390.0, 400.0, 100.0, 120.0), "left")
+        out = draw_text(
+            self.canvas.copy(),
+            "超出边界",
+            FontFace(FONT_CJK, 0),
+            40,
+            0.0,
+            (0, 0, 0),
+            (390.0, 400.0, 100.0, 120.0),
+            "left",
+        )
         self.assertEqual(out.shape, self.canvas.shape)
 
 
@@ -79,7 +88,7 @@ class TrackingAndSizeEstimates(unittest.TestCase):
     def test_solve_tracking_reaches_target_width(self):
         face = FontFace(FONT_CJK_REG, 0)
         natural = ink_size("宽宽宽", face, 30)[0]
-        target = natural + 2 * 6.0                     # 在 ±0.35em 的允许范围内
+        target = natural + 2 * 6.0  # 在 ±0.35em 的允许范围内
         tracking = solve_tracking("宽宽宽", face, 30, 0.0, target)
         self.assertAlmostEqual(ink_size("宽宽宽", face, 30, tracking)[0], target, delta=5)
 
@@ -87,7 +96,7 @@ class TrackingAndSizeEstimates(unittest.TestCase):
     def test_solve_tracking_is_clamped(self):
         face = FontFace(FONT_CJK_REG, 0)
         tracking = solve_tracking("宽宽宽", face, 30, 0.0, 999)
-        self.assertLessEqual(tracking, 1.6 * 30 + 0.01)     # 上限 1.6em，防止拉成不可读
+        self.assertLessEqual(tracking, 1.6 * 30 + 0.01)  # 上限 1.6em，防止拉成不可读
 
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_solve_tracking_ignores_single_character(self):
@@ -97,7 +106,7 @@ class TrackingAndSizeEstimates(unittest.TestCase):
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_guess_size_matches_rendered_height(self):
         face = FontFace(FONT_CJK, 0)
-        arr, box, _pad = render_line("国国", face, 40)
+        _arr, box, _pad = render_line("国国", face, 40)
         height = box[3] - box[1]
         self.assertAlmostEqual(guess_size(height, face), 40, delta=3)
 

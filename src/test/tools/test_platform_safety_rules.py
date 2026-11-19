@@ -110,7 +110,7 @@ class ToolStdioRule(unittest.TestCase):
             root = Path(tmp)
             (root / "src/python/tools").mkdir(parents=True)
             (root / "src/python/tools/bad.py").write_text(
-                "def main() -> int:\n    print(\"中文\")\n    return 0\n", encoding="utf-8"
+                'def main() -> int:\n    print("中文")\n    return 0\n', encoding="utf-8"
             )
             problems = cps.check_tool_stdio(root)
         self.assertTrue(problems)

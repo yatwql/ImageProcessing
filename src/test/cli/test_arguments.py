@@ -9,6 +9,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from src.python.cli.main import build_parser, load_mapping
 from src.test._support import has_cjk_font, make_text_image, patch_ocr
@@ -31,8 +32,21 @@ class ParserDefaults(unittest.TestCase):
 
     def test_explicit_overrides(self):
         args = build_parser().parse_args(
-            ["data", "--align", "center", "--size", "48", "--color", "#ffffff",
-             "--fit-width", "--tracking", "2.5", "--max-fonts", "20"])
+            [
+                "data",
+                "--align",
+                "center",
+                "--size",
+                "48",
+                "--color",
+                "#ffffff",
+                "--fit-width",
+                "--tracking",
+                "2.5",
+                "--max-fonts",
+                "20",
+            ]
+        )
         self.assertEqual(args.align, "center")
         self.assertEqual(args.size, 48)
         self.assertEqual(args.color, "#ffffff")
@@ -43,7 +57,7 @@ class ParserDefaults(unittest.TestCase):
 
 class MappingLoading(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
 
     def write(self, payload) -> str:
@@ -79,7 +93,7 @@ class MappingLoading(unittest.TestCase):
 @unittest.skipUnless(has_cjk_font(), "需要 CJK 字体（Debian/Ubuntu 装 fonts-noto-cjk）")
 class ArgumentGuards(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()        # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.rgb, self.boxes = make_text_image(["报告 2023"])
 
@@ -141,6 +155,50 @@ class VersionFlag(unittest.TestCase):
             main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn(f"{NAME} {VERSION}", out.getvalue())
+
+
+class WorkerLevels(unittest.TestCase):
+    """并发档位：默认 1、`auto` 有上限、非法值当场拒、环境变量排在 CLI 之后。"""
+
+    def test_default_is_single_thread_for_batch(self):
+        from src.python.cli import batch
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(batch.WORKERS_ENV, None)
+            self.assertEqual(batch.resolve_workers(None, dry_run=False, batch=True), 1)
+
+    def test_dry_run_always_single_thread(self):
+        from src.python.cli import batch
+
+        self.assertEqual(batch.resolve_workers("4", dry_run=True, batch=True), 1)
+        self.assertEqual(batch.resolve_workers("auto", dry_run=True, batch=True), 1)
+
+    def test_single_image_ignores_workers(self):
+        from src.python.cli import batch
+
+        self.assertEqual(batch.resolve_workers("8", dry_run=False, batch=False), 1)
+
+    def test_auto_is_half_the_cores_but_capped(self):
+        from src.python.cli import batch
+
+        with mock.patch.object(batch.os, "cpu_count", return_value=32):
+            self.assertEqual(batch.workers_value("auto"), batch.WORKERS_AUTO_CAP)
+        with mock.patch.object(batch.os, "cpu_count", return_value=2):
+            self.assertEqual(batch.workers_value("auto"), 1)
+
+    def test_env_var_is_used_when_cli_says_nothing(self):
+        from src.python.cli import batch
+
+        with mock.patch.dict(os.environ, {batch.WORKERS_ENV: "3"}):
+            self.assertEqual(batch.resolve_workers(None, dry_run=False, batch=True), 3)
+            self.assertEqual(batch.resolve_workers("2", dry_run=False, batch=True), 2)
+
+    def test_invalid_level_exits_instead_of_silently_falling_back(self):
+        from src.python.cli import batch
+
+        for bad in ("0", "-1", "fast"):
+            with self.subTest(value=bad), self.assertRaises(SystemExit):
+                batch.workers_value(bad)
 
 
 if __name__ == "__main__":

@@ -28,7 +28,9 @@ class PlatformDefaults(unittest.TestCase):
 
     def test_posix_default_conf_dir_is_slash_data(self):
         with mock.patch.object(sys, "platform", "linux"):
-            self.assertEqual(bootstrap.default_conf_dir().as_posix(), "/data/config")  # platform-safe
+            self.assertEqual(
+                bootstrap.default_conf_dir().as_posix(), "/data/config"
+            )  # platform-safe
 
     def test_windows_default_conf_dir_is_inside_repo(self):
         with mock.patch.object(sys, "platform", "win32"):
@@ -52,7 +54,7 @@ class PlatformDefaults(unittest.TestCase):
 
 class ConfigResolution(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.patch = mock.patch.object(config, "CONFIG_DIR", self.tmp.name)
         self.patch.start()
@@ -116,7 +118,7 @@ class VersionMeta(unittest.TestCase):
 
 class PathHandling(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
 
     def test_same_file_accepts_relative_and_absolute(self):
@@ -167,20 +169,22 @@ class ErrorContract(unittest.TestCase):
     def test_missing_font_pool_is_a_core_error_not_index_error(self):
         rgb = np.full((60, 120, 3), 255, np.uint8)
         jobs = [Job((10, 10, 80, 20), "原文", "新文")]
-        with mock.patch.object(
-            edit,
-            "analyze",
-            return_value={
-                "mask": np.zeros((60, 120), bool),
-                "ink_box": (10, 10, 90, 30),
-                "text_color": (0, 0, 0),
-                "stroke": 2.0,
-                "stroke_core": 2.0,
-                "slant": 0.0,
-            },
+        with (
+            mock.patch.object(
+                edit,
+                "analyze",
+                return_value={
+                    "mask": np.zeros((60, 120), bool),
+                    "ink_box": (10, 10, 90, 30),
+                    "text_color": (0, 0, 0),
+                    "stroke": 2.0,
+                    "stroke_core": 2.0,
+                    "slant": 0.0,
+                },
+            ),
+            self.assertRaises(CoreError),
         ):
-            with self.assertRaises(CoreError):
-                edit.replace_image(rgb, None, jobs, Options(), [])
+            edit.replace_image(rgb, None, jobs, Options(), [])
 
     def test_empty_job_list_is_a_noop(self):
         rgb = np.full((20, 20, 3), 128, np.uint8)

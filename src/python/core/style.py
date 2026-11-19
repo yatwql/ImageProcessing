@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import cv2
@@ -39,7 +40,10 @@ def soft_iou(A: np.ndarray, B: np.ndarray, radius: int = 3) -> float:
     # 模糊与平移无关，先各自模糊一次，循环里只做搬移和逐元素运算
     fa = cv2.GaussianBlur(fa, (0, 0), 1.0)
     fb_small = cv2.GaussianBlur(fb_small, (0, 0), 1.0)
-    fb = np.zeros((H, W), np.float32)
+    # 积分图：每次平移只需读 fa 中与 B 等大的那扇窗，不再整图清零重填
+    integ = np.zeros((H + 1, W + 1), np.float64)
+    integ[1:, 1:] = np.cumsum(np.cumsum(fa, axis=0, dtype=np.float64), axis=1)
+    fb_sum = float(fb_small.sum())
     by, bx = (H - hb) // 2, (W - wb) // 2
     best = 0.0
     for dy in range(-radius, radius + 1):
@@ -50,10 +54,12 @@ def soft_iou(A: np.ndarray, B: np.ndarray, radius: int = 3) -> float:
             x = bx + dx
             if x < 0 or x + wb > W:
                 continue
-            fb[:] = 0
-            fb[y : y + hb, x : x + wb] = fb_small
-            inter = float(np.minimum(fa, fb).sum())
-            union = float(np.maximum(fa, fb).sum())
+            inter = float(np.minimum(fa[y : y + hb, x : x + wb], fb_small).sum())
+            fa_sum = float(
+                integ[y + hb, x + wb] - integ[y, x + wb] - integ[y + hb, x] + integ[y, x]
+            )
+            # max(a, b) = a + b - min(a, b)，所以并集不必再全图求一次
+            union = fa_sum + fb_sum - inter
             if union > 0:
                 v = inter / union
                 if v > best:
@@ -125,7 +131,7 @@ def analyze(img_rgb: np.ndarray, rect: tuple[int, int, int, int]) -> dict[str, A
     return {
         "mask": full.astype(bool),
         "ink_box": ink,
-        "text_color": tuple(int(round(v)) for v in text_color),
+        "text_color": tuple(round(v) for v in text_color),
         "stroke": stroke_of(m),
         "stroke_core": core_stroke,
         "slant": slant,
@@ -145,6 +151,7 @@ def fit_font(
     max_eval: int,
     a_stroke: float | None = None,
     slant: float | None = None,
+    abort: Callable[[], bool] | None = None,
 ) -> tuple[float, FontFace, int, float, float] | None:
     """找出与原文字最像的 (score, 字体, 字号, 字距, iou)。
 
@@ -164,15 +171,24 @@ def fit_font(
         if len(upright) >= 4:
             pool = upright
     n_gap = max(1, len(text) - 1)
+    stopped = False
+
+    def stop() -> bool:
+        nonlocal stopped
+        if not stopped and abort is not None and abort():
+            stopped = True
+        return stopped
 
     def search(track_limit: float) -> tuple[float, FontFace, int, float, float] | None:
         coarse: list[tuple[float, FontFace, int, float]] = []
         for face in pool[:max_eval]:
+            if stop():  # 候选字体可达 160 款，按 Esc 不该等到全部跑完
+                return None
             try:
                 h100 = ink_size(text, face, 100)[1]
                 if h100 <= 0:
                     continue
-                size = max(6, int(round(100.0 * h_mask / h100)))
+                size = max(6, round(100.0 * h_mask / h100))
                 track0 = 0.0
                 for _ in range(2):
                     w_fit = ink_size(text, face, size, track0)[0]
@@ -194,6 +210,8 @@ def fit_font(
 
         best = None
         for rank, (_s, face, size, track0) in enumerate(coarse[:8]):
+            if stop():
+                return None
             ds_range = (-3, -2, -1, 0, 1, 2, 3) if rank < 3 else (-2, -1, 0, 1, 2)
             for ds in ds_range:
                 sz = max(6, size + ds)
@@ -218,7 +236,7 @@ def fit_font(
         return best
 
     best = search(0.35)
-    if best is None or best[4] < 0.5:
+    if (best is None or best[4] < 0.5) and not stopped:
         wide = search(1.6)
         if wide is not None and (best is None or wide[4] > best[4]):
             best = wide
@@ -229,4 +247,4 @@ def guess_size(ink_h: float, face: FontFace) -> int:
     """不知道原文时，按墨迹高度反解字号。"""
     _arr, box, _ = render_line("国国", face, 100)
     h = max(1, box[3] - box[1])
-    return max(6, int(round(100.0 * ink_h / h)))
+    return max(6, round(100.0 * ink_h / h))

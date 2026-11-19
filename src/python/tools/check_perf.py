@@ -20,8 +20,8 @@ from pathlib import Path
 
 import numpy as np
 
-from src.python.core import audit, edit, image  # noqa: E402
-from src.python.core.style import soft_iou  # noqa: E402
+from src.python.core import audit, edit, image
+from src.python.core.style import soft_iou
 from src.python.stdio import ensure_utf8_stdio
 
 # 单步上限（秒）。CI 机器比开发机慢，留足余量。
@@ -62,7 +62,7 @@ def bench_soft_iou() -> None:
         soft_iou(a, b, radius=3)
 
 
-def bench_erase(tmp: Path) -> None:
+def bench_erase(_tmp: Path) -> None:
     img = np.full((1500, 2000, 3), 250, np.uint8)
     mask = np.zeros((1500, 2000), bool)
     mask[600:660, 500:800] = True

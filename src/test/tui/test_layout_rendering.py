@@ -173,8 +173,8 @@ class BorderDrawing(TuiTestCase):
 class ResponsiveLayout(TuiTestCase):
     """宽屏（电脑）与窄屏（手机）都要排得下：不溢出、不丢关键信息。"""
 
-    DESKTOP = [(100, 30), (130, 40), (80, 24)]
-    PHONE = [(44, 22), (36, 20), (32, 18)]
+    DESKTOP = ((100, 30), (130, 40), (80, 24))
+    PHONE = ((44, 22), (36, 20), (32, 18))
 
     def render(self, app, cols: int, rows: int) -> FakeWin:
         win = FakeWin([], rows=rows, cols=cols)

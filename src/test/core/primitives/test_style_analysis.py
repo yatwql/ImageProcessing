@@ -18,7 +18,7 @@ def draw_report() -> np.ndarray:
     """一张白底两行中文的合成图（标题行 + 正文行）。"""
     img = Image.new("RGB", (600, 200), (255, 255, 255))
     d = ImageDraw.Draw(img)
-    font = cjk_font(36)     # SC
+    font = cjk_font(36)  # SC
     d.text((40, 80), "年度报告2023", font=font, fill=(30, 30, 30))
     d.text((40, 140), "其余文字保持不变", font=font, fill=(30, 30, 30))
     return np.array(img)
@@ -40,8 +40,15 @@ class StyleRecovery(unittest.TestCase):
         if info is None:
             raise AssertionError("analyze 返回 None")
         pool = build_font_pool(["年度报告2023"], None, 160)
-        fit = fit_font("年度报告2023", info["mask"], info["ink_box"], pool, 160,
-                       a_stroke=info.get("stroke_core"), slant=info.get("slant"))
+        fit = fit_font(
+            "年度报告2023",
+            info["mask"],
+            info["ink_box"],
+            pool,
+            160,
+            a_stroke=info.get("stroke_core"),
+            slant=info.get("slant"),
+        )
         if fit is None:
             raise AssertionError("fit_font 返回 None")
         self.assertAlmostEqual(fit[2], 36, delta=3)
@@ -52,8 +59,15 @@ class StyleRecovery(unittest.TestCase):
         if info is None:
             raise AssertionError("analyze 返回 None")
         pool = build_font_pool(["年度报告2023"], None, 160)
-        fit = fit_font("年度报告2023", info["mask"], info["ink_box"], pool, 160,
-                       a_stroke=info.get("stroke_core"), slant=info.get("slant"))
+        fit = fit_font(
+            "年度报告2023",
+            info["mask"],
+            info["ink_box"],
+            pool,
+            160,
+            a_stroke=info.get("stroke_core"),
+            slant=info.get("slant"),
+        )
         if fit is None:
             raise AssertionError("fit_font 返回 None")
         self.assertNotIn("italic", fit[1].name.lower())

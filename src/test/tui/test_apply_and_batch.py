@@ -20,7 +20,7 @@ from src.test._support import TuiTestCase, has_cjk_font, make_text_image
 
 class ApplyFlow(TuiTestCase):
     def build_app(self, out_sub: str = "out") -> App:
-        tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         rgb, boxes = make_text_image(["年度报告2023", "其余文字不动"])
         path = os.path.join(tmp.name, "report.png")
@@ -85,14 +85,14 @@ class ApplyFlow(TuiTestCase):
     def test_batch_confirm_no_cancels(self):
         app = self.build_app()
         self.blocks_of(app)[0].override = "年度总结2024"
-        self.drive(app, ["R"] + list("n") + ["\n", "q"])
+        self.drive(app, ["R", *list("n"), "\n", "q"])
         self.assertIn("已取消", app.message)
 
     @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")
     def test_batch_confirm_yes_runs_and_counts(self):
         app = self.build_app()
         self.blocks_of(app)[0].override = "年度总结2024"
-        self.drive(app, ["R"] + list("y") + ["\n", "q"])
+        self.drive(app, ["R", *list("y"), "\n", "q"])
         self.assertIn("批量完成", app.status)
         self.assertTrue(self.current(app).done)
 

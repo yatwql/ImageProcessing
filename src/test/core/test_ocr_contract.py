@@ -61,10 +61,12 @@ class OcrRegionCalls(unittest.TestCase):
 
     def test_crop_merges_blocks_in_reading_order(self):
         rgb = np.zeros((80, 120, 3), np.uint8)
-        self.patch_engine([
-            ([[10, 30], [60, 30], [60, 50], [10, 50]], "第二", 0.9),
-            ([[10, 5], [50, 5], [50, 25], [10, 25]], "第一", 0.9),
-        ])
+        self.patch_engine(
+            [
+                ([[10, 30], [60, 30], [60, 50], [10, 50]], "第二", 0.9),
+                ([[10, 5], [50, 5], [50, 25], [10, 25]], "第一", 0.9),
+            ]
+        )
         self.assertEqual(ocr.ocr_crop(rgb, (0, 0, 120, 80)), "第一 第二")
 
     def test_crop_outside_image_returns_none(self):
@@ -74,7 +76,7 @@ class OcrRegionCalls(unittest.TestCase):
     def test_missing_dependency_raises_core_error(self):
         ocr._LOCAL.engine = None
         original_import = ocr.__dict__.get("RapidOCR", None)
-        self.assertIsNone(original_import)          # 未真正加载过模型
+        self.assertIsNone(original_import)  # 未真正加载过模型
         probe = np.zeros((8, 8, 3), np.uint8)
         try:
             ocr.ocr_regions(probe)

@@ -67,8 +67,7 @@ class SolidBackground(unittest.TestCase):
         ImageDraw.Draw(img)  # 已有深底，重画白字
         d = ImageDraw.Draw(img)
         d.rectangle([0, 0, 400, 160], fill=(20, 40, 80))
-        d.text((40, 40), "年度报告2023",
-               font=cjk_font(36), fill=(250, 250, 250))
+        d.text((40, 40), "年度报告2023", font=cjk_font(36), fill=(250, 250, 250))
         info = analyze(np.array(img), rect)
         if info is None:
             raise AssertionError("analyze 返回 None")
@@ -92,7 +91,7 @@ class GradientBackground(unittest.TestCase):
         row_before = rgb[120, :, 0].astype(int)
         row_after = out[120, :, 0].astype(int)
         self.assertLessEqual(int(np.abs(row_after - row_before).max()), 40)
-        self.assertLess(int(np.abs(np.diff(row_after)).max()), 12)     # 没有突兀的接缝
+        self.assertLess(int(np.abs(np.diff(row_after)).max()), 12)  # 没有突兀的接缝
 
 
 @unittest.skipUnless(has_cjk_font(), "需要 Noto CJK 字体")

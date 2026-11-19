@@ -184,9 +184,8 @@ class BootstrapMain(unittest.TestCase):
         self.assertTrue(any("requirements-dev.txt" in args for args in installed))
 
     def test_help_prints_usage(self):
-        with mock.patch("sys.stdout"):
-            with self.assertRaises(SystemExit) as ctx:
-                bootstrap.main(["--help"])
+        with mock.patch("sys.stdout"), self.assertRaises(SystemExit) as ctx:
+            bootstrap.main(["--help"])
         self.assertEqual(ctx.exception.code, 0)
 
 

@@ -14,19 +14,19 @@
 
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
-| 主程序代码 | Python | 31 | 4,333 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 72 | 9,461 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 728 | `git grep -c "def test_"` 行数口径 |
-| 工程工具 | Python | 19 | 3,654 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
-| 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/runTest/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
+| 主程序代码 | Python | 32 | 5,053 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
+| 测试代码 | Python | 77 | 9,863 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 741 | `git grep -c "def test_"` 行数口径 |
+| 工程工具 | Python | 26 | 3,983 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
+| 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/run-test/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 351 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
-| 管理文档 | Markdown | 10 | 1,990 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
+| 管理文档 | Markdown | 10 | 2,153 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
 | 归档文档 | Markdown | 4 | 1,468 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
-| 使用手册 | Markdown | 1 | 423 | `docs/manuals/how-to-use.md` |
-| 根文档与配置 | Markdown / TOML / TXT | 7 | 490 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
+| 使用手册 | Markdown | 1 | 432 | `docs/manuals/how-to-use.md` |
+| 根文档与配置 | Markdown / TOML / TXT | 7 | 500 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **162** | **22,496** | 主程序 : 测试 ≈ 1 : 2.18；仓库共 166 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **175** | **24,129** | 主程序 : 测试 ≈ 1 : 1.95；仓库共 179 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -71,8 +71,8 @@ ImageProcessing/
 │   ├── cli.sh                                # → launch cli
 │   ├── log-query.ps1                         # → launch log-query（Windows）
 │   ├── log-query.sh                          # → launch log-query
-│   ├── runTest.ps1                           # → src.python.tools.run_tests（Windows）
-│   ├── runTest.sh                            # → src.python.tools.run_tests
+│   ├── run-test.ps1                          # → src.python.tools.run_tests（Windows）
+│   ├── run-test.sh                           # → src.python.tools.run_tests
 │   ├── setup.ps1                             # → src.python.bootstrap（Windows）
 │   ├── setup.sh                              # → src.python.bootstrap
 │   ├── tui.ps1                               # → launch tui（Windows）
@@ -82,6 +82,7 @@ ImageProcessing/
 │   │   ├── cli/                              # 命令行渠道
 │   │   │   ├── __init__.py                   # 命令行渠道
 │   │   │   ├── __main__.py                   # 命令行渠道
+│   │   │   ├── batch.py                      # 批量流程：规划遍、替换遍与并发档位
 │   │   │   ├── log_query.py                  # 日志查询渠道：按原图名 / 日期 / 渠道过滤写盘记录并汇总
 │   │   │   └── main.py                       # 命令行渠道：单图 / 目录批量。所有替换逻辑都在 src.core 里，这里只负责参数与流程
 │   │   ├── core/                             # 核心层：唯一实现替换逻辑的地方
@@ -98,6 +99,14 @@ ImageProcessing/
 │   │   │   ├── render.py                     # 文字排版渲染：行渲染、字符横向区间、绘制到画布
 │   │   │   └── style.py                      # 版式分析：字迹 mask、字色、笔画粗细、字体/字号/字距反解
 │   │   ├── tools/                            # 开发工具（不进发行包、不计覆盖率）
+│   │   │   ├── guards/
+│   │   │   │   ├── __init__.py               # 工程守护的各项检查，按类别拆开；入口仍是 `tools/check_guards.py`
+│   │   │   │   ├── code.py                   # 代码守护：分层方向、单文件长度、显式编码、测试目录与字体、脚本类型与编码（守护第 3~6/10/17~1
+│   │   │   │   ├── common.py                 # 守护检查共用：仓库路径、阈值常量/正则与读文件
+│   │   │   │   ├── docs.py                   # 文档守护：目录树文档、文档索引、归档目录与台账索引（守护第 9/12/13 项）
+│   │   │   │   ├── ids.py                    # 编号守护：台账编号连续唯一、旧前缀不复用、归档编号仍占号（守护第 1~2 项）
+│   │   │   │   ├── meta.py                   # 工程元信息守护：版本号与名称、依赖锁、导入方向、工作流、跨平台安全（守护第 7~8/11/14~16 项
+│   │   │   │   └── scripts.py                # 脚本与文档链路的守护：脚本命名/契约、文档死链、用例对照表覆盖
 │   │   │   ├── __init__.py                   # 开发工具（不进发行包）：守护、覆盖率、测试编排、发布等
 │   │   │   ├── _parallel.py                  # 门禁并行执行：worker 数规划与"互不干扰"的批次并发
 │   │   │   ├── _paths.py                     # 工具共用的路径常量：仓库根
@@ -139,6 +148,8 @@ ImageProcessing/
 │   │   │   ├── test_arguments.py             # CLI 参数层测试：默认值、参数合并、非法用法与提前报错
 │   │   │   ├── test_batch_directory.py       # CLI 目录批量测试：逐图处理、汇总统计、输出命名、dry-run 与过滤规则
 │   │   │   ├── test_bootstrap_launch.py      # 环境引导与启动器：`bootstrap.py` / `launch.py` 的分支与错误路径
+│   │   │   ├── test_bootstrap_probe_paths.py  # 环境引导与入口壳：探测失败、缺 pip、入口 shim、外部命令缺失
+│   │   │   ├── test_cli_failure_paths.py     # CLI 失败路径：读图失败、同名拒绝、占名失败、预演去重、保存清理
 │   │   │   ├── test_demo_assets.py           # 用仓库自带示例图（data/demo）跑真实图片流程：读取、单图替换、批量、日志
 │   │   │   ├── test_entry_smoke.py           # 入口冒烟：每个对外入口都能起来、给出正确退出码与帮助文本
 │   │   │   ├── test_launch_env.py            # 启动器与环境引导：首次运行自动装依赖，设 `IMG_P_NO_AUTO_SETUP=1` 才退回手动
@@ -154,32 +165,34 @@ ImageProcessing/
 │   │   │   │   └── test_text_colors.py       # 文字颜色场景：深色/彩色/浅色文字的取样与还原
 │   │   │   ├── font/                         # 字体用例
 │   │   │   │   ├── __init__.py               # 图片处理场景：font
+│   │   │   │   ├── test_font_matching_edges.py  # 字体匹配与候选池的退化路径：渲染失败、缓存损坏、字号/字距搜索兜底
 │   │   │   │   └── test_font_pool.py         # 字体池测试：候选池构建、并发上限、CJK 过滤、落盘缓存与失效
 │   │   │   ├── format/                       # 图片格式用例
 │   │   │   │   ├── __init__.py               # 图片处理场景：format
+│   │   │   │   ├── test_image_io_edges.py    # 图片读写边界：alpha 保留、格式表、元数据读取失败
 │   │   │   │   └── test_image_read_write.py  # 图片读写与输出路径测试：格式支持、alpha 处理、目录扫描、重名编号、同文件判定
 │   │   │   ├── layout/                       # 排版用例
 │   │   │   │   ├── __init__.py               # 图片处理场景：layout
 │   │   │   │   └── test_text_layout.py       # 排版形态场景：逐字加宽的标题、多行正文、居中横幅
+│   │   │   ├── mapping/
+│   │   │   │   └── test_matching_edge_cases.py  # 映射规则的边界：归一化、整行/行内/模糊命中、冲突与低置信过滤
 │   │   │   ├── pipeline/                     # 端到端用例
 │   │   │   │   ├── __init__.py               # 图片处理场景：pipeline
+│   │   │   │   ├── test_edit_pipeline_edges.py  # 替换流水线边界：调试图写失败、span 越界、行内区间无墨迹时的回退
 │   │   │   │   └── test_replace_pipeline.py  # 替换流水线测试：行内替换只动目标片段、重复执行结果一致、拒绝覆盖原图
 │   │   │   ├── primitives/                   # 渲染/擦除原语用例
 │   │   │   │   ├── __init__.py               # 图片处理场景：primitives
 │   │   │   │   ├── test_erasing_and_drawing.py  # 擦除与绘制测试：局部擦除、多行绘制、对齐落位、字距与字号估算
 │   │   │   │   ├── test_inpaint_radius.py    # 擦除阶段的自适应 inpaint 半径：粗笔画要更大邻域，细笔画不能糊开
+│   │   │   │   ├── test_rendering_edges.py   # 绘制与字距的边界：空行、越界裁切、对齐、无墨迹时字距不收敛
 │   │   │   │   ├── test_rendering_primitives.py  # 文字渲染测试：单行渲染、字符横向区间、字距求解、模糊 IoU
 │   │   │   │   └── test_style_analysis.py    # 版式分析测试：从合成图反解字色、字迹范围、字号与候选字体
 │   │   │   ├── __init__.py                   # core 场景测试
+│   │   │   ├── test_audit_log_edges.py       # 写盘日志与文件锁：坏行跳过、写入失败、跨平台锁后端、旧日志清理
 │   │   │   ├── test_cancel_pipeline.py       # 替换过程中的中断：`replace_image(should_stop=...)` 要在块与块之间能停手
+│   │   │   ├── test_config_and_ocr_edges.py  # 配置文件与 OCR 封装的边界：未覆盖项、缺依赖、空结果
 │   │   │   ├── test_config_file.py           # 配置文件（<配置目录>/retype.json，兼容旧 img-p.json）：读取、容错与优先级
-│   │   │   ├── test_coverage_100.py          # 覆盖率收尾：把最后 4 行"看起来难、其实只是没构造对场景"的分支补齐
-│   │   │   ├── test_coverage_gaps.py         # 补齐覆盖率薄弱点：把每个模块最后的"难触达分支"逐个打掉
-│   │   │   ├── test_coverage_gaps2.py        # 覆盖率收尾（core / cli 侧）：把最后几十行"错误分支与空输入"补齐
-│   │   │   ├── test_coverage_gaps3.py        # 覆盖率收尾：把最后二十几行"只有出错才会走到"的分支补齐
-│   │   │   ├── test_coverage_gaps4.py        # 覆盖率收尾：把最后二十几行"只有出错才会走到"的分支补齐
 │   │   │   ├── test_error_contract.py        # 错误契约测试：核心层用 CoreError 报可预期失败，不直接退出进程
-│   │   │   ├── test_feature_edges.py         # 功能边界：映射规则、颜色解析、任务构造、日志轮转等容易漏的输入
 │   │   │   ├── test_log_query.py             # 日志查询：按日期/原图/渠道过滤，并汇总替换次数
 │   │   │   ├── test_mapping_rules.py         # 映射规则测试：映射表与文字块如何变成替换任务（Job）
 │   │   │   ├── test_ocr_contract.py          # OCR 封装测试：结果结构、区域裁剪、引擎缺失时的错误契约
@@ -201,6 +214,7 @@ ImageProcessing/
 │   │   │   ├── test_platform_safety_rules.py  # 「跨平台」守护的规则自检：规则本身也要有用例，否则它会悄悄失效
 │   │   │   ├── test_release_archive.py       # 归档流程（`release.py archive`）的用例
 │   │   │   ├── test_release_versions.py      # 版本号与分支策略（`-dev` 开发版 / 正式版）：`release.py` 的定版与切版
+│   │   │   ├── test_tool_entry_contracts.py  # 工程工具的入口契约：每个 CLI 都能 `--help`（不炸）、`--ci` 结论可读
 │   │   │   └── test_workflow_checks.py       # 工作流自检（`check_workflows`）：bash 语法检查要在"没有真 bash"时优雅跳过
 │   │   ├── tui/                              # 交互用例
 │   │   │   ├── __init__.py                   # tui 场景测试
@@ -215,6 +229,7 @@ ImageProcessing/
 │   │   │   ├── test_session_state.py         # TUI 会话状态测试：样式选项校验、映射表读写（不涉及 curses 界面）
 │   │   │   ├── test_settings_panel.py        # TUI 样式选项面板（c 键）：逐项编辑、非法值只提示、Esc 返回
 │   │   │   ├── test_tui_real_terminal.py     # 真终端冒烟：在伪终端里跑一次真 curses，确认"屏幕上真的有东西"
+│   │   │   ├── test_tui_state_edges.py       # TUI 状态与布局边界：面板导航、输入行、状态行、批量取消、窄窗兜底
 │   │   │   └── test_ui_shell.py              # TUI 外壳：参数解析、入口分支、主循环异常处理与基础绘制件
 │   │   ├── __init__.py                       # 测试用例包：统一仓库根路径与测试临时目录
 │   │   ├── _support.py                       # 测试公共设施：字体路径、合成 OCR 结果、TUI 假窗口

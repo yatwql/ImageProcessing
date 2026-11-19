@@ -27,7 +27,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from ..stdio import ensure_utf8_stdio
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 CI = ROOT / ".github" / "workflows" / "ci.yml"
 
@@ -92,7 +92,7 @@ def bash_syntax_error(script: str) -> str | None:
     return None if result.returncode == 0 else result.stderr.strip()[:160]
 
 
-BASH_OK = bash_runs()   # 没有可执行的 bash 时跳过 bash -n（Windows 上的 WSL 存根）
+BASH_OK = bash_runs()  # 没有可执行的 bash 时跳过 bash -n（Windows 上的 WSL 存根）
 
 
 def check_run_blocks(workflow: dict) -> list[str]:
@@ -102,7 +102,7 @@ def check_run_blocks(workflow: dict) -> list[str]:
         if not isinstance(script, str):
             continue
         name = step.get("name", "(unnamed)")
-        if "<<'PY'" in script or "<<\"PY\"" in script or re.search(r"python.*\s-\s*<<", script):
+        if "<<'PY'" in script or '<<"PY"' in script or re.search(r"python.*\s-\s*<<", script):
             problems.append(
                 f"{job_name} / {name}：run 块里内联 python 脚本（heredoc）——"
                 "代码要进 src/python/tools（能 ensure_utf8_stdio、能写用例、能病态输入打桩）"
@@ -161,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
     if not CI.is_file():
         print(f"[FAIL] 缺少 {CI.relative_to(ROOT)}")
         return 1
+    quiet = "--ci" in args  # 门禁/CI 只要一行一结论
     workflow = load_yaml(CI)
     problems: list[str] = []
     if workflow:
@@ -173,8 +174,11 @@ def main(argv: list[str] | None = None) -> int:
     if problems:
         for item in problems:
             print(f"[FAIL] {item}")
+        if quiet:
+            print(f"工作流自检: {len(problems)} 处问题")
         return 1
-    print("[ok] 工作流自检通过（YAML / bash 语法 / python -c / audit 参数 / release 作业）")
+    if not quiet:
+        print("[ok] 工作流自检通过（YAML / bash 语法 / python -c / audit 参数 / release 作业）")
     return 0
 
 

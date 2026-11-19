@@ -17,7 +17,7 @@ from src.python.core import audit
 
 class LogQuery(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()  # noqa: SIM115
+        self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.dir = self.tmp.name
 

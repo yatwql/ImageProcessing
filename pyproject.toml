@@ -51,8 +51,10 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "B", "I"]
-ignore = ["E501"]
+# 基线之外再收紧一档：SIM（可化简写法）、C4（推导式）、UP（pyupgrade）、RUF（ruff 自家规则）、
+# ARG（未用参数）。RUF001/2/3 是"看起来像别的字母的字符"——中文注释与全角标点会大量误报，关掉。
+select = ["E", "F", "B", "I", "SIM", "C4", "UP", "RUF", "ARG"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
@@ -66,6 +68,8 @@ files = ["src"]   # 开发工具已移到 src/python/tools（随 src 一起检�
 ignore_missing_imports = true
 disallow_untyped_defs = true
 no_implicit_optional = true
+warn_unreachable = true
+strict_equality = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = false
@@ -96,9 +100,9 @@ markers = [
 source = ["src/python"]
 # 开发工具（src/python/tools）由 CI 自身驱动，不纳入覆盖率统计
 omit = ["src/python/tools/*"]
-# 只统计行覆盖：分支覆盖在"平台分支 / 防御性 except"上会长期无法收敛，
-# 用它做门禁只会逼人写无意义用例。分支覆盖率仍可人工查看（--cov-branch）。
-branch = false
+# 行 + 分支一起统计：只看行覆盖会漏掉"这个 if 的 else 从没走过"这类真缺口。
+# 阈值按实测下调到实测值向下取整，见下方 fail_under。
+branch = true
 
 [tool.coverage.report]
 exclude_lines = [
@@ -109,4 +113,6 @@ exclude_lines = [
   "if __name__ == .__main__.:",
 ]
 # 阈值取当前实测值向下取整（见 guards 守护与 CI）；只降不升说明退化。
-fail_under = 96
+# 注意：开分支覆盖后总量口径变严（实测 93.92%，分支漏 95 条），
+# 与旧的"行覆盖 96%"不是同一个分母，别拿两个数字直接比。
+fail_under = 93

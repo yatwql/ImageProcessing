@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from ..stdio import ensure_utf8_stdio
 from ..version import VERSION
-from ._paths import ROOT  # noqa: E402  (工具共用仓库根)
+from ._paths import ROOT
 
 COVERAGE = ROOT / "reports" / "coverage.xml"
 JUNIT = ROOT / "reports" / "junit.xml"

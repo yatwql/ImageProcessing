@@ -43,6 +43,7 @@ LOG_PREFIX = "image-writes-"
 LOG_KEEP_DAYS = 30  # 只保留最近 30 天，避免日志无限增长
 ACTION_REPLACE = "替换文字并保存图片"
 ACTION_DEBUG = "写出调试图"
+ACTION_UNDO = "撤销上一次替换（写回上一版输出）"
 
 # 报告里需要落到日志中的字段
 # fragment/span 只对行内替换有值：old 永远是整行、new 只是片段，补上「命中的是哪个子串、

@@ -10,6 +10,7 @@ import curses
 import os
 import sys
 
+from .. import bootstrap
 from ..core import CoreError
 from ..core.options import Options
 from ..version import NAME, UPDATED, VERSION
@@ -51,8 +52,8 @@ def loop(win, app: App) -> None:
     while not app.quit:
         if not app.started:
             app.started = True
-            draw_frame(win, app)   # 先画出"正在识别"
-            app.start_loading()    # OCR 走后台线程：期间界面照样能收键
+            draw_frame(win, app)  # 先画出"正在识别"
+            app.start_loading()  # OCR 走后台线程：期间界面照样能收键
         draw_frame(win, app)
         try:
             key = read_key(win, timeout_ms=120)
@@ -71,7 +72,7 @@ def loop(win, app: App) -> None:
             continue
         interrupts = 0
         silent = 0
-        if not key:                 # 只是到了轮询时间，重画一帧继续等
+        if not key:  # 只是到了轮询时间，重画一帧继续等
             continue
         if key == "KEY_RESIZE":
             with contextlib.suppress(curses.error):
@@ -157,6 +158,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"路径不存在: {', '.join(missing)}", file=sys.stderr)
         return 2
     try:
+        hint = bootstrap.venv_hint()
+        if hint:  # curses 一进就清屏，所以这句必须在启动界面之前留在终端里
+            print(hint, file=sys.stderr)
         app = App(inputs, out_dir=out_dir, map_file=map_file, opts=opts)
     except CoreError as e:
         print(str(e), file=sys.stderr)
@@ -164,8 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     if not app.images:
         # 空目录也允许进界面：先把图复制进来，再按 Ctrl-R 重新扫描即可
         app.message = (
-            f"{inputs[0]} 里还没有图片（支持 png/jpg/bmp/webp/tif）"
-            "：放好图片后按 Ctrl-R 重新扫描"
+            f"{inputs[0]} 里还没有图片（支持 png/jpg/bmp/webp/tif）：放好图片后按 Ctrl-R 重新扫描"
         )
     try:
         curses.wrapper(loop, app)

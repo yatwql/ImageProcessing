@@ -134,7 +134,8 @@ class FinalGaps5(TuiTestCase):
 
     def test_unlock_without_lock_is_a_noop(self):
         with tempfile.TemporaryFile() as handle:
-            audit._unlock(handle.fileno(), locked=False)
+            # locked=False 时不该去碰锁：没有返回值、也不抛异常
+            self.assertIsNone(audit._unlock(handle.fileno(), locked=False))
 
 
 class FinalGaps6(TuiTestCase):

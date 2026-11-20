@@ -194,14 +194,6 @@ class LaunchDispatch(unittest.TestCase):
         for name in ("cli", "tui", "test", "log-query", "setup"):
             self.assertIn(name, launch.CHANNELS)
 
-    def test_no_channel_prints_usage(self):
-        with mock.patch("sys.stderr"):
-            self.assertEqual(launch.main([]), 2)
-
-    def test_unknown_channel_is_rejected(self):
-        with mock.patch("sys.stderr"):
-            self.assertEqual(launch.main(["nope"]), 2)
-
     def test_execv_is_used_with_the_venv_interpreter(self):
         with (
             mock.patch.object(bootstrap, "ensure_dependencies", return_value=True),

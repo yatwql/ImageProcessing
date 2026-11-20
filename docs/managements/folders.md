@@ -14,9 +14,9 @@
 
 | 类别 | 语言 | 文件数 | 代码行数 | 说明 |
 | --- | --- | ---: | ---: | --- |
-| 主程序代码 | Python | 32 | 5,226 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
-| 测试代码 | Python | 78 | 10,057 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
-| 测试用例 | — | — | 756 | `git grep -c "def test_"` 行数口径 |
+| 主程序代码 | Python | 32 | 5,227 | `src/python/**/*.py`（不含 `tools/` 与测试）：core 核心层 / cli / tui / 引导与启动器 |
+| 测试代码 | Python | 78 | 10,050 | `src/test/**/*.py`：core（7 子目录 + 属性/边界/平台）、cli（含引导/日志查询命令/入口冒烟）、tui（含快照与真终端） |
+| 测试用例 | — | — | 754 | `git grep -c "def test_"` 行数口径 |
 | 工程工具 | Python | 28 | 4,534 | `src/python/tools/`：守护 / 耗时 / 覆盖率门禁与报告 / 测试编排 / 变异 / 约束升级 / 发布 / 归档 / 导入方向 |
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/run-test/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 353 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
@@ -26,7 +26,7 @@
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 502 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **181** | **25,152** | 主程序 : 测试 ≈ 1 : 1.92；仓库共 185 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **181** | **25,146** | 主程序 : 测试 ≈ 1 : 1.92；仓库共 185 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 

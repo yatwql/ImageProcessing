@@ -56,7 +56,7 @@ def erase(
 
 
 Style = tuple[FontFace, int, float]
-Box = tuple[float, float, float, float]   # (left, right, top, bottom)
+Box = tuple[float, float, float, float]  # (left, right, top, bottom)
 
 # 同一块上多条任务时，记"哪些区间已经擦过"；None 表示整块
 EraseLog = dict[tuple[int, int, int, int], set[tuple[float, float] | None]]

@@ -21,12 +21,12 @@
 | 启动脚本 | Shell / PowerShell | 10 | 193 | `scripts/`：cli/tui/setup/run-test/log-query 各一对 `.sh` + `.ps1`，全部是薄壳 |
 | CI 与钩子 | YAML / Shell | 4 | 353 | CI 八个作业 + 提交前（quick）/推送前（全量）钩子 |
 | 管理文档 | Markdown | 10 | 1,923 | 需求 / 技术设计 / 契约 / 测试计划 / 覆盖率 / 发布 / 计划 / 变更 / 自检 / 目录结构 |
-| 归档文档 | Markdown | 7 | 1,763 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
+| 归档文档 | Markdown | 10 | 1,840 | `docs/archive/`：归档规范 + `v0.1.x/` 三份台账归档（发布时整块搬入） |
 | 使用手册 | Markdown | 1 | 448 | `docs/manuals/how-to-use.md` |
 | 根文档与配置 | Markdown / TOML / TXT | 7 | 502 | README、CLAUDE、pyproject、constraints、requirements×2、.gitignore |
 | 文档索引 | Markdown | 1 | 79 | `docs/README.md`：所有文档的入口、阅读顺序与归档索引 |
 | 示例图 | PNG | 4 | — | `data/demo/`：回归样例（报告 + 通知×3） |
-| **合计（不含示例图）** | — | **181** | **25,126** | 主程序 : 测试 ≈ 1 : 1.92；仓库共 185 个跟踪文件（含示例图 4 个） |
+| **合计（不含示例图）** | — | **184** | **25,203** | 主程序 : 测试 ≈ 1 : 1.92；仓库共 188 个跟踪文件（含示例图 4 个） |
 
 ## 目录树
 
@@ -55,6 +55,10 @@ ImageProcessing/
 │   │   │   ├── archived_changelog.0.3.x.md
 │   │   │   ├── archived_plan.0.3.x.md
 │   │   │   └── archived_review-findings.0.3.x.md
+│   │   ├── v0.4.x/                           # 版本归档系列 v0.4.x
+│   │   │   ├── archived_changelog.0.4.x.md
+│   │   │   ├── archived_plan.0.4.x.md
+│   │   │   └── archived_review-findings.0.4.x.md
 │   │   └── README.md                         # 归档规范：目录/命名、头部四项、搬运与编号不复用规则
 │   ├── managements/                          # 管理文档
 │   │   ├── changelog.md                      # 管理文档

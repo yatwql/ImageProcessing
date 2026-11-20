@@ -10,22 +10,83 @@ from .ui_base import attr, cut, dwidth, put
 # --------------------------------------------------------------------------- 输入行
 
 
+class _Editor:
+    """单行编辑器的缓冲区状态：只存数据、只做最小动作（curses 在 `edit_line` 里）。"""
+
+    __slots__ = ("buf", "pos", "touched")
+
+    def __init__(self, initial: str):
+        self.buf = list(initial)
+        self.pos = len(self.buf)
+        self.touched = not initial  # 预填内容：第一次输入直接替换，不用手动删
+
+    def text(self) -> str:
+        return "".join(self.buf)
+
+    def insert(self, ch: str) -> None:
+        if not self.touched:
+            self.buf, self.pos, self.touched = [], 0, True
+        self.buf.insert(self.pos, ch)
+        self.pos += 1
+
+    def backspace(self) -> None:
+        self.touched = True
+        if self.pos:
+            del self.buf[self.pos - 1]
+            self.pos -= 1
+
+    def delete(self) -> None:
+        self.touched = True
+        if self.pos < len(self.buf):
+            del self.buf[self.pos]
+
+    def left(self) -> None:
+        self.pos = max(0, self.pos - 1)
+
+    def right(self) -> None:
+        self.pos = min(len(self.buf), self.pos + 1)
+
+    def home(self) -> None:
+        self.pos = 0
+
+    def end(self) -> None:
+        self.pos = len(self.buf)
+
+    def clear(self) -> None:
+        self.buf, self.pos, self.touched = [], 0, True
+
+
+# 只改变光标/内容的键 → 编辑器动作（新增一个键＝加一行，不再往 if 链里塞分支）
+EDITOR_KEYS: dict[object, str] = {
+    curses.KEY_LEFT: "left",
+    curses.KEY_RIGHT: "right",
+    curses.KEY_HOME: "home",
+    "\x01": "home",
+    curses.KEY_END: "end",
+    "\x05": "end",
+    curses.KEY_BACKSPACE: "backspace",
+    "\x7f": "backspace",
+    "\b": "backspace",
+    curses.KEY_DC: "delete",
+    "\x15": "clear",
+}
+ENTER_KEYS = ("\n", "\r", curses.KEY_ENTER)
+
+
 def edit_line(win, prompt: str, initial: str = "") -> str | None:
     """底部单行编辑器；返回输入内容，Esc 返回 None。"""
     h, w = win.getmaxyx()
-    buf = list(initial)
-    pos = len(buf)
-    touched = not initial  # 预填内容：第一次输入直接替换掉，不用手动删
+    editor = _Editor(initial)
     with contextlib.suppress(curses.error):
         curses.curs_set(1)
     try:
         while True:
             head = cut(prompt, max(4, w // 2))
-            shown = "".join(buf)
+            shown = editor.text()
             while dwidth(head) + dwidth(shown) > max(4, w - 2) and shown:
                 shown = shown[1:]
             put(win, h - 1, 0, head + shown, w - 1, attr("warn") | curses.A_REVERSE)
-            cx = min(w - 2, dwidth(head) + dwidth("".join(buf[:pos])))
+            cx = min(w - 2, dwidth(head) + dwidth("".join(editor.buf[: editor.pos])))
             with contextlib.suppress(curses.error):
                 win.move(h - 1, cx)
             win.refresh()
@@ -33,41 +94,16 @@ def edit_line(win, prompt: str, initial: str = "") -> str | None:
                 key = win.get_wch()
             except curses.error:
                 continue
-            if key in ("\n", "\r", curses.KEY_ENTER):
-                return "".join(buf)
+            if key in ENTER_KEYS:
+                return editor.text()
             if key == "\x1b":
                 return None
-            if key in ("\x7f", "\b", curses.KEY_BACKSPACE):
-                touched = True
-                if pos:
-                    del buf[pos - 1]
-                    pos -= 1
-                continue
-            if key == curses.KEY_DC:
-                touched = True
-                if pos < len(buf):
-                    del buf[pos]
-                continue
-            if key == curses.KEY_LEFT:
-                pos = max(0, pos - 1)
-                continue
-            if key == curses.KEY_RIGHT:
-                pos = min(len(buf), pos + 1)
-                continue
-            if key in (curses.KEY_HOME, "\x01"):
-                pos = 0
-                continue
-            if key in (curses.KEY_END, "\x05"):
-                pos = len(buf)
-                continue
-            if key == "\x15":  # Ctrl-U
-                buf, pos, touched = [], 0, True
+            action = EDITOR_KEYS.get(key)
+            if action is not None:
+                getattr(editor, action)()
                 continue
             if isinstance(key, str) and key.isprintable():
-                if not touched:
-                    buf, pos, touched = [], 0, True
-                buf.insert(pos, key)
-                pos += 1
+                editor.insert(key)
     finally:
         with contextlib.suppress(curses.error):
             curses.curs_set(0)

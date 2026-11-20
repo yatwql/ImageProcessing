@@ -143,6 +143,111 @@ def _is_italic(face: FontFace) -> bool:
     return any(k in name for k in ("italic", "oblique"))
 
 
+Fit = tuple[float, FontFace, int, float, float]
+
+
+def _coarse_candidates(
+    text: str,
+    A: np.ndarray,
+    h_mask: int,
+    w_mask: int,
+    pool: list[FontFace],
+    max_eval: int,
+    track_limit: float,
+    n_gap: int,
+    stop: Callable[[], bool],
+) -> list[tuple[float, FontFace, int, float]] | None:
+    """粗筛：按墨迹高度反解字号、按宽度残差定字距，渲染后算一次软 IoU。
+
+    返回按相似度降序的候选（最多就是 `max_eval` 个）；中途被取消返回 None。
+    """
+    coarse: list[tuple[float, FontFace, int, float]] = []
+    for face in pool[:max_eval]:
+        if stop():  # 候选字体可达 160 款，按 Esc 不该等到全部跑完
+            return None
+        try:
+            h100 = ink_size(text, face, 100)[1]
+            if h100 <= 0:
+                continue
+            size = max(6, round(100.0 * h_mask / h100))
+            track0 = 0.0
+            for _ in range(2):
+                w_fit = ink_size(text, face, size, track0)[0]
+                if w_fit <= 0:
+                    break
+                track0 += (w_mask - w_fit) / n_gap
+            # 字距残差多半是抗锯齿导致的 1~2px 宽度误差，小幅一律归零
+            if abs(track0) < 0.12 * size:
+                track0 = 0.0
+            if abs(track0) > track_limit * size:
+                continue
+            arr, box, _ = render_line(text, face, size, track0)
+            coarse.append((soft_iou(A, _bin(arr, box), radius=3), face, size, track0))
+        except (OSError, ValueError) as exc:
+            _log(f"渲染失败 {face.name}: {exc}")
+    if not coarse:
+        return None
+    coarse.sort(key=lambda t: -t[0])
+    return coarse
+
+
+def _refine_best(
+    text: str,
+    A: np.ndarray,
+    coarse: list[tuple[float, FontFace, int, float]],
+    a_stroke: float,
+    stop: Callable[[], bool],
+) -> Fit | None:
+    """精修：前 8 名各试 ±字号、±字距，加权笔画粗细后取最优。"""
+    best: Fit | None = None
+    for rank, (_score, face, size, track0) in enumerate(coarse[:8]):
+        if stop():
+            return None
+        ds_range = (-3, -2, -1, 0, 1, 2, 3) if rank < 3 else (-2, -1, 0, 1, 2)
+        for ds in ds_range:
+            size0 = max(6, size + ds)
+            for tr in (-0.04, -0.02, 0.0, 0.02, 0.04):
+                tracking = track0 + tr * size0
+                try:
+                    arr, box, _ = render_line(text, face, size0, tracking)
+                except (OSError, ValueError) as exc:
+                    _log(f"渲染失败 {face.name}: {exc}")
+                    continue
+                B = _bin(arr, box)
+                if int(B.sum()) < 8:
+                    continue
+                sim = soft_iou(A, B, radius=2)
+                b_stroke = stroke_of(B)
+                pen = 1.0
+                if a_stroke > 0.5 and b_stroke > 0.5:
+                    pen = (min(a_stroke, b_stroke) / max(a_stroke, b_stroke)) ** 0.7
+                score = sim * pen
+                if best is None or score > best[0]:
+                    best = (score, face, size0, tracking, sim)
+    return best
+
+
+def _search(
+    text: str,
+    A: np.ndarray,
+    h_mask: int,
+    w_mask: int,
+    pool: list[FontFace],
+    max_eval: int,
+    a_stroke: float,
+    track_limit: float,
+    n_gap: int,
+    stop: Callable[[], bool],
+) -> Fit | None:
+    """一轮「粗筛 → 精修」；`track_limit` 决定字距允许的作弊空间。"""
+    coarse = _coarse_candidates(
+        text, A, h_mask, w_mask, pool, max_eval, track_limit, n_gap, stop
+    )
+    if coarse is None:
+        return None
+    return _refine_best(text, A, coarse, a_stroke, stop)
+
+
 def fit_font(
     text: str,
     mask: np.ndarray,
@@ -152,7 +257,7 @@ def fit_font(
     a_stroke: float | None = None,
     slant: float | None = None,
     abort: Callable[[], bool] | None = None,
-) -> tuple[float, FontFace, int, float, float] | None:
+) -> Fit | None:
     """找出与原文字最像的 (score, 字体, 字号, 字距, iou)。
 
     字距分两轮搜索：先只允许正常排版范围（±0.35em），避免靠大间距"作弊"；
@@ -179,61 +284,10 @@ def fit_font(
             stopped = True
         return stopped
 
-    def search(track_limit: float) -> tuple[float, FontFace, int, float, float] | None:
-        coarse: list[tuple[float, FontFace, int, float]] = []
-        for face in pool[:max_eval]:
-            if stop():  # 候选字体可达 160 款，按 Esc 不该等到全部跑完
-                return None
-            try:
-                h100 = ink_size(text, face, 100)[1]
-                if h100 <= 0:
-                    continue
-                size = max(6, round(100.0 * h_mask / h100))
-                track0 = 0.0
-                for _ in range(2):
-                    w_fit = ink_size(text, face, size, track0)[0]
-                    if w_fit <= 0:
-                        break
-                    track0 += (w_mask - w_fit) / n_gap
-                # 字距残差多半是抗锯齿导致的 1~2px 宽度误差，小幅一律归零
-                if abs(track0) < 0.12 * size:
-                    track0 = 0.0
-                if abs(track0) > track_limit * size:
-                    continue
-                arr, box, _ = render_line(text, face, size, track0)
-                coarse.append((soft_iou(A, _bin(arr, box), radius=3), face, size, track0))
-            except (OSError, ValueError) as exc:
-                _log(f"渲染失败 {face.name}: {exc}")
-        if not coarse:
-            return None
-        coarse.sort(key=lambda t: -t[0])
-
-        best = None
-        for rank, (_s, face, size, track0) in enumerate(coarse[:8]):
-            if stop():
-                return None
-            ds_range = (-3, -2, -1, 0, 1, 2, 3) if rank < 3 else (-2, -1, 0, 1, 2)
-            for ds in ds_range:
-                sz = max(6, size + ds)
-                for tr in (-0.04, -0.02, 0.0, 0.02, 0.04):
-                    tracking = track0 + tr * sz
-                    try:
-                        arr, box, _ = render_line(text, face, sz, tracking)
-                    except (OSError, ValueError) as exc:
-                        _log(f"渲染失败 {face.name}: {exc}")
-                        continue
-                    B = _bin(arr, box)
-                    if int(B.sum()) < 8:
-                        continue
-                    sim = soft_iou(A, B, radius=2)
-                    b_stroke = stroke_of(B)
-                    pen = 1.0
-                    if a_stroke > 0.5 and b_stroke > 0.5:
-                        pen = (min(a_stroke, b_stroke) / max(a_stroke, b_stroke)) ** 0.7
-                    v = sim * pen
-                    if best is None or v > best[0]:
-                        best = (v, face, sz, tracking, sim)
-        return best
+    def search(track_limit: float) -> Fit | None:
+        return _search(
+            text, A, h_mask, w_mask, pool, max_eval, a_stroke, track_limit, n_gap, stop
+        )
 
     best = search(0.35)
     if (best is None or best[4] < 0.5) and not stopped:

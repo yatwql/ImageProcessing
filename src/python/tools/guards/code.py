@@ -39,15 +39,14 @@ def check_layering() -> list[str]:
     return problems
 
 
-COMPLEXITY_CEILING = 50  # 单个函数的圈复杂度红线：超过就必须先拆再合入
+COMPLEXITY_CEILING = 15  # 单个函数的圈复杂度红线：超过就必须先拆再合入
 
 
 def check_complexity_ceiling() -> list[str]:
     """圈复杂度上限（守护「复杂度上限」）。
 
-    现有几个"搜索/交互"函数天然偏长（`ui_actions.handle` 48、`fit_font` 27、
-    `edit.replace_image` 30），一次拆完风险大于收益；这里钉住**上限**，只防"更糟"。
-    基线见 technical.md「已知技术债」表。
+    2026-11-20 起全树函数都在 15 以内（`handle` 48 / `replace_image` 30 / `fit_font` 27 /
+    `edit_line` 17 已逐个拆开），所以红线直接收到 15：再加分支就必须先拆。
     """
     result = subprocess.run(
         [

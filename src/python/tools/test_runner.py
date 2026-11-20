@@ -198,7 +198,7 @@ def record_run(report_dir: Path, code: int, summary: str, keep: int = KEEP_DEFAU
         + "\n",
         encoding="utf-8",
     )
-    stale = sorted(HISTORY_DIR.glob("run-*.json"))[:-max(1, keep)]
+    stale = sorted(HISTORY_DIR.glob("run-*.json"))[: -max(1, keep)]
     for old in stale:
         with contextlib.suppress(OSError):
             old.unlink()

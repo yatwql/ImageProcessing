@@ -18,10 +18,12 @@ from ..core import (
     Job,
     build_font_pool,
     collect_images,
+    debug_tag,
     jobs_from_blocks,
     load_image,
     load_meta,
     norm_map,
+    output_name,
     record_write,
     replace_image,
     reserve_path,
@@ -530,7 +532,7 @@ class App:
             jobs,
             self.opts,
             pool,
-            tag=os.path.splitext(img.name)[0] + "_",
+            tag=debug_tag(img.path),
             memo=img.memo,
             source=img.path,
             should_stop=lambda: self.cancel,  # 单张图内按 Esc 也能停在块之间
@@ -538,7 +540,7 @@ class App:
         )
         if not report:
             return False, "已取消" if self.cancel else "替换全部失败"
-        base = os.path.join(self.out_dir, os.path.splitext(img.name)[0] + ".png")
+        base = output_name(img.path, self.out_dir)
         if same_file(base, img.path):
             return False, f"输出目录 {self.out_dir} 会覆盖原图，按 o 换个目录"
         reserved = False

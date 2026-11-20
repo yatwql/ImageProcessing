@@ -237,16 +237,19 @@ class Options:                # 渠道无关的运行选项
 | 覆盖率与 skip 上限 | 本文件 §10、`testplan.md` QG-3 | （`check_coverage.py`，由 `check_all` 串起） |
 | 单函数圈复杂度 ≤50（只防更糟，基线见 §4.7） | 本文件 §4.7 | 复杂度上限 |
 
-## 4.7 已知技术债（暂不拆，已过机检上限）
+## 4.7 复杂度基线（2026-11-20 起：全树 ≤15）
 
-圈复杂度红线 50（守护「复杂度上限」），下列函数在基线内但明显偏高。**只许降、不许升**：
-再动手时先按这里拆，而不是继续往里加分支。
+守护「复杂度上限」的红线就是 **15**，不再留"已知偏长但接受"的名单——原先那批已全部拆开：
 
-| 函数 | cc | 为什么不一次拆完 | 拆的话怎么拆 |
-| --- | --- | --- | --- |
-| `core/edit.replace_image` | 30 | 每块的处理顺序（分析 → 字体 → 区间 → 对齐 → 擦绘）本身就是业务规则 | 抽 `_pick_style` / `_resolve_box` / `_paint` 三段 |
-| `core/style.fit_font` / `search` | 27 / 18 | 粗筛 + 精修两轮搜索，拆开会让阈值比较难读 | 粗筛与精修各自成函数 |
-| `tui/ui_input.edit_line` | 17 | 单行编辑器按键循环，分支即按键语义 | 编辑动作表 |
+| 原来 | cc | 现在怎么拆的 |
+| --- | --- | --- |
+| `tui/ui_actions.handle` | 48 | 面板表 + `MAIN_KEYS`（键 → 处理函数） |
+| `core/edit.replace_image` | 30 | `_analyse_and_fit` / `_pick_style` / `_resolve_box` / `_paint` / `_write_debug_mask` |
+| `core/style.fit_font`（+`search`） | 27 / 18 | `_coarse_candidates` / `_refine_best` / `_search` |
+| `tui/app.set_setting` | 19 | `SETTING_APPLIERS`（项 → 解析+校验函数） |
+| `tui/ui_input.edit_line` | 17 | `_Editor` 状态类 + `EDITOR_KEYS` 表 |
+
+再往这些函数里加分支会直接被守护拦下；要加能力就先按上面的形状继续拆。
 
 ## 5. 匹配规则（`match.plan_jobs`）
 

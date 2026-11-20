@@ -39,6 +39,16 @@ def collect_images(path: str) -> list[str]:
     return [path]
 
 
+def output_name(path: str, out_dir: str, ext: str = ".png") -> str:
+    """默认输出路径：`<out_dir>/<原名去扩展名><ext>`（只换扩展名，其余原样）。"""
+    return os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ext)
+
+
+def debug_tag(path: str) -> str:
+    """调试图前缀：`<原名>_`（`mask_00.png` 拼在它后面）。"""
+    return os.path.splitext(os.path.basename(path))[0] + "_"
+
+
 def unique_path(path: str, taken: set[str] | None = None) -> str:
     """目标已存在（或在 `taken` 里）就在文件名后加 -1、-2 …（扩展名不变）。
 

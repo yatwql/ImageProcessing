@@ -18,9 +18,11 @@ from ..config import log_dir
 from ..core import (
     CoreError,
     Options,
+    debug_tag,
     load_image,
     load_meta,
     make_jobs,
+    output_name,
     record_write,
     replace_image,
     reserve_path,
@@ -137,7 +139,7 @@ class ReplaceContext:
     def target_for(self, path: str) -> str:
         if self.output and not self.batch:
             return self.output
-        return os.path.join(self.out_dir, os.path.splitext(os.path.basename(path))[0] + ".png")
+        return output_name(path, self.out_dir)
 
     def log_dir(self) -> str:
         return self.opts.log_dir or log_dir()
@@ -154,7 +156,7 @@ def replace_one(scan: dict[str, Any], ctx: ReplaceContext) -> dict[str, Any]:
             return {"ok": False, "path": path, "error": f"跳过 {path}: {e}"}
     rgb, alpha = got
     meta = load_meta(path)
-    tag = f"{os.path.splitext(os.path.basename(path))[0]}_"
+    tag = debug_tag(path)
     out, new_alpha, report = replace_image(
         rgb, alpha, scan["jobs"], ctx.opts, ctx.pool, tag=tag, source=path
     )

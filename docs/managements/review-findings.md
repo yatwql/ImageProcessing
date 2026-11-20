@@ -15,5 +15,6 @@
 
 | 系列 | 归档文件 | 涵盖版本 | 归档时间 |
 | --- | --- | --- | --- |
+| v0.4.x | [`archived_review-findings.0.4.x.md`](../archive/v0.4.x/archived_review-findings.0.4.x.md) | v0.4 | 2026-11-20（v0.4 发布，本系列首份） |
 | v0.3.x | [`archived_review-findings.0.3.x.md`](../archive/v0.3.x/archived_review-findings.0.3.x.md) | v0.3 | 2026-11-20（v0.3 发布，本系列首份） |
 | v0.2.x | [`archived_review-findings.0.2.x.md`](../archive/v0.2.x/archived_review-findings.0.2.x.md) | v0.2 | 2026-11-18（v0.2 发布，本系列首份） |

@@ -1,6 +1,6 @@
 # 技术设计文档（Technical Design）
 
-> 版本：v0.4
+> 版本：v0.5-dev
 
 - 项目：retype / PNG 文字替换
 - 版本：1.0
